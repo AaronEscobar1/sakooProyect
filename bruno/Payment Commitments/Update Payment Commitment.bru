@@ -1,0 +1,24 @@
+meta {
+  name: Update Payment Commitment
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/api/v1/payments/commitments/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "amount": 175.00,
+    "currency_id": 1,
+    "due_date": "2026-06-25",
+    "status": "CUMPLIDO"
+  }
+}

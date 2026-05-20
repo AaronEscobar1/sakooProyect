@@ -1,0 +1,24 @@
+meta {
+  name: Update Own Account
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/api/v1/accounts/own/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "bank_name": "Banesco Banco Universal",
+    "account_number": "01340001234567890123",
+    "account_type": "Ahorros",
+    "holder_name": "José Gómez A."
+  }
+}

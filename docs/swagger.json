@@ -1,0 +1,2079 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Servidor API para el Proyecto Sakoo (Arquitectura Limpia).",
+        "title": "Sakoo Backend API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Soporte Sakoo",
+            "url": "http://www.sakoo.com",
+            "email": "soporte@sakoo.com"
+        },
+        "license": {
+            "name": "Propietaria",
+            "url": "http://www.sakoo.com"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/admin/scrape-mercantil": {
+            "post": {
+                "description": "Ejecuta de forma síncrona el web scraper de Mercantil para actualizar las tasas de cambio de este banco.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Forzar raspado de tasas Mercantil",
+                "responses": {
+                    "200": {
+                        "description": "Raspado y actualización de Mercantil ejecutados con éxito",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno al realizar el scraping",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/scrape-now": {
+            "post": {
+                "description": "Ejecuta de forma síncrona el web scraper del Banco Central de Venezuela (BCV) para actualizar las tasas de cambio.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Forzar raspado de tasas BCV",
+                "responses": {
+                    "200": {
+                        "description": "Raspado y actualización del BCV ejecutados con éxito",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno al realizar el scraping",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "description": "Autentica a un usuario mediante su correo electrónico y contraseña (cifrada con RSA en tránsito) y devuelve un token JWT.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Iniciar sesión de usuario",
+                "parameters": [
+                    {
+                        "description": "Credenciales de acceso",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sesión iniciada correctamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciales incorrectas",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/me": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Elimina de forma lógica la cuenta del usuario autenticado validando su correo electrónico y contraseña (cifrada en tránsito).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Eliminar cuenta (Legacy)",
+                "parameters": [
+                    {
+                        "description": "Credenciales de confirmación de eliminación",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.DeleteLegacyAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cuenta eliminada lógicamente de manera exitosa",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/public-key": {
+            "get": {
+                "description": "Retorna la clave pública RSA en formato PEM para cifrar credenciales de usuario antes de transmitirlas.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Obtener clave pública RSA",
+                "responses": {
+                    "200": {
+                        "description": "Clave pública obtenida correctamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "description": "Registra un nuevo usuario en la plataforma validando el código OTP y descifrando la contraseña.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Registrar un nuevo usuario",
+                "parameters": [
+                    {
+                        "description": "Datos de registro",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error al registrar usuario o datos duplicados",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rates": {
+            "post": {
+                "description": "Retorna las últimas tasas de cambio obtenidas para todas las monedas registradas.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasas de Cambio"
+                ],
+                "summary": "Obtener tasas de cambio más recientes",
+                "responses": {
+                    "200": {
+                        "description": "Tasas obtenidas exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno al obtener tasas",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rates/history": {
+            "post": {
+                "description": "Retorna una lista paginada del historial de tasas de cambio según moneda y rangos de fechas opcionales.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasas de Cambio"
+                ],
+                "summary": "Obtener historial de tasas de cambio",
+                "parameters": [
+                    {
+                        "description": "Parámetros de paginación y filtros",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.HistoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Historial obtenido exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PaginatedRatesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Datos de entrada inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/account": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Elimina de forma lógica la cuenta del usuario autenticado validando un código OTP.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Eliminar cuenta (v1)",
+                "parameters": [
+                    {
+                        "description": "Confirmación de eliminación con código OTP",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.DeleteAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cuenta eliminada lógicamente de manera exitosa",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Código OTP inválido o error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/accounts/own": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite registrar una nueva cuenta bancaria propia (POST) o listar todas las cuentas propias asociadas al usuario autenticado (GET).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Propias"
+                ],
+                "summary": "Gestionar cuentas bancarias propias (Crear / Listar)",
+                "parameters": [
+                    {
+                        "description": "Datos de la cuenta (requerido solo para POST)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.OwnAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error de autenticación o datos incorrectos",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite registrar una nueva cuenta bancaria propia (POST) o listar todas las cuentas propias asociadas al usuario autenticado (GET).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Propias"
+                ],
+                "summary": "Gestionar cuentas bancarias propias (Crear / Listar)",
+                "parameters": [
+                    {
+                        "description": "Datos de la cuenta (requerido solo para POST)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.OwnAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error de autenticación o datos incorrectos",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/accounts/own/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite actualizar por completo una cuenta bancaria propia (PUT) o eliminarla de forma lógica (DELETE) especificando su ID en la ruta.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Propias"
+                ],
+                "summary": "Gestionar detalle de cuenta propia (Actualizar / Eliminar)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID de la cuenta bancaria",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados de la cuenta (requerido solo para PUT)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.OwnAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID inválido, no autorizado o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite actualizar por completo una cuenta bancaria propia (PUT) o eliminarla de forma lógica (DELETE) especificando su ID en la ruta.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Propias"
+                ],
+                "summary": "Gestionar detalle de cuenta propia (Actualizar / Eliminar)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID de la cuenta bancaria",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados de la cuenta (requerido solo para PUT)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.OwnAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID inválido, no autorizado o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/accounts/third-party": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite registrar una nueva cuenta bancaria de un tercero (POST) o listar todas las de terceros asociadas al usuario autenticado (GET).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Terceros"
+                ],
+                "summary": "Gestionar cuentas bancarias de terceros (Crear / Listar)",
+                "parameters": [
+                    {
+                        "description": "Datos de la cuenta (requerido solo para POST)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ThirdPartyAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error al procesar la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite registrar una nueva cuenta bancaria de un tercero (POST) o listar todas las de terceros asociadas al usuario autenticado (GET).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Terceros"
+                ],
+                "summary": "Gestionar cuentas bancarias de terceros (Crear / Listar)",
+                "parameters": [
+                    {
+                        "description": "Datos de la cuenta (requerido solo para POST)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ThirdPartyAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error al procesar la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/accounts/third-party/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite actualizar por completo una cuenta de terceros (PUT) o eliminarla físicamente (DELETE) especificando su ID en la ruta.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Terceros"
+                ],
+                "summary": "Gestionar detalle de cuenta de terceros (Actualizar / Eliminar)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID de la cuenta de terceros",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados de la cuenta (requerido solo para PUT)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ThirdPartyAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID inválido, no autorizado o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite actualizar por completo una cuenta de terceros (PUT) o eliminarla físicamente (DELETE) especificando su ID en la ruta.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cuentas Bancarias - Terceros"
+                ],
+                "summary": "Gestionar detalle de cuenta de terceros (Actualizar / Eliminar)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID de la cuenta de terceros",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados de la cuenta (requerido solo para PUT)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ThirdPartyAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID inválido, no autorizado o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/otp/request": {
+            "post": {
+                "description": "Genera y envía un código OTP por correo electrónico al usuario para registrarse, recuperar contraseña o eliminar cuenta.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Solicitar OTP",
+                "parameters": [
+                    {
+                        "description": "Cuerpo de la solicitud con email y acción",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.RequestOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Código OTP generado y enviado exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/password/reset": {
+            "post": {
+                "description": "Restablece la contraseña de un usuario validando el código OTP enviado a su correo.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Restablecer contraseña",
+                "parameters": [
+                    {
+                        "description": "Datos para restablecer la contraseña",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Contraseña restablecida correctamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Código OTP inválido o credenciales inválidas",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/register": {
+            "post": {
+                "description": "Registra un nuevo usuario en la plataforma validando el código OTP y descifrando la contraseña.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Registrar un nuevo usuario",
+                "parameters": [
+                    {
+                        "description": "Datos de registro",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error al registrar usuario o datos duplicados",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/banners": {
+            "get": {
+                "description": "Retorna una lista de banners publicitarios activos en el sistema.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Banners"
+                ],
+                "summary": "Obtener banners activos",
+                "responses": {
+                    "200": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/me": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna los datos de perfil del usuario actualmente autenticado (mediante JWT).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Obtener perfil del usuario",
+                "responses": {
+                    "200": {
+                        "description": "Perfil del usuario recuperado exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ProfileResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/messages": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Obtiene la lista completa de mensajes de mensajería interna (tanto recibidos como enviados) del usuario autenticado.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mensajería"
+                ],
+                "summary": "Obtener mensajes recibidos y enviados",
+                "responses": {
+                    "200": {
+                        "description": "No autorizado o error interno",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/messages/send": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Envía un mensaje de texto de parte del usuario autenticado a otro usuario registrado en el sistema.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mensajería"
+                ],
+                "summary": "Enviar un mensaje interno",
+                "parameters": [
+                    {
+                        "description": "Datos del mensaje a enviar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.SendMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Destinatario inválido, contenido vacío o no autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/messages/unread-count": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna el conteo total de mensajes recibidos por el usuario autenticado que aún no han sido marcados como leídos.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mensajería"
+                ],
+                "summary": "Obtener cantidad de mensajes no leídos",
+                "responses": {
+                    "200": {
+                        "description": "No autorizado o error interno",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/commitments": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite registrar un nuevo compromiso de pago (POST) o listar todos los compromisos segmentados por estado (por_vencer, vencidos, cumplidos) del usuario (GET).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Compromisos de Pago"
+                ],
+                "summary": "Gestionar compromisos de pago (Crear / Listar Segmentados)",
+                "parameters": [
+                    {
+                        "description": "Datos del compromiso (requerido solo para POST)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CommitmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error al procesar la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite registrar un nuevo compromiso de pago (POST) o listar todos los compromisos segmentados por estado (por_vencer, vencidos, cumplidos) del usuario (GET).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Compromisos de Pago"
+                ],
+                "summary": "Gestionar compromisos de pago (Crear / Listar Segmentados)",
+                "parameters": [
+                    {
+                        "description": "Datos del compromiso (requerido solo para POST)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CommitmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error al procesar la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/commitments/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite actualizar por completo un compromiso de pago (PUT) o eliminarlo de forma lógica (DELETE) especificando su ID en la ruta.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Compromisos de Pago"
+                ],
+                "summary": "Gestionar detalle de compromiso de pago (Actualizar / Eliminar)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID del compromiso de pago",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados del compromiso (requerido solo para PUT)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CommitmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID inválido, no autorizado o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Permite actualizar por completo un compromiso de pago (PUT) o eliminarlo de forma lógica (DELETE) especificando su ID en la ruta.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Compromisos de Pago"
+                ],
+                "summary": "Gestionar detalle de compromiso de pago (Actualizar / Eliminar)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID del compromiso de pago",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados del compromiso (requerido solo para PUT)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CommitmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID inválido, no autorizado o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/rates/calculate": {
+            "post": {
+                "description": "Calcula la conversión de un monto específico a la moneda objetivo según tasas vigentes o históricas.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Core Business"
+                ],
+                "summary": "Calcular conversión de monedas",
+                "parameters": [
+                    {
+                        "description": "Datos para la conversión",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ConversionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Moneda no encontrada o monto negativo",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/rates/calendar-dates": {
+            "get": {
+                "description": "Retorna una lista de todas las fechas que tienen tasas registradas en el sistema.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Core Business"
+                ],
+                "summary": "Obtener fechas con tasas registradas",
+                "responses": {
+                    "200": {
+                        "description": "Error interno",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/rates/comments": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Agrega una opinión o comentario de un usuario autenticado para una tasa de cambio específica.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Comentarios"
+                ],
+                "summary": "Agregar comentario a una tasa",
+                "parameters": [
+                    {
+                        "description": "Datos del comentario",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error de validación o no autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/rates/dashboard": {
+            "get": {
+                "description": "Retorna la última tasa de la moneda especificada, su porcentaje de variación y su historial de tasas recientes.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Core Business"
+                ],
+                "summary": "Obtener resumen del dashboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código de la moneda (ej. USD)",
+                        "name": "currency",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Moneda no encontrada o error interno",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/rates/{rate_id}/comments": {
+            "get": {
+                "description": "Retorna una lista de comentarios u opiniones realizadas durante el día para la tasa indicada.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Comentarios"
+                ],
+                "summary": "Obtener opiniones del día para una tasa",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID de la tasa de cambio",
+                        "name": "rate_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID de tasa inválido o error interno",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Banner": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Banner"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Comment": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Message": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_api.RateResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_string": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.AuthResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_BankAccount": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.BankAccount"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Comment": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Message": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-int": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_CommitmentResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.CommitmentResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ConversionResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.ConversionResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_DashboardResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.DashboardResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PaginatedRatesResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.PaginatedRatesResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ProfileResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.ProfileResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.PublicKeyResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_SegmentedCommitmentResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.SegmentedCommitmentResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.BankAccount": {
+            "type": "object",
+            "properties": {
+                "account_number": {
+                    "type": "string"
+                },
+                "account_type": {
+                    "type": "string"
+                },
+                "bank_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "holder_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.Banner": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.Comment": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "rate_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "description": "Campo auxiliar para respuestas HTTP",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.Message": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "read_at": {
+                    "type": "string"
+                },
+                "receiver_id": {
+                    "type": "integer"
+                },
+                "sender_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "document_number": {
+                    "type": "string"
+                },
+                "document_type_id": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "otp_code": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "second_last_name": {
+                    "type": "string"
+                },
+                "user_type_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.CommentRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "rate_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_api.CommitmentRequest": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency_id": {
+                    "type": "integer"
+                },
+                "due_date": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.CommitmentResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency_id": {
+                    "type": "integer"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_api.ConversionRequest": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "description": "Opcional para calculadora retroactiva",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.ConversionResponse": {
+            "type": "object",
+            "properties": {
+                "converted_amount": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "original_amount": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.DashboardExchangeRate": {
+            "type": "object",
+            "properties": {
+                "currency_code": {
+                    "type": "string"
+                },
+                "rate_average": {
+                    "type": "string"
+                },
+                "rate_from": {
+                    "type": "string"
+                },
+                "rate_to": {
+                    "type": "string"
+                },
+                "value_date": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.DashboardResponse": {
+            "type": "object",
+            "properties": {
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_api.DashboardExchangeRate"
+                    }
+                },
+                "latest_rate": {
+                    "$ref": "#/definitions/internal_api.DashboardExchangeRate"
+                },
+                "variation_percent": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.DeleteAccountRequest": {
+            "type": "object",
+            "properties": {
+                "otp_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.DeleteLegacyAccountRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.HistoryRequest": {
+            "type": "object",
+            "properties": {
+                "currency_code": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "start_date": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.OwnAccountRequest": {
+            "type": "object",
+            "properties": {
+                "account_number": {
+                    "type": "string"
+                },
+                "account_type": {
+                    "type": "string"
+                },
+                "bank_name": {
+                    "type": "string"
+                },
+                "holder_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.PaginatedRatesResponse": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_api.RateResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "total_items": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_api.ProfileResponse": {
+            "type": "object",
+            "properties": {
+                "avatar_index": {
+                    "type": "integer"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "document_number": {
+                    "type": "string"
+                },
+                "document_type_id": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "registration_ip": {
+                    "type": "string"
+                },
+                "second_last_name": {
+                    "type": "string"
+                },
+                "user_type_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.PublicKeyResponse": {
+            "type": "object",
+            "properties": {
+                "public_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.RateResponse": {
+            "type": "object",
+            "properties": {
+                "currency_code": {
+                    "type": "string"
+                },
+                "rate_average": {
+                    "type": "string"
+                },
+                "rate_from": {
+                    "type": "string"
+                },
+                "rate_to": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "value_date": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.RequestOTPRequest": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "description": "'REGISTER', 'RECOVER', 'DELETE'",
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.ResetPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                },
+                "otp_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.SegmentedCommitmentResponse": {
+            "type": "object",
+            "properties": {
+                "cumplidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_api.CommitmentResponse"
+                    }
+                },
+                "por_vencer": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_api.CommitmentResponse"
+                    }
+                },
+                "vencidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_api.CommitmentResponse"
+                    }
+                }
+            }
+        },
+        "internal_api.SendMessageRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "receiver_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_api.ThirdPartyAccountRequest": {
+            "type": "object",
+            "properties": {
+                "account_number": {
+                    "type": "string"
+                },
+                "account_type": {
+                    "type": "string"
+                },
+                "alias": {
+                    "type": "string"
+                },
+                "bank_name": {
+                    "type": "string"
+                },
+                "document_number": {
+                    "type": "string"
+                },
+                "holder_name": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "Coloque el token JWT de la siguiente manera: \"Bearer \u003ctoken\u003e\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

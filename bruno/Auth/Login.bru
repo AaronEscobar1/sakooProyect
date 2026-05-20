@@ -1,0 +1,24 @@
+meta {
+  name: Login
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "test@sakoo.com",
+    "password": "Password123!"
+  }
+}
+
+script:post-response {
+  const token = res.body.data.token;
+  
+  bru.setVar("token", token)
+}

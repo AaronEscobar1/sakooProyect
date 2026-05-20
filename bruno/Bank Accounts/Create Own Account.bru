@@ -1,0 +1,24 @@
+meta {
+  name: Create Own Account
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/accounts/own
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "bank_name": "Banesco",
+    "account_number": "01340001234567890123",
+    "account_type": "Corriente",
+    "holder_name": "José Gómez"
+  }
+}

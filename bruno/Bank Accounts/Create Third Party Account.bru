@@ -1,0 +1,26 @@
+meta {
+  name: Create Third Party Account
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/v1/accounts/third-party
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "bank_name": "Mercantil",
+    "account_number": "01050009876543210987",
+    "account_type": "Corriente",
+    "holder_name": "Ana López",
+    "alias": "Tía Ana",
+    "document_number": "V-12345678"
+  }
+}

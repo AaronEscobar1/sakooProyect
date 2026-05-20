@@ -1,0 +1,20 @@
+# Archivos de configuración con credenciales sensibles
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Binarios y carpetas generadas por Go
+/dist/
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Herramientas de desarrollo locales
+/scratch/

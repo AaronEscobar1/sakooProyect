@@ -1,0 +1,11 @@
+meta {
+  name: Get Dashboard Summary
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/v1/rates/dashboard?currency=USD
+  body: none
+  auth: none
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Add Comment
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/v1/rates/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "rate_id": 1,
+    "content": "Excelente tasa de cambio para transacciones hoy!"
+  }
+}

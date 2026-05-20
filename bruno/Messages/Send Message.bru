@@ -1,0 +1,22 @@
+meta {
+  name: Send Message
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/messages/send
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "receiver_id": 2,
+    "content": "Hola! ¿Cómo estás? Te escribo para coordinar la transacción de hoy."
+  }
+}

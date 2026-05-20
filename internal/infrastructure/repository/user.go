@@ -1,0 +1,346 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/aaron/sakoo-backend/internal/domain"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// userRepository implementa la interfaz domain.UserRepository para PostgreSQL.
+type userRepository struct {
+	db *pgxpool.Pool
+}
+
+// NewUserRepository crea una nueva instancia del repositorio de usuarios.
+func NewUserRepository(db *pgxpool.Pool) domain.UserRepository {
+	return &userRepository{
+		db: db,
+	}
+}
+
+// Create inserta un nuevo usuario en la base de datos y almacena el ID numérico generado.
+func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Creando registro de usuario en base de datos", "email", user.Email)
+
+	query := `
+		INSERT INTO public.users (
+			email, 
+			username,
+			first_name, 
+			last_name, 
+			middle_name,
+			second_last_name,
+			avatar_index, 
+			user_type_id, 
+			document_type_id, 
+			document_number, 
+			password_hash, 
+			registration_ip,
+			country,
+			created_at, 
+			updated_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+		RETURNING id;
+	`
+
+	// Ejecutar consulta y capturar el ID numérico autoincremental (BIGSERIAL)
+	err := r.db.QueryRow(dbCtx, query,
+		user.Email,
+		user.Username,
+		user.FirstName,
+		user.LastName,
+		user.MiddleName,
+		user.SecondLastName,
+		user.AvatarIndex,
+		user.UserTypeID,
+		user.DocumentTypeID,
+		user.DocumentNumber,
+		user.PasswordHash,
+		user.RegistrationIP,
+		user.Country,
+	).Scan(&user.ID)
+
+	if err != nil {
+		slog.Error("Fallo al insertar usuario en PostgreSQL", "error", err, "email", user.Email)
+		return fmt.Errorf("error al guardar usuario en base de datos: %w", err)
+	}
+
+	slog.Info("Usuario registrado exitosamente en base de datos", "id", user.ID, "email", user.Email)
+	return nil
+}
+
+// FindByEmail busca un usuario activo en base de datos por su correo electrónico.
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Buscando usuario por correo electrónico", "email", email)
+
+	query := `
+		SELECT 
+			id, 
+			email, 
+			username,
+			first_name, 
+			last_name, 
+			middle_name,
+			second_last_name,
+			avatar_index, 
+			user_type_id, 
+			document_type_id, 
+			document_number, 
+			password_hash, 
+			registration_ip,
+			country,
+			deleted_at,
+			created_at, 
+			updated_at 
+		FROM public.users 
+		WHERE email = $1 AND deleted_at IS NULL;
+	`
+
+	var u domain.User
+	err := r.db.QueryRow(dbCtx, query, email).Scan(
+		&u.ID,
+		&u.Email,
+		&u.Username,
+		&u.FirstName,
+		&u.LastName,
+		&u.MiddleName,
+		&u.SecondLastName,
+		&u.AvatarIndex,
+		&u.UserTypeID,
+		&u.DocumentTypeID,
+		&u.DocumentNumber,
+		&u.PasswordHash,
+		&u.RegistrationIP,
+		&u.Country,
+		&u.DeletedAt,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			slog.Debug("Usuario no encontrado o inactivo en base de datos", "email", email)
+			return nil, fmt.Errorf("usuario no encontrado: %w", pgx.ErrNoRows)
+		}
+		slog.Error("Error al consultar usuario por email en PostgreSQL", "error", err, "email", email)
+		return nil, fmt.Errorf("error de consulta en base de datos: %w", err)
+	}
+
+	return &u, nil
+}
+
+// FindByID busca un usuario activo en base de datos por su ID de base de datos.
+func (r *userRepository) FindByID(ctx context.Context, id int64) (*domain.User, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Buscando usuario por ID", "id", id)
+
+	query := `
+		SELECT 
+			id, 
+			email, 
+			username,
+			first_name, 
+			last_name, 
+			middle_name,
+			second_last_name,
+			avatar_index, 
+			user_type_id, 
+			document_type_id, 
+			document_number, 
+			password_hash, 
+			registration_ip,
+			country,
+			deleted_at,
+			created_at, 
+			updated_at 
+		FROM public.users 
+		WHERE id = $1 AND deleted_at IS NULL;
+	`
+
+	var u domain.User
+	err := r.db.QueryRow(dbCtx, query, id).Scan(
+		&u.ID,
+		&u.Email,
+		&u.Username,
+		&u.FirstName,
+		&u.LastName,
+		&u.MiddleName,
+		&u.SecondLastName,
+		&u.AvatarIndex,
+		&u.UserTypeID,
+		&u.DocumentTypeID,
+		&u.DocumentNumber,
+		&u.PasswordHash,
+		&u.RegistrationIP,
+		&u.Country,
+		&u.DeletedAt,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			slog.Debug("Usuario no encontrado o inactivo en base de datos", "id", id)
+			return nil, fmt.Errorf("usuario no encontrado: %w", pgx.ErrNoRows)
+		}
+		slog.Error("Error al consultar usuario por ID en PostgreSQL", "error", err, "id", id)
+		return nil, fmt.Errorf("error de consulta en base de datos: %w", err)
+	}
+
+	return &u, nil
+}
+
+// SoftDelete realiza un borrado lógico estableciendo deleted_at a la fecha actual.
+func (r *userRepository) SoftDelete(ctx context.Context, userID int64) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Info("Ejecutando borrado lógico de usuario", "user_id", userID)
+
+	query := `
+		UPDATE public.users 
+		SET deleted_at = NOW(), updated_at = NOW() 
+		WHERE id = $1 AND deleted_at IS NULL;
+	`
+	res, err := r.db.Exec(dbCtx, query, userID)
+	if err != nil {
+		slog.Error("Fallo al ejecutar soft delete del usuario en PostgreSQL", "error", err, "user_id", userID)
+		return fmt.Errorf("error al eliminar lógicamente al usuario: %w", err)
+	}
+
+	if res.RowsAffected() == 0 {
+		slog.Warn("El usuario no existe o ya ha sido eliminado lógicamente", "user_id", userID)
+		return fmt.Errorf("usuario no encontrado o ya eliminado")
+	}
+
+	slog.Info("Usuario eliminado lógicamente de forma exitosa", "user_id", userID)
+	return nil
+}
+
+// UpdatePassword actualiza la contraseña de un usuario en base de datos.
+func (r *userRepository) UpdatePassword(ctx context.Context, userID int64, passwordHash string) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Info("Actualizando contraseña de usuario en base de datos", "user_id", userID)
+
+	query := `
+		UPDATE public.users 
+		SET password_hash = $1, updated_at = NOW() 
+		WHERE id = $2 AND deleted_at IS NULL;
+	`
+	res, err := r.db.Exec(dbCtx, query, passwordHash, userID)
+	if err != nil {
+		slog.Error("Fallo al actualizar la contraseña del usuario en PostgreSQL", "error", err, "user_id", userID)
+		return fmt.Errorf("error al actualizar la contraseña del usuario: %w", err)
+	}
+
+	if res.RowsAffected() == 0 {
+		slog.Warn("El usuario no existe o ha sido eliminado lógicamente", "user_id", userID)
+		return fmt.Errorf("usuario no encontrado o ya eliminado")
+	}
+
+	slog.Info("Contraseña del usuario actualizada exitosamente", "user_id", userID)
+	return nil
+}
+
+// GetPasswordHistory obtiene los últimos 5 hashes de contraseña del historial del usuario.
+func (r *userRepository) GetPasswordHistory(ctx context.Context, userID int64) ([]string, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Consultando historial de contraseñas de usuario", "user_id", userID)
+
+	query := `
+		SELECT password_hash 
+		FROM public.user_passwords_history 
+		WHERE user_id = $1 
+		ORDER BY created_at DESC, id DESC 
+		LIMIT 5;
+	`
+	rows, err := r.db.Query(dbCtx, query, userID)
+	if err != nil {
+		slog.Error("Fallo al obtener historial de contraseñas", "error", err, "user_id", userID)
+		return nil, fmt.Errorf("error al obtener historial de contraseñas: %w", err)
+	}
+	defer rows.Close()
+
+	var history []string
+	for rows.Next() {
+		var hash string
+		if err := rows.Scan(&hash); err != nil {
+			slog.Error("Fallo al escanear fila de historial de contraseñas", "error", err)
+			return nil, fmt.Errorf("error al escanear historial de contraseñas: %w", err)
+		}
+		history = append(history, hash)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error en iteración de historial de contraseñas: %w", err)
+	}
+
+	return history, nil
+}
+
+// AddPasswordHistory registra un nuevo hash de contraseña en el historial del usuario y mantiene únicamente los últimos 5 registros de forma atómica.
+func (r *userRepository) AddPasswordHistory(ctx context.Context, userID int64, passwordHash string) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Insertando hash de contraseña en historial con límite de 5 registros", "user_id", userID)
+
+	// Ejecutar en una transacción para garantizar consistencia atómica
+	tx, err := r.db.Begin(dbCtx)
+	if err != nil {
+		return fmt.Errorf("error al iniciar transacción de historial de contraseñas: %w", err)
+	}
+	defer tx.Rollback(dbCtx)
+
+	insertQuery := `
+		INSERT INTO public.user_passwords_history (user_id, password_hash, created_at)
+		VALUES ($1, $2, NOW());
+	`
+	_, err = tx.Exec(dbCtx, insertQuery, userID, passwordHash)
+	if err != nil {
+		slog.Error("Fallo al insertar en user_passwords_history", "error", err, "user_id", userID)
+		return fmt.Errorf("error al registrar en historial de contraseñas: %w", err)
+	}
+
+	// Borrar registros de historial más antiguos de los últimos 5
+	deleteQuery := `
+		DELETE FROM public.user_passwords_history 
+		WHERE id NOT IN (
+			SELECT id FROM public.user_passwords_history 
+			WHERE user_id = $1 
+			ORDER BY created_at DESC, id DESC 
+			LIMIT 5
+		) AND user_id = $1;
+	`
+	_, err = tx.Exec(dbCtx, deleteQuery, userID)
+	if err != nil {
+		slog.Error("Fallo al limpiar historial de contraseñas excedente", "error", err, "user_id", userID)
+		return fmt.Errorf("error al limpiar historial de contraseñas: %w", err)
+	}
+
+	if err := tx.Commit(dbCtx); err != nil {
+		return fmt.Errorf("error al confirmar transacción de historial de contraseñas: %w", err)
+	}
+
+	slog.Info("Hash de contraseña insertado y limpiado en historial con éxito", "user_id", userID)
+	return nil
+}

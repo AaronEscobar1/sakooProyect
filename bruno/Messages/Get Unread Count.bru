@@ -1,0 +1,15 @@
+meta {
+  name: Get Unread Count
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/v1/messages/unread-count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

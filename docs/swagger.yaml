@@ -1,0 +1,1368 @@
+basePath: /
+definitions:
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Banner:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.Banner'
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Comment:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment'
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Message:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message'
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/internal_api.RateResponse'
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_string:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.AuthResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_BankAccount:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.BankAccount'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Comment:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Message:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-int:
+    properties:
+      code:
+        type: integer
+      data:
+        type: integer
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_CommitmentResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/internal_api.CommitmentResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ConversionResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/internal_api.ConversionResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_DashboardResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/internal_api.DashboardResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PaginatedRatesResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/internal_api.PaginatedRatesResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ProfileResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/internal_api.ProfileResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/internal_api.PublicKeyResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_SegmentedCommitmentResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/internal_api.SegmentedCommitmentResponse'
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.AuthResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.BankAccount:
+    properties:
+      account_number:
+        type: string
+      account_type:
+        type: string
+      bank_name:
+        type: string
+      created_at:
+        type: string
+      holder_name:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.Banner:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      link:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.Comment:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      rate_id:
+        type: integer
+      user_id:
+        type: integer
+      username:
+        description: Campo auxiliar para respuestas HTTP
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.Message:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      read_at:
+        type: string
+      receiver_id:
+        type: integer
+      sender_id:
+        type: integer
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.RegisterRequest:
+    properties:
+      document_number:
+        type: string
+      document_type_id:
+        type: integer
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      otp_code:
+        type: string
+      password:
+        type: string
+      second_last_name:
+        type: string
+      user_type_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  internal_api.CommentRequest:
+    properties:
+      content:
+        type: string
+      rate_id:
+        type: integer
+    type: object
+  internal_api.CommitmentRequest:
+    properties:
+      amount:
+        type: number
+      currency_id:
+        type: integer
+      due_date:
+        description: YYYY-MM-DD
+        type: string
+      status:
+        type: string
+    type: object
+  internal_api.CommitmentResponse:
+    properties:
+      amount:
+        type: string
+      created_at:
+        type: string
+      currency_id:
+        type: integer
+      due_date:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  internal_api.ConversionRequest:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+      date:
+        description: Opcional para calculadora retroactiva
+        type: string
+    type: object
+  internal_api.ConversionResponse:
+    properties:
+      converted_amount:
+        type: string
+      currency:
+        type: string
+      original_amount:
+        type: string
+    type: object
+  internal_api.DashboardExchangeRate:
+    properties:
+      currency_code:
+        type: string
+      rate_average:
+        type: string
+      rate_from:
+        type: string
+      rate_to:
+        type: string
+      value_date:
+        type: string
+    type: object
+  internal_api.DashboardResponse:
+    properties:
+      history:
+        items:
+          $ref: '#/definitions/internal_api.DashboardExchangeRate'
+        type: array
+      latest_rate:
+        $ref: '#/definitions/internal_api.DashboardExchangeRate'
+      variation_percent:
+        type: string
+    type: object
+  internal_api.DeleteAccountRequest:
+    properties:
+      otp_code:
+        type: string
+    type: object
+  internal_api.DeleteLegacyAccountRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  internal_api.HistoryRequest:
+    properties:
+      currency_code:
+        type: string
+      end_date:
+        description: YYYY-MM-DD
+        type: string
+      limit:
+        type: integer
+      page:
+        type: integer
+      start_date:
+        description: YYYY-MM-DD
+        type: string
+    type: object
+  internal_api.OwnAccountRequest:
+    properties:
+      account_number:
+        type: string
+      account_type:
+        type: string
+      bank_name:
+        type: string
+      holder_name:
+        type: string
+    type: object
+  internal_api.PaginatedRatesResponse:
+    properties:
+      current_page:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/internal_api.RateResponse'
+        type: array
+      limit:
+        type: integer
+      total_items:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  internal_api.ProfileResponse:
+    properties:
+      avatar_index:
+        type: integer
+      country:
+        type: string
+      document_number:
+        type: string
+      document_type_id:
+        type: integer
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      registration_ip:
+        type: string
+      second_last_name:
+        type: string
+      user_type_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  internal_api.PublicKeyResponse:
+    properties:
+      public_key:
+        type: string
+    type: object
+  internal_api.RateResponse:
+    properties:
+      currency_code:
+        type: string
+      rate_average:
+        type: string
+      rate_from:
+        type: string
+      rate_to:
+        type: string
+      updated_at:
+        type: string
+      value_date:
+        type: string
+    type: object
+  internal_api.RequestOTPRequest:
+    properties:
+      action:
+        description: '''REGISTER'', ''RECOVER'', ''DELETE'''
+        type: string
+      email:
+        type: string
+    type: object
+  internal_api.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+      new_password:
+        type: string
+      otp_code:
+        type: string
+    type: object
+  internal_api.SegmentedCommitmentResponse:
+    properties:
+      cumplidos:
+        items:
+          $ref: '#/definitions/internal_api.CommitmentResponse'
+        type: array
+      por_vencer:
+        items:
+          $ref: '#/definitions/internal_api.CommitmentResponse'
+        type: array
+      vencidos:
+        items:
+          $ref: '#/definitions/internal_api.CommitmentResponse'
+        type: array
+    type: object
+  internal_api.SendMessageRequest:
+    properties:
+      content:
+        type: string
+      receiver_id:
+        type: integer
+    type: object
+  internal_api.ThirdPartyAccountRequest:
+    properties:
+      account_number:
+        type: string
+      account_type:
+        type: string
+      alias:
+        type: string
+      bank_name:
+        type: string
+      document_number:
+        type: string
+      holder_name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: soporte@sakoo.com
+    name: Soporte Sakoo
+    url: http://www.sakoo.com
+  description: Servidor API para el Proyecto Sakoo (Arquitectura Limpia).
+  license:
+    name: Propietaria
+    url: http://www.sakoo.com
+  termsOfService: http://swagger.io/terms/
+  title: Sakoo Backend API
+  version: "1.0"
+paths:
+  /api/admin/scrape-mercantil:
+    post:
+      description: Ejecuta de forma síncrona el web scraper de Mercantil para actualizar
+        las tasas de cambio de este banco.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Raspado y actualización de Mercantil ejecutados con éxito
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "500":
+          description: Error interno al realizar el scraping
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Forzar raspado de tasas Mercantil
+      tags:
+      - Administración
+  /api/admin/scrape-now:
+    post:
+      description: Ejecuta de forma síncrona el web scraper del Banco Central de Venezuela
+        (BCV) para actualizar las tasas de cambio.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Raspado y actualización del BCV ejecutados con éxito
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "500":
+          description: Error interno al realizar el scraping
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Forzar raspado de tasas BCV
+      tags:
+      - Administración
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica a un usuario mediante su correo electrónico y contraseña
+        (cifrada con RSA en tránsito) y devuelve un token JWT.
+      parameters:
+      - description: Credenciales de acceso
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sesión iniciada correctamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse'
+        "401":
+          description: Credenciales incorrectas
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Iniciar sesión de usuario
+      tags:
+      - Autenticación
+  /api/auth/me:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina de forma lógica la cuenta del usuario autenticado validando
+        su correo electrónico y contraseña (cifrada en tránsito).
+      parameters:
+      - description: Credenciales de confirmación de eliminación
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.DeleteLegacyAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cuenta eliminada lógicamente de manera exitosa
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Eliminar cuenta (Legacy)
+      tags:
+      - Autenticación
+  /api/auth/public-key:
+    get:
+      description: Retorna la clave pública RSA en formato PEM para cifrar credenciales
+        de usuario antes de transmitirlas.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Clave pública obtenida correctamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse'
+      summary: Obtener clave pública RSA
+      tags:
+      - Autenticación
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Registra un nuevo usuario en la plataforma validando el código
+        OTP y descifrando la contraseña.
+      parameters:
+      - description: Datos de registro
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error al registrar usuario o datos duplicados
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Registrar un nuevo usuario
+      tags:
+      - Autenticación
+  /api/rates:
+    post:
+      description: Retorna las últimas tasas de cambio obtenidas para todas las monedas
+        registradas.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tasas obtenidas exitosamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse'
+        "500":
+          description: Error interno al obtener tasas
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener tasas de cambio más recientes
+      tags:
+      - Tasas de Cambio
+  /api/rates/history:
+    post:
+      consumes:
+      - application/json
+      description: Retorna una lista paginada del historial de tasas de cambio según
+        moneda y rangos de fechas opcionales.
+      parameters:
+      - description: Parámetros de paginación y filtros
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.HistoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Historial obtenido exitosamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PaginatedRatesResponse'
+        "400":
+          description: Datos de entrada inválidos
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener historial de tasas de cambio
+      tags:
+      - Tasas de Cambio
+  /api/v1/account:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina de forma lógica la cuenta del usuario autenticado validando
+        un código OTP.
+      parameters:
+      - description: Confirmación de eliminación con código OTP
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.DeleteAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cuenta eliminada lógicamente de manera exitosa
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "400":
+          description: Código OTP inválido o error
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Eliminar cuenta (v1)
+      tags:
+      - Autenticación
+  /api/v1/accounts/own:
+    get:
+      consumes:
+      - application/json
+      description: Permite registrar una nueva cuenta bancaria propia (POST) o listar
+        todas las cuentas propias asociadas al usuario autenticado (GET).
+      parameters:
+      - description: Datos de la cuenta (requerido solo para POST)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.OwnAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error de autenticación o datos incorrectos
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar cuentas bancarias propias (Crear / Listar)
+      tags:
+      - Cuentas Bancarias - Propias
+    post:
+      consumes:
+      - application/json
+      description: Permite registrar una nueva cuenta bancaria propia (POST) o listar
+        todas las cuentas propias asociadas al usuario autenticado (GET).
+      parameters:
+      - description: Datos de la cuenta (requerido solo para POST)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.OwnAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error de autenticación o datos incorrectos
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar cuentas bancarias propias (Crear / Listar)
+      tags:
+      - Cuentas Bancarias - Propias
+  /api/v1/accounts/own/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Permite actualizar por completo una cuenta bancaria propia (PUT)
+        o eliminarla de forma lógica (DELETE) especificando su ID en la ruta.
+      parameters:
+      - description: ID de la cuenta bancaria
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados de la cuenta (requerido solo para PUT)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.OwnAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID inválido, no autorizado o error de negocio
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar detalle de cuenta propia (Actualizar / Eliminar)
+      tags:
+      - Cuentas Bancarias - Propias
+    put:
+      consumes:
+      - application/json
+      description: Permite actualizar por completo una cuenta bancaria propia (PUT)
+        o eliminarla de forma lógica (DELETE) especificando su ID en la ruta.
+      parameters:
+      - description: ID de la cuenta bancaria
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados de la cuenta (requerido solo para PUT)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.OwnAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID inválido, no autorizado o error de negocio
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar detalle de cuenta propia (Actualizar / Eliminar)
+      tags:
+      - Cuentas Bancarias - Propias
+  /api/v1/accounts/third-party:
+    get:
+      consumes:
+      - application/json
+      description: Permite registrar una nueva cuenta bancaria de un tercero (POST)
+        o listar todas las de terceros asociadas al usuario autenticado (GET).
+      parameters:
+      - description: Datos de la cuenta (requerido solo para POST)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.ThirdPartyAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error al procesar la solicitud
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar cuentas bancarias de terceros (Crear / Listar)
+      tags:
+      - Cuentas Bancarias - Terceros
+    post:
+      consumes:
+      - application/json
+      description: Permite registrar una nueva cuenta bancaria de un tercero (POST)
+        o listar todas las de terceros asociadas al usuario autenticado (GET).
+      parameters:
+      - description: Datos de la cuenta (requerido solo para POST)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.ThirdPartyAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error al procesar la solicitud
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar cuentas bancarias de terceros (Crear / Listar)
+      tags:
+      - Cuentas Bancarias - Terceros
+  /api/v1/accounts/third-party/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Permite actualizar por completo una cuenta de terceros (PUT) o
+        eliminarla físicamente (DELETE) especificando su ID en la ruta.
+      parameters:
+      - description: ID de la cuenta de terceros
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados de la cuenta (requerido solo para PUT)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.ThirdPartyAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID inválido, no autorizado o error de negocio
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar detalle de cuenta de terceros (Actualizar / Eliminar)
+      tags:
+      - Cuentas Bancarias - Terceros
+    put:
+      consumes:
+      - application/json
+      description: Permite actualizar por completo una cuenta de terceros (PUT) o
+        eliminarla físicamente (DELETE) especificando su ID en la ruta.
+      parameters:
+      - description: ID de la cuenta de terceros
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados de la cuenta (requerido solo para PUT)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.ThirdPartyAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID inválido, no autorizado o error de negocio
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar detalle de cuenta de terceros (Actualizar / Eliminar)
+      tags:
+      - Cuentas Bancarias - Terceros
+  /api/v1/auth/otp/request:
+    post:
+      consumes:
+      - application/json
+      description: Genera y envía un código OTP por correo electrónico al usuario
+        para registrarse, recuperar contraseña o eliminar cuenta.
+      parameters:
+      - description: Cuerpo de la solicitud con email y acción
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.RequestOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Código OTP generado y enviado exitosamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "400":
+          description: Solicitud incorrecta o error de negocio
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Solicitar OTP
+      tags:
+      - Autenticación
+  /api/v1/auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Restablece la contraseña de un usuario validando el código OTP
+        enviado a su correo.
+      parameters:
+      - description: Datos para restablecer la contraseña
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Contraseña restablecida correctamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "400":
+          description: Código OTP inválido o credenciales inválidas
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Restablecer contraseña
+      tags:
+      - Autenticación
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Registra un nuevo usuario en la plataforma validando el código
+        OTP y descifrando la contraseña.
+      parameters:
+      - description: Datos de registro
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error al registrar usuario o datos duplicados
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Registrar un nuevo usuario
+      tags:
+      - Autenticación
+  /api/v1/banners:
+    get:
+      description: Retorna una lista de banners publicitarios activos en el sistema.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener banners activos
+      tags:
+      - Banners
+  /api/v1/me:
+    get:
+      description: Retorna los datos de perfil del usuario actualmente autenticado
+        (mediante JWT).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Perfil del usuario recuperado exitosamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ProfileResponse'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Obtener perfil del usuario
+      tags:
+      - Autenticación
+  /api/v1/messages:
+    get:
+      description: Obtiene la lista completa de mensajes de mensajería interna (tanto
+        recibidos como enviados) del usuario autenticado.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No autorizado o error interno
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Obtener mensajes recibidos y enviados
+      tags:
+      - Mensajería
+  /api/v1/messages/send:
+    post:
+      consumes:
+      - application/json
+      description: Envía un mensaje de texto de parte del usuario autenticado a otro
+        usuario registrado en el sistema.
+      parameters:
+      - description: Datos del mensaje a enviar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Destinatario inválido, contenido vacío o no autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar un mensaje interno
+      tags:
+      - Mensajería
+  /api/v1/messages/unread-count:
+    get:
+      description: Retorna el conteo total de mensajes recibidos por el usuario autenticado
+        que aún no han sido marcados como leídos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No autorizado o error interno
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Obtener cantidad de mensajes no leídos
+      tags:
+      - Mensajería
+  /api/v1/payments/commitments:
+    get:
+      consumes:
+      - application/json
+      description: Permite registrar un nuevo compromiso de pago (POST) o listar todos
+        los compromisos segmentados por estado (por_vencer, vencidos, cumplidos) del
+        usuario (GET).
+      parameters:
+      - description: Datos del compromiso (requerido solo para POST)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.CommitmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error al procesar la solicitud
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar compromisos de pago (Crear / Listar Segmentados)
+      tags:
+      - Compromisos de Pago
+    post:
+      consumes:
+      - application/json
+      description: Permite registrar un nuevo compromiso de pago (POST) o listar todos
+        los compromisos segmentados por estado (por_vencer, vencidos, cumplidos) del
+        usuario (GET).
+      parameters:
+      - description: Datos del compromiso (requerido solo para POST)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.CommitmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error al procesar la solicitud
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar compromisos de pago (Crear / Listar Segmentados)
+      tags:
+      - Compromisos de Pago
+  /api/v1/payments/commitments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Permite actualizar por completo un compromiso de pago (PUT) o eliminarlo
+        de forma lógica (DELETE) especificando su ID en la ruta.
+      parameters:
+      - description: ID del compromiso de pago
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados del compromiso (requerido solo para PUT)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.CommitmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID inválido, no autorizado o error de negocio
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar detalle de compromiso de pago (Actualizar / Eliminar)
+      tags:
+      - Compromisos de Pago
+    put:
+      consumes:
+      - application/json
+      description: Permite actualizar por completo un compromiso de pago (PUT) o eliminarlo
+        de forma lógica (DELETE) especificando su ID en la ruta.
+      parameters:
+      - description: ID del compromiso de pago
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados del compromiso (requerido solo para PUT)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_api.CommitmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID inválido, no autorizado o error de negocio
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Gestionar detalle de compromiso de pago (Actualizar / Eliminar)
+      tags:
+      - Compromisos de Pago
+  /api/v1/rates/{rate_id}/comments:
+    get:
+      description: Retorna una lista de comentarios u opiniones realizadas durante
+        el día para la tasa indicada.
+      parameters:
+      - description: ID de la tasa de cambio
+        format: int64
+        in: path
+        name: rate_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID de tasa inválido o error interno
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener opiniones del día para una tasa
+      tags:
+      - Comentarios
+  /api/v1/rates/calculate:
+    post:
+      consumes:
+      - application/json
+      description: Calcula la conversión de un monto específico a la moneda objetivo
+        según tasas vigentes o históricas.
+      parameters:
+      - description: Datos para la conversión
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.ConversionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Moneda no encontrada o monto negativo
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Calcular conversión de monedas
+      tags:
+      - Core Business
+  /api/v1/rates/calendar-dates:
+    get:
+      description: Retorna una lista de todas las fechas que tienen tasas registradas
+        en el sistema.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error interno
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener fechas con tasas registradas
+      tags:
+      - Core Business
+  /api/v1/rates/comments:
+    post:
+      consumes:
+      - application/json
+      description: Agrega una opinión o comentario de un usuario autenticado para
+        una tasa de cambio específica.
+      parameters:
+      - description: Datos del comentario
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.CommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error de validación o no autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Agregar comentario a una tasa
+      tags:
+      - Comentarios
+  /api/v1/rates/dashboard:
+    get:
+      description: Retorna la última tasa de la moneda especificada, su porcentaje
+        de variación y su historial de tasas recientes.
+      parameters:
+      - description: Código de la moneda (ej. USD)
+        in: query
+        name: currency
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Moneda no encontrada o error interno
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener resumen del dashboard
+      tags:
+      - Core Business
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Coloque el token JWT de la siguiente manera: "Bearer <token>"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

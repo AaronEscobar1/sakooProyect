@@ -1,0 +1,15 @@
+meta {
+  name: Delete Third Party Account
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{base_url}}/api/v1/accounts/third-party/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

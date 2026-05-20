@@ -1,0 +1,21 @@
+meta {
+  name: Get Rates History
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/rates/history
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "page": 1,
+    "limit": 5,
+    "currency_code": "UDI",
+    "start_date": "2026-05-10",
+    "end_date": "2026-05-25"
+  }
+}

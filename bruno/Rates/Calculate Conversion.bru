@@ -1,0 +1,20 @@
+meta {
+  name: Calculate Conversion
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/rates/calculate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "currency": "USD",
+    "amount": 100.50,
+    "date": "2026-05-20"
+  }
+}
+

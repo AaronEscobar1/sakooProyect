@@ -1,0 +1,27 @@
+meta {
+  name: Register
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "test@sakoo.com",
+    "password": "Password123!",
+    "first_name": "John",
+    "last_name": "Doe",
+    "username": "johndoe",
+    "middle_name": "Albert",
+    "second_last_name": "Smith",
+    "user_type_id": 2,
+    "document_type_id": 1,
+    "document_number": "V-12345678",
+    "otp_code": "856600"
+  }
+}

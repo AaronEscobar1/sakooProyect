@@ -1,0 +1,15 @@
+meta {
+  name: List Third Party Accounts
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/v1/accounts/third-party
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
