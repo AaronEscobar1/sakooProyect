@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/api"
+	"github.com/aaron/sakoo-backend/internal/api/middleware"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/cron"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/database"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/email"
@@ -106,6 +107,7 @@ func main() {
 	messageRepo := repository.NewMessageRepository(pool)
 	commentRepo := repository.NewCommentRepository(pool)
 	bannerRepo := repository.NewBannerRepository(pool)
+	catalogRepo := repository.NewCatalogRepository(pool)
 
 	// 7. Instanciar casos de uso de la capa de dominio
 	authUseCase := usecase.NewAuthUseCase(userRepo, otpRepo, emailSrv, jwtSecret)
@@ -128,6 +130,7 @@ func main() {
 	messageUseCase := usecase.NewMessageUseCase(messageRepo)
 	commentUseCase := usecase.NewCommentUseCase(commentRepo)
 	bannerUseCase := usecase.NewBannerUseCase(bannerRepo)
+	catalogUseCase := usecase.NewCatalogUseCase(catalogRepo)
 
 	// 8. Instanciar controladores HTTP de la capa API
 	authHandler := api.NewAuthHandler(authUseCase)
@@ -139,6 +142,7 @@ func main() {
 	messageHandler := api.NewMessageHandler(messageUseCase)
 	commentHandler := api.NewCommentHandler(commentUseCase)
 	bannerHandler := api.NewBannerHandler(bannerUseCase)
+	catalogHandler := api.NewCatalogHandler(catalogUseCase)
 
 	slog.Info("Capa de persistencia, casos de uso y controladores HTTP instanciados de manera limpia.")
 
@@ -180,6 +184,10 @@ func main() {
 	// Ruta de Banners (Pública)
 	mux.HandleFunc("GET /api/v1/banners", bannerHandler.HandleGetBanners)
 
+	// Rutas de Catálogos (Públicas)
+	mux.HandleFunc("GET /api/v1/catalogs/document-types", catalogHandler.HandleGetDocumentTypes)
+	mux.HandleFunc("GET /api/v1/catalogs/currencies", catalogHandler.HandleGetCurrencies)
+
 	// Ruta de Scraping Manual (Pruebas en caliente)
 	mux.HandleFunc("POST /api/admin/scrape-now", scraperHandler.HandleScrapeNow)
 	mux.HandleFunc("POST /api/admin/scrape-mercantil", scraperHandler.HandleScrapeMercantilNow)
@@ -209,6 +217,9 @@ func main() {
 	// 10. Aplicar el Middleware de Trazabilidad y Logs asíncronos de forma global
 	globalHandler := api.TraceAndLogMiddleware(pool)(mux)
 
+	// Habilitar CORS para depuración local (Flutter Web, Swagger, etc.)
+	corsHandler := middleware.CORS()(globalHandler)
+
 	// 11. Configuración detallada del servidor HTTP
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -216,7 +227,7 @@ func main() {
 	}
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      globalHandler,
+		Handler:      corsHandler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,

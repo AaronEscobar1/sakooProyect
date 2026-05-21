@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: sakoo_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-123456789}
+      POSTGRES_DB: ${DB_NAME:-sakoo}
+    ports:
+      - "${DB_PORT_HOST:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - sakoo_network
+
+  api_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sakoo_api
+    restart: always
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    environment:
+      PORT: ${PORT:-8080}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-123456789}@postgres_db:5432/${DB_NAME:-sakoo}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-super-secret-key-change-in-production-12345!}
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    networks:
+      - sakoo_network
+
+volumes:
+  postgres_data:
+
+networks:
+  sakoo_network:
+    driver: bridge

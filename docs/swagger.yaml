@@ -36,6 +36,32 @@ definitions:
       track_code:
         type: string
     type: object
+  github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Currency:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.Currency'
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
+  ? github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_DocumentType
+  : properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.DocumentType'
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
   github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Message:
     properties:
       code:
@@ -260,6 +286,31 @@ definitions:
         type: integer
       username:
         description: Campo auxiliar para respuestas HTTP
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.Currency:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.DocumentType:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      id:
+        format: int64
+        type: integer
+      name:
         type: string
     type: object
   github_com_aaron_sakoo-backend_internal_domain.LoginRequest:
@@ -1071,6 +1122,33 @@ paths:
       summary: Obtener banners activos
       tags:
       - Banners
+  /api/v1/catalogs/currencies:
+    get:
+      description: Retorna una lista de monedas registradas en el sistema.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener catálogo de monedas
+      tags:
+      - Catálogos
+  /api/v1/catalogs/document-types:
+    get:
+      description: Retorna una lista de tipos de documento de identidad registrados
+        en el sistema.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Obtener catálogo de tipos de documento
+      tags:
+      - Catálogos
   /api/v1/me:
     get:
       description: Retorna los datos de perfil del usuario actualmente autenticado

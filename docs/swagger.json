@@ -794,6 +794,46 @@
                 }
             }
         },
+        "/api/v1/catalogs/currencies": {
+            "get": {
+                "description": "Retorna una lista de monedas registradas en el sistema.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Catálogos"
+                ],
+                "summary": "Obtener catálogo de monedas",
+                "responses": {
+                    "200": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/catalogs/document-types": {
+            "get": {
+                "description": "Retorna una lista de tipos de documento de identidad registrados en el sistema.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Catálogos"
+                ],
+                "summary": "Obtener catálogo de tipos de documento",
+                "responses": {
+                    "200": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/me": {
             "get": {
                 "security": [
@@ -1287,6 +1327,46 @@
                 }
             }
         },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Currency": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Currency"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_DocumentType": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.DocumentType"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Message": {
             "type": "object",
             "properties": {
@@ -1631,6 +1711,44 @@
                 },
                 "username": {
                     "description": "Campo auxiliar para respuestas HTTP",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.Currency": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.DocumentType": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "name": {
                     "type": "string"
                 }
             }
