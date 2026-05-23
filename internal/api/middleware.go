@@ -88,31 +88,51 @@ func TraceAndLogMiddleware(db *pgxpool.Pool) func(http.Handler) http.Handler {
 				lrw.Header().Del("X-Authenticated-User-ID")
 			}
 
-			// Registro asíncrono en base de datos mediante una goroutine dedicada
-			go func(tCode string, uID *int64, method, path string, status int, respCode string, lat int64) {
-				dbCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
+			// Filtrar logs innecesarios para evitar saturación de la base de datos (DB Bloat)
+			shouldLog := true
+			path := r.URL.Path
 
-				query := `
-					INSERT INTO public.api_logs (
-						track_code, 
-						user_id, 
-						method, 
-						path, 
-						http_status, 
-						response_code, 
-						latency_ms
-					)
-					VALUES ($1, $2, $3, $4, $5, $6, $7);
-				`
-				_, err := db.Exec(dbCtx, query, tCode, uID, method, path, status, respCode, lat)
-				if err != nil {
-					slog.Error("Fallo al insertar log de auditoría en PostgreSQL", 
-						"error", err, 
-						"track_code", tCode,
-					)
-				}
-			}(trackCode, userID, r.Method, r.URL.Path, lrw.statusCode, responseCode, latency)
+			// 1. Excluir lecturas de datos (GET/HEAD) y pings de monitoreo que no modifican estado
+			if r.Method == http.MethodGet || r.Method == http.MethodHead {
+				shouldLog = false
+			}
+
+			// 2. Excluir endpoints fuera de la API, Swagger, Docs y favicon
+			if !strings.HasPrefix(path, "/api/") || 
+			   strings.HasPrefix(path, "/swagger/") || 
+			   strings.HasPrefix(path, "/docs/") || 
+			   strings.Contains(path, "favicon.ico") || 
+			   path == "/api/auth/public-key" {
+				shouldLog = false
+			}
+
+			if shouldLog {
+				// Registro asíncrono en base de datos mediante una goroutine dedicada
+				go func(tCode string, uID *int64, method, path string, status int, respCode string, lat int64) {
+					dbCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+
+					query := `
+						INSERT INTO public.api_logs (
+							track_code, 
+							user_id, 
+							method, 
+							path, 
+							http_status, 
+							response_code, 
+							latency_ms
+						)
+						VALUES ($1, $2, $3, $4, $5, $6, $7);
+					`
+					_, err := db.Exec(dbCtx, query, tCode, uID, method, path, status, respCode, lat)
+					if err != nil {
+						slog.Error("Fallo al insertar log de auditoría en PostgreSQL", 
+							"error", err, 
+							"track_code", tCode,
+						)
+					}
+				}(trackCode, userID, r.Method, path, lrw.statusCode, responseCode, latency)
+			}
 		})
 	}
 }
