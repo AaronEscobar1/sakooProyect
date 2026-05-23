@@ -15,6 +15,7 @@ import (
 	"github.com/aaron/sakoo-backend/internal/infrastructure/cron"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/database"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/email"
+	"github.com/aaron/sakoo-backend/internal/infrastructure/notification"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/repository"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/scraper"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/security"
@@ -120,6 +121,7 @@ func main() {
 	commentRepo := repository.NewCommentRepository(pool)
 	bannerRepo := repository.NewBannerRepository(pool)
 	catalogRepo := repository.NewCatalogRepository(pool)
+	notificationRepo := repository.NewNotificationRepository(pool)
 
 	// 7. Instanciar casos de uso de la capa de dominio
 	authUseCase := usecase.NewAuthUseCase(userRepo, otpRepo, emailSrv, jwtSecret)
@@ -143,6 +145,8 @@ func main() {
 	commentUseCase := usecase.NewCommentUseCase(commentRepo)
 	bannerUseCase := usecase.NewBannerUseCase(bannerRepo)
 	catalogUseCase := usecase.NewCatalogUseCase(catalogRepo)
+	pushService := notification.NewPushNotificationService()
+	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo, pushService)
 
 	// 8. Instanciar controladores HTTP de la capa API
 	authHandler := api.NewAuthHandler(authUseCase)
@@ -155,6 +159,7 @@ func main() {
 	commentHandler := api.NewCommentHandler(commentUseCase)
 	bannerHandler := api.NewBannerHandler(bannerUseCase)
 	catalogHandler := api.NewCatalogHandler(catalogUseCase)
+	notificationHandler := api.NewNotificationHandler(notificationUseCase)
 
 	slog.Info("Capa de persistencia, casos de uso y controladores HTTP instanciados de manera limpia.")
 
@@ -256,6 +261,15 @@ func main() {
 	mux.Handle("GET /api/v1/payments/commitments", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitments)))
 	mux.Handle("PUT /api/v1/payments/commitments/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitmentDetail)))
 	mux.Handle("DELETE /api/v1/payments/commitments/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitmentDetail)))
+
+	// Rutas Protegidas de Notificaciones Push (Dispositivos e Inbox)
+	mux.Handle("POST /api/v1/devices/register", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleRegisterDevice)))
+	mux.Handle("POST /api/v1/devices/unregister", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleUnregisterDevice)))
+	mux.Handle("GET /api/v1/notifications", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleGetNotifications)))
+	mux.Handle("PUT /api/v1/notifications/{id}/read", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleMarkAsRead)))
+
+	// Ruta de Administración de Notificaciones (BackOffice)
+	mux.HandleFunc("POST /api/admin/notifications/send", notificationHandler.HandleSendAdminNotification)
 
 	// 10. Aplicar el Middleware de Trazabilidad y Logs asíncronos de forma global
 	globalHandler := api.TraceAndLogMiddleware(pool)(mux)

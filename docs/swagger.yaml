@@ -75,6 +75,19 @@ definitions:
       track_code:
         type: string
     type: object
+  ? github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification
+  : properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.Notification'
+        type: array
+      message:
+        type: string
+      track_code:
+        type: string
+    type: object
   github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse:
     properties:
       code:
@@ -335,6 +348,34 @@ definitions:
       sender_id:
         type: integer
     type: object
+  github_com_aaron_sakoo-backend_internal_domain.Notification:
+    properties:
+      body:
+        type: string
+      created_at:
+        type: string
+      data:
+        additionalProperties: true
+        description: Datos JSON adicionales
+        type: object
+      id:
+        type: integer
+      is_read:
+        type: boolean
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.RegisterDeviceRequest:
+    properties:
+      platform:
+        example: android
+        type: string
+      token:
+        example: fcm_token_12345
+        type: string
+    type: object
   github_com_aaron_sakoo-backend_internal_domain.RegisterRequest:
     properties:
       document_number:
@@ -358,6 +399,28 @@ definitions:
       user_type_id:
         type: integer
       username:
+        type: string
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.SendAdminNotificationRequest:
+    properties:
+      body:
+        example: El BCV acaba de actualizar las tasas para el día hábil de mañana.
+        type: string
+      data:
+        additionalProperties: true
+        type: object
+      title:
+        example: Actualización de Tasas
+        type: string
+      user_id:
+        description: Nulo significa broadcast a todos
+        example: 4
+        type: integer
+    type: object
+  github_com_aaron_sakoo-backend_internal_domain.UnregisterDeviceRequest:
+    properties:
+      token:
+        example: fcm_token_12345
         type: string
     type: object
   internal_api.CommentRequest:
@@ -610,6 +673,30 @@ info:
   title: Sakoo Backend API
   version: "1.0"
 paths:
+  /api/admin/notifications/send:
+    post:
+      consumes:
+      - application/json
+      description: Envía una notificación push asíncrona a un usuario en particular
+        o a todos los usuarios del sistema (broadcast) con un título, cuerpo y payload
+        de datos.
+      parameters:
+      - description: Datos de la notificación
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.SendAdminNotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notificación procesada y enviada
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Enviar notificación administrativa (BackOffice)
+      tags:
+      - Notificaciones
   /api/admin/scrape-mercantil:
     post:
       description: Ejecuta de forma síncrona el web scraper de Mercantil para actualizar
@@ -1145,6 +1232,64 @@ paths:
       summary: Obtener catálogo de tipos de documento
       tags:
       - Catálogos
+  /api/v1/devices/register:
+    post:
+      consumes:
+      - application/json
+      description: Registra un FCM Token de Firebase del dispositivo del usuario autenticado
+        para recibir notificaciones push.
+      parameters:
+      - description: Datos del dispositivo
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterDeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dispositivo registrado con éxito
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Registrar dispositivo para push
+      tags:
+      - Notificaciones
+  /api/v1/devices/unregister:
+    post:
+      consumes:
+      - application/json
+      description: Elimina el FCM Token del dispositivo del usuario autenticado, deteniendo
+        el envío de notificaciones.
+      parameters:
+      - description: Token del dispositivo
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.UnregisterDeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dispositivo dado de baja con éxito
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Dar de baja un dispositivo
+      tags:
+      - Notificaciones
   /api/v1/me:
     get:
       description: Retorna los datos de perfil del usuario actualmente autenticado
@@ -1222,6 +1367,52 @@ paths:
       summary: Obtener cantidad de mensajes no leídos
       tags:
       - Mensajería
+  /api/v1/notifications:
+    get:
+      description: Retorna la lista de notificaciones históricas recibidas por el
+        usuario autenticado.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Historial de notificaciones
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Obtener bandeja de entrada (Inbox)
+      tags:
+      - Notificaciones
+  /api/v1/notifications/{id}/read:
+    put:
+      description: Actualiza el estado de una notificación en el inbox para marcarla
+        como leída.
+      parameters:
+      - description: ID de la notificación
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notificación marcada como leída
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Marcar notificación como leída
+      tags:
+      - Notificaciones
   /api/v1/payments/commitments:
     get:
       consumes:

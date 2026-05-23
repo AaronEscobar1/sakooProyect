@@ -24,6 +24,40 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/notifications/send": {
+            "post": {
+                "description": "Envía una notificación push asíncrona a un usuario en particular o a todos los usuarios del sistema (broadcast) con un título, cuerpo y payload de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Enviar notificación administrativa (BackOffice)",
+                "parameters": [
+                    {
+                        "description": "Datos de la notificación",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.SendAdminNotificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notificación procesada y enviada",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/scrape-mercantil": {
             "post": {
                 "description": "Ejecuta de forma síncrona el web scraper de Mercantil para actualizar las tasas de cambio de este banco.",
@@ -832,6 +866,96 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/devices/register": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Registra un FCM Token de Firebase del dispositivo del usuario autenticado para recibir notificaciones push.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Registrar dispositivo para push",
+                "parameters": [
+                    {
+                        "description": "Datos del dispositivo",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterDeviceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Dispositivo registrado con éxito",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/devices/unregister": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Elimina el FCM Token del dispositivo del usuario autenticado, deteniendo el envío de notificaciones.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Dar de baja un dispositivo",
+                "parameters": [
+                    {
+                        "description": "Token del dispositivo",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.UnregisterDeviceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Dispositivo dado de baja con éxito",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/me": {
             "get": {
                 "security": [
@@ -945,6 +1069,77 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "No autorizado o error interno",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna la lista de notificaciones históricas recibidas por el usuario autenticado.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Obtener bandeja de entrada (Inbox)",
+                "responses": {
+                    "200": {
+                        "description": "Historial de notificaciones",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/notifications/{id}/read": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Actualiza el estado de una notificación en el inbox para marcarla como leída.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Marcar notificación como leída",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la notificación",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notificación marcada como leída",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
                         "schema": {
                             "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
                         }
@@ -1391,6 +1586,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Notification"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse": {
             "type": "object",
             "properties": {
@@ -1791,6 +2006,47 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_aaron_sakoo-backend_internal_domain.Notification": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "data": {
+                    "description": "Datos JSON adicionales",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.RegisterDeviceRequest": {
+            "type": "object",
+            "properties": {
+                "platform": {
+                    "type": "string",
+                    "example": "android"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "fcm_token_12345"
+                }
+            }
+        },
         "github_com_aaron_sakoo-backend_internal_domain.RegisterRequest": {
             "type": "object",
             "properties": {
@@ -1826,6 +2082,37 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.SendAdminNotificationRequest": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string",
+                    "example": "El BCV acaba de actualizar las tasas para el día hábil de mañana."
+                },
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Actualización de Tasas"
+                },
+                "user_id": {
+                    "description": "Nulo significa broadcast a todos",
+                    "type": "integer",
+                    "example": 4
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.UnregisterDeviceRequest": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "example": "fcm_token_12345"
                 }
             }
         },

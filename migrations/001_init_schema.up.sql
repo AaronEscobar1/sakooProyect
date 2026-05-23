@@ -201,11 +201,33 @@ CREATE TABLE public.configurations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de Tokens de Dispositivos (FCM Tokens)
+CREATE TABLE public.user_device_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    token TEXT UNIQUE NOT NULL,
+    platform VARCHAR(50) NOT NULL, -- 'android', 'ios', 'web'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de Historial / Inbox de Notificaciones
+CREATE TABLE public.notifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    data JSONB, -- Datos adicionales adjuntos en formato clave-valor
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================================================
 -- ÍNDICES OPTIMIZADOS
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_api_logs_track_code ON public.api_logs(track_code);
 CREATE INDEX IF NOT EXISTS idx_user_otps_email_code_action ON public.user_otps(email, otp_code, action);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
 
 -- ============================================================================
 -- SEMBRADO DE DATOS (SEEDS)
