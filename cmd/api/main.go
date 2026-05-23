@@ -114,7 +114,7 @@ func main() {
 	userRepo := repository.NewUserRepository(pool)
 	exchangeRateRepo := repository.NewExchangeRateRepository(pool)
 	otpRepo := repository.NewOTPRepository(pool)
-	emailSrv := email.NewMockEmailService()
+	emailSrv := email.NewEmailService()
 	bankAccountRepo := repository.NewBankAccountRepository(pool)
 	paymentCommitmentRepo := repository.NewPaymentCommitmentRepository(pool)
 	messageRepo := repository.NewMessageRepository(pool)
@@ -198,6 +198,29 @@ func main() {
 		// Servir la UI de Swagger con la config ya actualizada
 		httpSwagger.WrapHandler(w, r)
 	}))
+
+	// Endpoint de Salud (Healthcheck) para Monitoreo de Railway
+	// @Summary      Verificar el estado de salud del backend
+	// @Description  Retorna el estado de operatividad del servidor de Sakoo y su conexión con la base de datos PostgreSQL.
+	// @Tags         Monitoreo
+	// @Produce      json
+	// @Success      200   {object}  map[string]string  "Servidor operativo y conectado"
+	// @Failure      500   {object}  map[string]string  "Servidor con fallos o base de datos desconectada"
+	// @Router       /health [get]
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := pool.Ping(ctx); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"status":"DOWN","database":"DISCONNECTED","error":"` + err.Error() + `"}`))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"UP","database":"CONNECTED"}`))
+	})
 
 	// Rutas Públicas de Autenticación
 	mux.HandleFunc("GET /api/auth/public-key", authHandler.HandlePublicKey)
