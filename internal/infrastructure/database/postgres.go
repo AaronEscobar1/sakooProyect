@@ -56,8 +56,14 @@ func ConnectAndMigrate(dbURL string) (*pgxpool.Pool, error) {
 	// Ejecución de migraciones automáticas
 	slog.Info("Buscando y aplicando migraciones en la base de datos...")
 	
+	// Sanitizar esquema postgresql:// a postgres:// para compatibilidad con golang-migrate
+	migrationURL := dbURL
+	if len(migrationURL) >= 10 && migrationURL[:10] == "postgresql" {
+		migrationURL = "postgres" + migrationURL[10:]
+	}
+
 	// golang-migrate espera una ruta del sistema de archivos y el URL de conexión
-	m, err := migrate.New("file://migrations", dbURL)
+	m, err := migrate.New("file://migrations", migrationURL)
 	if err != nil {
 		return nil, fmt.Errorf("error al inicializar el motor de migraciones: %w", err)
 	}
