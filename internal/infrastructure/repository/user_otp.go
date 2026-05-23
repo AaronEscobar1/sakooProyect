@@ -87,3 +87,33 @@ func (r *otpRepository) ValidateAndConsumeOTP(ctx context.Context, email, code, 
 	slog.Info("OTP validado y consumido correctamente", "id", id, "email", email, "action", action)
 	return nil
 }
+
+// ValidateOTPOnly valida la existencia y vigencia de un OTP sin consumirlo.
+func (r *otpRepository) ValidateOTPOnly(ctx context.Context, email, code, action string) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Validando OTP sin consumirlo", "email", email, "action", action)
+
+	query := `
+		SELECT id 
+		FROM public.user_otps
+		WHERE email = $1 AND otp_code = $2 AND action = $3 AND used = false AND expires_at > (now() at time zone 'utc')
+		LIMIT 1;
+	`
+
+	var id int64
+	err := r.db.QueryRow(dbCtx, query, email, code, action).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			slog.Warn("Intento de validación de OTP fallido: OTP inválido, expirado o ya consumido", "email", email, "action", action)
+			return errors.New("código OTP inválido, expirado o ya consumido")
+		}
+		slog.Error("Error al validar OTP en PostgreSQL", "error", err, "email", email)
+		return fmt.Errorf("error al verificar el código OTP: %w", err)
+	}
+
+	slog.Info("OTP validado correctamente (sin consumir)", "id", id, "email", email, "action", action)
+	return nil
+}
+

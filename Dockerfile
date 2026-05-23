@@ -1,5 +1,5 @@
 # --- Stage 1: Build (Compilación Inmutable) ---
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Instalar dependencias necesarias para la compilación y zona horaria
 RUN apk add --no-cache git ca-certificates tzdata

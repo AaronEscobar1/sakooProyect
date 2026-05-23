@@ -110,57 +110,6 @@
                 }
             }
         },
-        "/api/auth/me": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Elimina de forma lógica la cuenta del usuario autenticado validando su correo electrónico y contraseña (cifrada en tránsito).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Autenticación"
-                ],
-                "summary": "Eliminar cuenta (Legacy)",
-                "parameters": [
-                    {
-                        "description": "Credenciales de confirmación de eliminación",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_api.DeleteLegacyAccountRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Cuenta eliminada lógicamente de manera exitosa",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
-                        }
-                    },
-                    "401": {
-                        "description": "No autorizado",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
-                        }
-                    },
-                    "500": {
-                        "description": "Error interno del servidor",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
-                        }
-                    }
-                }
-            }
-        },
         "/api/auth/public-key": {
             "get": {
                 "description": "Retorna la clave pública RSA en formato PEM para cifrar credenciales de usuario antes de transmitirlas.",
@@ -176,40 +125,6 @@
                         "description": "Clave pública obtenida correctamente",
                         "schema": {
                             "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/register": {
-            "post": {
-                "description": "Registra un nuevo usuario en la plataforma validando el código OTP y descifrando la contraseña.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Autenticación"
-                ],
-                "summary": "Registrar un nuevo usuario",
-                "parameters": [
-                    {
-                        "description": "Datos de registro",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Error al registrar usuario o datos duplicados",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
                         }
                     }
                 }
@@ -660,6 +575,37 @@
                 }
             }
         },
+        "/api/v1/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cierra la sesión activa del usuario (invalida el token localmente, audita el logout en el servidor).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Cerrar sesión de usuario",
+                "responses": {
+                    "200": {
+                        "description": "Sesión cerrada exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/otp/request": {
             "post": {
                 "description": "Genera y envía un código OTP por correo electrónico al usuario para registrarse, recuperar contraseña o eliminar cuenta.",
@@ -693,6 +639,46 @@
                     },
                     "400": {
                         "description": "Solicitud incorrecta o error de negocio",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/otp/validate": {
+            "post": {
+                "description": "Verifica si un código OTP es correcto, está vigente y no ha sido utilizado, sin marcarlo como consumido.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Validar OTP (sin consumir)",
+                "parameters": [
+                    {
+                        "description": "Datos para la validación del OTP",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ValidateOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Código OTP válido y vigente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta o OTP inválido",
                         "schema": {
                             "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
                         }
@@ -766,6 +752,12 @@
                 ],
                 "responses": {
                     "200": {
+                        "description": "Usuario registrado exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse"
+                        }
+                    },
+                    "400": {
                         "description": "Error al registrar usuario o datos duplicados",
                         "schema": {
                             "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
@@ -1213,7 +1205,7 @@
         },
         "/api/v1/rates/dashboard": {
             "get": {
-                "description": "Retorna la última tasa de la moneda especificada, su porcentaje de variación y su historial de tasas recientes.",
+                "description": "Retorna la última tasa de la moneda especificada (o en/antes de una fecha dada), su porcentaje de variación y su historial de tasas recientes.",
                 "produces": [
                     "application/json"
                 ],
@@ -1228,6 +1220,12 @@
                         "name": "currency",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha de consulta de referencia opcional (formato YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1938,9 +1936,6 @@
                         "$ref": "#/definitions/internal_api.DashboardExchangeRate"
                     }
                 },
-                "latest_rate": {
-                    "$ref": "#/definitions/internal_api.DashboardExchangeRate"
-                },
                 "variation_percent": {
                     "type": "string"
                 }
@@ -1950,17 +1945,6 @@
             "type": "object",
             "properties": {
                 "otp_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_api.DeleteLegacyAccountRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
                     "type": "string"
                 }
             }
@@ -2181,6 +2165,21 @@
                     "type": "string"
                 },
                 "holder_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.ValidateOTPRequest": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "description": "'REGISTER', 'RECOVER', 'DELETE'",
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "otp_code": {
                     "type": "string"
                 }
             }

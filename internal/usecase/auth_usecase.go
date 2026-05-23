@@ -54,22 +54,23 @@ func generateNumericOTP() (string, error) {
 }
 
 // RequestOTP genera un OTP, lo persiste con 15 minutos de vigencia, y lo envía por email.
-func (s *authUseCase) RequestOTP(ctx context.Context, email string, action string) error {
+// Devuelve el código OTP generado para flujos que lo requieran (ej: testing o flujos internos).
+func (s *authUseCase) RequestOTP(ctx context.Context, email string, action string) (string, error) {
 	slog.Info("Procesando solicitud de OTP", "email", email, "action", action)
 
 	if email == "" || action == "" {
-		return errors.New("el correo electrónico y la acción son requeridos")
+		return "", errors.New("el correo electrónico y la acción son requeridos")
 	}
 
 	if action != "REGISTER" && action != "RECOVER" && action != "DELETE" {
-		return fmt.Errorf("acción de OTP inválida: %s", action)
+		return "", fmt.Errorf("acción de OTP inválida: %s", action)
 	}
 
 	// 1. Generar código OTP
 	code, err := generateNumericOTP()
 	if err != nil {
 		slog.Error("Error al generar código OTP seguro", "error", err, "email", email)
-		return fmt.Errorf("error al generar código de seguridad: %w", err)
+		return "", fmt.Errorf("error al generar código de seguridad: %w", err)
 	}
 
 	// 2. Persistir en la base de datos
@@ -82,15 +83,15 @@ func (s *authUseCase) RequestOTP(ctx context.Context, email string, action strin
 	}
 
 	if err := s.otpRepo.CreateOTP(ctx, otp); err != nil {
-		return err
+		return "", err
 	}
 
 	// 3. Invocar al servicio de email
 	if err := s.emailSrv.SendOTP(ctx, email, code); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return code, nil
 }
 
 // determineCountry consulta de manera resiliente un servicio de GeoIP para obtener el país de origen de una IP.
@@ -142,25 +143,27 @@ func determineCountry(ip string) string {
 	return "Venezuela"
 }
 
-// Register refactorizado: ahora consume y valida un OTP de REGISTER antes de la creación del usuario.
-func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) error {
+// Register refactorizado: ahora consume y valida un OTP de REGISTER antes de la creación del usuario y devuelve el token de inicio de sesión.
+func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) (domain.AuthResponse, error) {
 	slog.Debug("Ejecutando caso de uso de Registro", "email", req.Email, "username", req.Username)
+
+	var res domain.AuthResponse
 
 	// Validaciones básicas de negocio
 	if req.Email == "" || req.Username == "" || req.Password == "" || req.FirstName == "" || req.LastName == "" || req.OTPCode == "" {
-		return errors.New("los campos email, username, password, first_name, last_name y otp_code son requeridos")
+		return res, errors.New("los campos email, username, password, first_name, last_name y otp_code son requeridos")
 	}
 
 	// 1. Validar y consumir OTP para el registro
 	if err := s.otpRepo.ValidateAndConsumeOTP(ctx, req.Email, req.OTPCode, "REGISTER"); err != nil {
-		return err
+		return res, err
 	}
 
 	// 2. Generar hash seguro de la contraseña con bcrypt (costo recomendado 12)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
 		slog.Error("Error al encriptar contraseña con bcrypt", "error", err)
-		return fmt.Errorf("error al procesar credenciales: %w", err)
+		return res, fmt.Errorf("error al procesar credenciales: %w", err)
 	}
 
 	// 3. Determinar país de forma automática por GeoIP a partir de la IP de registro
@@ -185,16 +188,35 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 
 	// 5. Persistir en repositorio
 	if err := s.userRepo.Create(ctx, user); err != nil {
-		return err
+		return res, err
 	}
 
 	// Registrar la contraseña inicial en el historial de contraseñas
 	if err := s.userRepo.AddPasswordHistory(ctx, user.ID, user.PasswordHash); err != nil {
 		slog.Error("Fallo al registrar contraseña inicial en historial", "error", err, "user_id", user.ID)
-		return fmt.Errorf("error al registrar en historial de contraseñas: %w", err)
+		return res, fmt.Errorf("error al registrar en historial de contraseñas: %w", err)
 	}
 
-	return nil
+	// 6. Crear token JWT con claims estándar inyectando user_id como int64
+	claims := jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(), // Duración estándar de 24 horas
+		"iat":     time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Firmar el token usando el secreto inyectado
+	tokenString, err := token.SignedString([]byte(s.jwtSecret))
+	if err != nil {
+		slog.Error("Fallo crítico al firmar el token JWT de usuario tras registro", "error", err, "user_id", user.ID)
+		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
+	}
+
+	slog.Info("Registro exitoso e inicio de sesión automático. Emisión de token JWT autorizada", "user_id", user.ID)
+
+	res.Token = tokenString
+	return res, nil
 }
 
 // Login autentica un usuario y genera un token de sesión firmado en formato JWT.
@@ -243,44 +265,12 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 	return res, nil
 }
 
-// DeleteMyAccount realiza el borrado lógico de la cuenta del usuario previa validación de sus credenciales (versión legacy).
-func (s *authUseCase) DeleteMyAccount(ctx context.Context, userID int64, email, password string) error {
-	slog.Info("Ejecutando caso de uso de borrado lógico de cuenta (Legacy)", "user_id", userID, "email", email)
-	
-	if userID <= 0 {
-		return errors.New("ID de usuario inválido para borrado de cuenta")
-	}
-	if email == "" || password == "" {
-		return errors.New("correo y contraseña requeridos para confirmar el borrado de cuenta")
-	}
-
-	// 1. Buscar el usuario registrado por email
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		slog.Warn("Intento de borrado de cuenta denegado: usuario no encontrado o inactivo", "email", email)
-		return errors.New("credenciales incorrectas")
-	}
-
-	// 2. Verificar que el token JWT corresponde al usuario que se desea eliminar
-	if user.ID != userID {
-		slog.Warn("Intento de violación de seguridad: ID de token no coincide con el email provisto", 
-			"token_user_id", userID, 
-			"target_user_id", user.ID, 
-			"email", email,
-		)
-		return errors.New("no estás autorizado para eliminar esta cuenta")
-	}
-
-	// 3. Comparar el hash bcrypt con la contraseña recibida
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
-	if err != nil {
-		slog.Warn("Intento de borrado de cuenta denegado: contraseña incorrecta", "email", email, "user_id", user.ID)
-		return errors.New("credenciales incorrectas")
-	}
-
-	// 4. Proceder al borrado lógico
-	return s.userRepo.SoftDelete(ctx, userID)
+// Logout maneja el cierre de sesión de un usuario (para auditoría o futuras implementaciones de blacklist).
+func (s *authUseCase) Logout(ctx context.Context, userID int64) error {
+	slog.Info("Cierre de sesión solicitado y procesado en el caso de uso", "user_id", userID)
+	return nil
 }
+
 
 // ResetPassword valida el OTP para "RECOVER", hashea la nueva contraseña con bcrypt y actualiza la tabla users.
 func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otpCode string) error {
@@ -380,3 +370,19 @@ func (s *authUseCase) GetProfile(ctx context.Context, userID int64) (*domain.Use
 	slog.Debug("Obteniendo perfil completo del usuario", "user_id", userID)
 	return s.userRepo.FindByID(ctx, userID)
 }
+
+// ValidateOTP valida que un OTP sea correcto y vigente sin consumirlo.
+func (s *authUseCase) ValidateOTP(ctx context.Context, email, code, action string) error {
+	slog.Info("Procesando caso de uso de validación de OTP (sin consumo)", "email", email, "action", action)
+
+	if email == "" || code == "" || action == "" {
+		return errors.New("el correo electrónico, el código OTP y la acción son campos requeridos")
+	}
+
+	if action != "REGISTER" && action != "RECOVER" && action != "DELETE" {
+		return fmt.Errorf("acción de OTP inválida: %s", action)
+	}
+
+	return s.otpRepo.ValidateOTPOnly(ctx, email, code, action)
+}
+

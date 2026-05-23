@@ -434,21 +434,12 @@ definitions:
         items:
           $ref: '#/definitions/internal_api.DashboardExchangeRate'
         type: array
-      latest_rate:
-        $ref: '#/definitions/internal_api.DashboardExchangeRate'
       variation_percent:
         type: string
     type: object
   internal_api.DeleteAccountRequest:
     properties:
       otp_code:
-        type: string
-    type: object
-  internal_api.DeleteLegacyAccountRequest:
-    properties:
-      email:
-        type: string
-      password:
         type: string
     type: object
   internal_api.HistoryRequest:
@@ -595,6 +586,16 @@ definitions:
       holder_name:
         type: string
     type: object
+  internal_api.ValidateOTPRequest:
+    properties:
+      action:
+        description: '''REGISTER'', ''RECOVER'', ''DELETE'''
+        type: string
+      email:
+        type: string
+      otp_code:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -672,39 +673,6 @@ paths:
       summary: Iniciar sesión de usuario
       tags:
       - Autenticación
-  /api/auth/me:
-    delete:
-      consumes:
-      - application/json
-      description: Elimina de forma lógica la cuenta del usuario autenticado validando
-        su correo electrónico y contraseña (cifrada en tránsito).
-      parameters:
-      - description: Credenciales de confirmación de eliminación
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_api.DeleteLegacyAccountRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Cuenta eliminada lógicamente de manera exitosa
-          schema:
-            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
-        "401":
-          description: No autorizado
-          schema:
-            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
-        "500":
-          description: Error interno del servidor
-          schema:
-            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
-      security:
-      - ApiKeyAuth: []
-      summary: Eliminar cuenta (Legacy)
-      tags:
-      - Autenticación
   /api/auth/public-key:
     get:
       description: Retorna la clave pública RSA en formato PEM para cifrar credenciales
@@ -717,29 +685,6 @@ paths:
           schema:
             $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse'
       summary: Obtener clave pública RSA
-      tags:
-      - Autenticación
-  /api/auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Registra un nuevo usuario en la plataforma validando el código
-        OTP y descifrando la contraseña.
-      parameters:
-      - description: Datos de registro
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_domain.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Error al registrar usuario o datos duplicados
-          schema:
-            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
-      summary: Registrar un nuevo usuario
       tags:
       - Autenticación
   /api/rates:
@@ -1032,6 +977,26 @@ paths:
       summary: Gestionar detalle de cuenta de terceros (Actualizar / Eliminar)
       tags:
       - Cuentas Bancarias - Terceros
+  /api/v1/auth/logout:
+    post:
+      description: Cierra la sesión activa del usuario (invalida el token localmente,
+        audita el logout en el servidor).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sesión cerrada exitosamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Cerrar sesión de usuario
+      tags:
+      - Autenticación
   /api/v1/auth/otp/request:
     post:
       consumes:
@@ -1057,6 +1022,33 @@ paths:
           schema:
             $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
       summary: Solicitar OTP
+      tags:
+      - Autenticación
+  /api/v1/auth/otp/validate:
+    post:
+      consumes:
+      - application/json
+      description: Verifica si un código OTP es correcto, está vigente y no ha sido
+        utilizado, sin marcarlo como consumido.
+      parameters:
+      - description: Datos para la validación del OTP
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.ValidateOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Código OTP válido y vigente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "400":
+          description: Solicitud incorrecta o OTP inválido
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Validar OTP (sin consumir)
       tags:
       - Autenticación
   /api/v1/auth/password/reset:
@@ -1103,6 +1095,10 @@ paths:
       - application/json
       responses:
         "200":
+          description: Usuario registrado exitosamente
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse'
+        "400":
           description: Error al registrar usuario o datos duplicados
           schema:
             $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
@@ -1419,13 +1415,17 @@ paths:
       - Comentarios
   /api/v1/rates/dashboard:
     get:
-      description: Retorna la última tasa de la moneda especificada, su porcentaje
-        de variación y su historial de tasas recientes.
+      description: Retorna la última tasa de la moneda especificada (o en/antes de
+        una fecha dada), su porcentaje de variación y su historial de tasas recientes.
       parameters:
       - description: Código de la moneda (ej. USD)
         in: query
         name: currency
         required: true
+        type: string
+      - description: Fecha de consulta de referencia opcional (formato YYYY-MM-DD)
+        in: query
+        name: date
         type: string
       produces:
       - application/json

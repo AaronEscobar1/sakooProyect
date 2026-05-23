@@ -27,8 +27,10 @@ type ExchangeRateRepository interface {
 	GetLatestRates(ctx context.Context) ([]ExchangeRate, error)   // Obtiene la última tasa de cada moneda
 	GetRatesHistoryPaginated(ctx context.Context, page, limit int, currencyCode string, startDate, endDate *time.Time) ([]ExchangeRate, int, error)
 	GetLatestRate(ctx context.Context, currencyCode string) (*ExchangeRate, error)
+	GetLatestRateBeforeOrAt(ctx context.Context, currencyCode string, date time.Time) (*ExchangeRate, error)
 	GetPreviousRate(ctx context.Context, currencyCode string, beforeDate time.Time) (*ExchangeRate, error)
 	GetRateByDate(ctx context.Context, currencyCode string, date time.Time) (*ExchangeRate, error)
 	GetRatesHistory(ctx context.Context, currencyCode string, limit int) ([]ExchangeRate, error)
+	GetRatesHistoryBeforeOrAt(ctx context.Context, currencyCode string, date time.Time, limit int) ([]ExchangeRate, error)
 	GetCalendarDates(ctx context.Context) ([]string, error)
 }

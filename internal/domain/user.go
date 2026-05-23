@@ -80,10 +80,11 @@ type UserRepository interface {
 
 // AuthUseCase define la lógica de negocio para el módulo de autenticación.
 type AuthUseCase interface {
-	Register(ctx context.Context, req RegisterRequest) error
+	Register(ctx context.Context, req RegisterRequest) (AuthResponse, error)
 	Login(ctx context.Context, req LoginRequest) (AuthResponse, error)
-	DeleteMyAccount(ctx context.Context, userID int64, email, password string) error
-	RequestOTP(ctx context.Context, email, action string) error
+	Logout(ctx context.Context, userID int64) error
+	RequestOTP(ctx context.Context, email, action string) (string, error)
+	ValidateOTP(ctx context.Context, email, code, action string) error
 	ResetPassword(ctx context.Context, email, newPassword, otpCode string) error
 	DeleteAccount(ctx context.Context, userID int64, otpCode string) error
 	GetProfile(ctx context.Context, userID int64) (*User, error)

@@ -21,7 +21,7 @@ import (
 	"github.com/aaron/sakoo-backend/internal/usecase"
 	"github.com/joho/godotenv"
 
-	_ "github.com/aaron/sakoo-backend/docs"
+	docs "github.com/aaron/sakoo-backend/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -60,6 +60,12 @@ func main() {
 	} else {
 		slog.Info("Archivo .env cargado exitosamente")
 	}
+
+	// El host de Swagger se resuelve dinámicamente en cada request desde las cabeceras
+	// HTTP del propio servidor (Host, X-Forwarded-Host, X-Forwarded-Proto).
+	// Cloudflared inyecta automáticamente estas cabeceras → nunca hay que configurar nada.
+	docs.SwaggerInfo.Schemes = []string{"https", "http"}
+	slog.Info("Swagger configurado en modo host-dinámico (lee Host del request en tiempo real)")
 
 	// 2. Inicializar llaves RSA de tránsito en memoria de manera segura
 	if err := security.InitRSAKeys(); err != nil {
@@ -149,8 +155,38 @@ func main() {
 	// 9. Configurar enrutamiento HTTP usando las ventajas nativas de Go 1.22+
 	mux := http.NewServeMux()
 
-	// Ruta de Swagger UI
-	mux.Handle("GET /swagger/{any...}", httpSwagger.WrapHandler)
+	// NOTA: Los preflights OPTIONS son interceptados por el middleware CORS *antes* de llegar
+	// al router, por lo que NO se necesita un handler OPTIONS aquí. Agregarlo dentro del mux
+	// causaría que el router respondiera sin los headers CORS (race condition de middlewares).
+
+	// Ruta de Swagger UI — host dinámico resuelto desde el request
+	// Cloudflared inyecta X-Forwarded-Proto y X-Forwarded-Host automáticamente.
+	// En local, el Host header vale "localhost:8080". En tunnel, vale la URL de cloudflare.
+	// Nunca hay que cambiar .env ni reiniciar el servidor cuando cambia la URL del túnel.
+	mux.Handle("GET /swagger/{any...}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Determinar el scheme real: https si viene por tunnel, http en local
+		scheme := r.Header.Get("X-Forwarded-Proto")
+		if scheme == "" {
+			if r.TLS != nil {
+				scheme = "https"
+			} else {
+				scheme = "http"
+			}
+		}
+
+		// Determinar el host real: cloudflared pone X-Forwarded-Host; local usa Host
+		host := r.Header.Get("X-Forwarded-Host")
+		if host == "" {
+			host = r.Host
+		}
+
+		// Actualizar el spec de Swagger en tiempo real con el host y scheme del request actual
+		docs.SwaggerInfo.Host = host
+		docs.SwaggerInfo.Schemes = []string{scheme}
+
+		// Servir la UI de Swagger con la config ya actualizada
+		httpSwagger.WrapHandler(w, r)
+	}))
 
 	// Rutas Públicas de Autenticación
 	mux.HandleFunc("GET /api/auth/public-key", authHandler.HandlePublicKey)
@@ -159,9 +195,11 @@ func main() {
 
 	// Rutas de Autenticación v1 (OTP centralizado)
 	mux.HandleFunc("POST /api/v1/auth/otp/request", authHandler.HandleRequestOTP)
+	mux.HandleFunc("POST /api/v1/auth/otp/validate", authHandler.HandleValidateOTP)
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.HandleRegister)
 	mux.HandleFunc("POST /api/v1/auth/password/reset", authHandler.HandleResetPassword)
 	mux.Handle("DELETE /api/v1/account", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleDeleteAccountV1)))
+	mux.Handle("POST /api/v1/auth/logout", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleLogout)))
 
 	// Ruta Pública de Tasas de Cambio
 	mux.HandleFunc("POST /api/rates", exchangeRateHandler.HandleGetLatestRates)
@@ -194,7 +232,6 @@ func main() {
 
 	// Ruta Protegida: Endpoint para obtener el perfil completo del usuario autenticado
 	mux.Handle("GET /api/v1/me", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleGetProfile)))
-	mux.Handle("DELETE /api/auth/me", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleDeleteAccount)))
 
 	// Rutas Protegidas de Cuentas Bancarias (Propias)
 	mux.Handle("POST /api/v1/accounts/own", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccounts)))

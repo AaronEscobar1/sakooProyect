@@ -18,3 +18,8 @@
 
 # Herramientas de desarrollo locales
 /scratch/
+
+# Repomix outputs and configs
+repomix-output.*
+repomix.config.json
+

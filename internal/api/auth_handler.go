@@ -40,6 +40,14 @@ type RequestOTPRequest struct {
 	Action string `json:"action"` // 'REGISTER', 'RECOVER', 'DELETE'
 }
 
+// ValidateOTPRequest representa el cuerpo para verificar un OTP sin consumirlo.
+type ValidateOTPRequest struct {
+	Email   string `json:"email"`
+	OTPCode string `json:"otp_code"`
+	Action  string `json:"action"` // 'REGISTER', 'RECOVER', 'DELETE'
+}
+
+
 // ResetPasswordRequest representa el cuerpo para restablecer la contraseña.
 type ResetPasswordRequest struct {
 	Email       string `json:"email"`
@@ -50,12 +58,6 @@ type ResetPasswordRequest struct {
 // DeleteAccountRequest representa la confirmación de eliminación con OTP.
 type DeleteAccountRequest struct {
 	OTPCode string `json:"otp_code"`
-}
-
-// DeleteLegacyAccountRequest representa la confirmación de eliminación de cuenta heredada.
-type DeleteLegacyAccountRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 // AuthHandler expone los controladores HTTP del módulo de autenticación y seguridad.
@@ -122,14 +124,19 @@ func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.authUseCase.RequestOTP(r.Context(), req.Email, req.Action)
+	otpCode, err := h.authUseCase.RequestOTP(r.Context(), req.Email, req.Action)
 	if err != nil {
 		slog.Error("Fallo al procesar solicitud de OTP", "error", err, "email", req.Email, "action", req.Action)
 		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", err.Error())
 		return
 	}
 
-	response.Success(w, r.Context(), "SUCCESS", "Código de seguridad OTP generado y enviado exitosamente", nil)
+	responseData := map[string]string{
+		"otp": otpCode,
+	}
+	slog.Info("Retornando OTP al frontend en el payload de datos", "email", req.Email)
+
+	response.Success(w, r.Context(), "SUCCESS", "Código de seguridad OTP generado y enviado exitosamente", responseData)
 }
 
 // HandleRegister maneja la petición POST /api/v1/auth/register para registrar usuarios exigiendo OTP y contraseñas cifradas en tránsito.
@@ -139,10 +146,9 @@ func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        body  body  domain.RegisterRequest  true  "Datos de registro"
-// @Success      200   {object}  response.APIResponse[any]  "Usuario registrado exitosamente"
-// @Failure      200   {object}  response.APIResponse[any]  "Error al registrar usuario o datos duplicados"
+// @Success      200   {object}  response.APIResponse[domain.AuthResponse]  "Usuario registrado exitosamente"
+// @Failure      400   {object}  response.APIResponse[any]  "Error al registrar usuario o datos duplicados"
 // @Router       /api/v1/auth/register [post]
-// @Router       /api/auth/register [post]
 func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
@@ -183,7 +189,7 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	req.Password = decryptedPassword
 
 	// 2. Invocar lógica de negocio (registro de usuario exigiendo y consumiendo OTP)
-	err = h.authUseCase.Register(r.Context(), req)
+	authRes, err := h.authUseCase.Register(r.Context(), req)
 	if err != nil {
 		slog.Error("Fallo al registrar usuario con OTP", "error", err, "email", req.Email)
 		if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "users_email_key") || strings.Contains(err.Error(), "users_username_key") {
@@ -198,7 +204,7 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Success(w, r.Context(), "CREATED", "usuario registrado y verificado exitosamente en el sistema", nil)
+	response.Success(w, r.Context(), "CREATED", "usuario registrado y verificado exitosamente en el sistema", authRes)
 }
 
 // HandleLogin maneja la petición POST /api/auth/login para autenticar usuarios con contraseñas cifradas en tránsito.
@@ -288,61 +294,6 @@ func (h *AuthHandler) HandleResetPassword(w http.ResponseWriter, r *http.Request
 	response.Success(w, r.Context(), "SUCCESS", "Contraseña restablecida correctamente", nil)
 }
 
-// HandleDeleteAccount maneja la petición DELETE /api/auth/me para realizar el borrado lógico heredado (Legacy).
-// @Summary      Eliminar cuenta (Legacy)
-// @Description  Elimina de forma lógica la cuenta del usuario autenticado validando su correo electrónico y contraseña (cifrada en tránsito).
-// @Security     ApiKeyAuth
-// @Tags         Autenticación
-// @Accept       json
-// @Produce      json
-// @Param        body  body  DeleteLegacyAccountRequest  true  "Credenciales de confirmación de eliminación"
-// @Success      200   {object}  response.APIResponse[any]  "Cuenta eliminada lógicamente de manera exitosa"
-// @Failure      401   {object}  response.APIResponse[any]  "No autorizado"
-// @Failure      500   {object}  response.APIResponse[any]  "Error interno del servidor"
-// @Router       /api/auth/me [delete]
-func (h *AuthHandler) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere DELETE)")
-		return
-	}
-
-	userID, ok := GetUserIDFromContext(r.Context())
-	if !ok {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
-		return
-	}
-
-	var req DeleteLegacyAccountRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
-		return
-	}
-
-	if req.Email == "" || req.Password == "" {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "el correo electrónico y la contraseña son requeridos")
-		return
-	}
-
-	decryptedPassword, err := security.DecryptPassword(req.Password)
-	if err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "las credenciales enviadas no tienen el formato de seguridad esperado")
-		return
-	}
-	req.Password = decryptedPassword
-
-	err = h.authUseCase.DeleteMyAccount(r.Context(), userID, req.Email, req.Password)
-	if err != nil {
-		if err.Error() == "credenciales incorrectas" || err.Error() == "no estás autorizado para eliminar esta cuenta" {
-			response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", err.Error())
-			return
-		}
-		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "error al realizar el borrado lógico de la cuenta")
-		return
-	}
-
-	response.Success(w, r.Context(), "SUCCESS", "cuenta desactivada y eliminada lógicamente de manera correcta", nil)
-}
 
 // HandleDeleteAccountV1 maneja la petición DELETE /api/v1/account protegida por JWT para realizar el borrado lógico con OTP.
 // @Summary      Eliminar cuenta (v1)
@@ -438,3 +389,77 @@ func (h *AuthHandler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 
 	response.Success(w, r.Context(), "SUCCESS", "perfil del usuario recuperado exitosamente", profile)
 }
+
+// HandleLogout maneja la petición POST /api/v1/auth/logout para cerrar la sesión del usuario.
+// @Summary      Cerrar sesión de usuario
+// @Description  Cierra la sesión activa del usuario (invalida el token localmente, audita el logout en el servidor).
+// @Security     ApiKeyAuth
+// @Tags         Autenticación
+// @Produce      json
+// @Success      200   {object}  response.APIResponse[any]  "Sesión cerrada exitosamente"
+// @Failure      401   {object}  response.APIResponse[any]  "No autorizado"
+// @Router       /api/v1/auth/logout [post]
+func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		return
+	}
+
+	// Extraer el userID del contexto (inyectado por AuthMiddleware)
+	userID, ok := GetUserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		return
+	}
+
+	// Invocar el caso de uso
+	if err := h.authUseCase.Logout(r.Context(), userID); err != nil {
+		slog.Error("Fallo al cerrar sesión del usuario", "error", err, "user_id", userID)
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "error al cerrar la sesión")
+		return
+	}
+
+	// Inyectar el código de respuesta semántico para que el middleware de trazabilidad y auditoría lo registre
+	w.Header().Set("X-Response-Code", "LOGOUT")
+
+	response.Success(w, r.Context(), "SUCCESS", "sesión cerrada exitosamente", nil)
+}
+
+// HandleValidateOTP maneja la petición POST /api/v1/auth/otp/validate para validar un OTP sin consumirlo.
+// @Summary      Validar OTP (sin consumir)
+// @Description  Verifica si un código OTP es correcto, está vigente y no ha sido utilizado, sin marcarlo como consumido.
+// @Tags         Autenticación
+// @Accept       json
+// @Produce      json
+// @Param        body  body  ValidateOTPRequest  true  "Datos para la validación del OTP"
+// @Success      200   {object}  response.APIResponse[any]  "Código OTP válido y vigente"
+// @Failure      400   {object}  response.APIResponse[any]  "Solicitud incorrecta o OTP inválido"
+// @Router       /api/v1/auth/otp/validate [post]
+func (h *AuthHandler) HandleValidateOTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		return
+	}
+
+	var req ValidateOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		return
+	}
+
+	if req.Email == "" || req.OTPCode == "" || req.Action == "" {
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "el correo electrónico, el código OTP y la acción son campos requeridos")
+		return
+	}
+
+	if err := h.authUseCase.ValidateOTP(r.Context(), req.Email, req.OTPCode, req.Action); err != nil {
+		slog.Warn("Fallo al validar OTP (sin consumo)", "error", err, "email", req.Email, "action", req.Action)
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	slog.Info("OTP validado exitosamente sin consumir", "email", req.Email, "action", req.Action)
+	response.Success(w, r.Context(), "SUCCESS", "Código OTP válido y vigente", nil)
+}
+
+

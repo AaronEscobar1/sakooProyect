@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/aaron/sakoo-backend/internal/api/response"
 	"github.com/aaron/sakoo-backend/internal/usecase"
@@ -22,7 +23,6 @@ type DashboardExchangeRate struct {
 
 // DashboardResponse define la estructura del resumen del dashboard.
 type DashboardResponse struct {
-	LatestRate       DashboardExchangeRate   `json:"latest_rate"`
 	VariationPercent string                  `json:"variation_percent"`
 	History          []DashboardExchangeRate `json:"history"`
 }
@@ -59,10 +59,11 @@ func NewRatesHandler(dashboardUseCase usecase.DashboardUseCase, calculatorUseCas
 
 // HandleGetDashboardSummary maneja GET /api/v1/rates/dashboard
 // @Summary      Obtener resumen del dashboard
-// @Description  Retorna la última tasa de la moneda especificada, su porcentaje de variación y su historial de tasas recientes.
+// @Description  Retorna la última tasa de la moneda especificada (o en/antes de una fecha dada), su porcentaje de variación y su historial de tasas recientes.
 // @Tags         Core Business
 // @Produce      json
 // @Param        currency  query  string  true  "Código de la moneda (ej. USD)"
+// @Param        date      query  string  false "Fecha de consulta de referencia opcional (formato YYYY-MM-DD)"
 // @Success      200  {object}  response.APIResponse[DashboardResponse]  "Resumen de dashboard obtenido exitosamente"
 // @Failure      200  {object}  response.APIResponse[any]                "Moneda no encontrada o error interno"
 // @Router       /api/v1/rates/dashboard [get]
@@ -78,7 +79,17 @@ func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.
 		return
 	}
 
-	summary, err := h.dashboardUseCase.GetDashboardSummary(r.Context(), currency)
+	var refDate *time.Time
+	if dateStr := r.URL.Query().Get("date"); dateStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el parámetro query 'date' debe tener el formato YYYY-MM-DD")
+			return
+		}
+		refDate = &parsedDate
+	}
+
+	summary, err := h.dashboardUseCase.GetDashboardSummary(r.Context(), currency, refDate)
 	if err != nil {
 		// Control estricto de pgx.ErrNoRows: Responder HTTP 200, código interno diferente de 1000
 		if errors.Is(err, pgx.ErrNoRows) || (err != nil && (errors.Is(err, pgx.ErrNoRows) || (errors.Unwrap(err) != nil && errors.Is(errors.Unwrap(err), pgx.ErrNoRows)) || err.Error() == "no rows in result set" || (len(err.Error()) > 20 && err.Error()[len(err.Error())-22:] == "no rows in result set"))) {
@@ -104,13 +115,6 @@ func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.
 	}
 
 	res := DashboardResponse{
-		LatestRate: DashboardExchangeRate{
-			CurrencyCode: summary.LatestRate.CurrencyCode,
-			RateFrom:     summary.LatestRate.RateFrom.String(),
-			RateTo:       summary.LatestRate.RateTo.String(),
-			RateAverage:  summary.LatestRate.RateAverage.String(),
-			ValueDate:    summary.LatestRate.ValueDate.Format("2006-01-02"),
-		},
 		VariationPercent: summary.VariationPercent.String(),
 		History:           historyDTO,
 	}

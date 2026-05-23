@@ -440,6 +440,89 @@ func (r *exchangeRateRepository) GetRatesHistory(ctx context.Context, currencyCo
 	return rates, nil
 }
 
+// GetLatestRateBeforeOrAt obtiene la última tasa de cambio para una moneda específica en o antes de la fecha dada.
+func (r *exchangeRateRepository) GetLatestRateBeforeOrAt(ctx context.Context, currencyCode string, date time.Time) (*domain.ExchangeRate, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Consultando última tasa de cambio en o antes de fecha", "currency_code", currencyCode, "date", date)
+
+	query := `
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		FROM public.exchange_rates e
+		JOIN catalogs.currency c ON e.currency_id = c.id
+		WHERE c.code = $1 AND e.value_date <= $2
+		ORDER BY e.value_date DESC
+		LIMIT 1;
+	`
+
+	var rate domain.ExchangeRate
+	err := r.db.QueryRow(dbCtx, query, currencyCode, date).Scan(
+		&rate.ID,
+		&rate.CurrencyID,
+		&rate.CurrencyCode,
+		&rate.RateFrom,
+		&rate.RateTo,
+		&rate.RateAverage,
+		&rate.ValueDate,
+		&rate.CreatedAt,
+		&rate.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener la tasa de cambio en o antes de fecha: %w", err)
+	}
+
+	return &rate, nil
+}
+
+// GetRatesHistoryBeforeOrAt obtiene las últimas N tasas de cambio para una moneda en o antes de la fecha dada.
+func (r *exchangeRateRepository) GetRatesHistoryBeforeOrAt(ctx context.Context, currencyCode string, date time.Time, limit int) ([]domain.ExchangeRate, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Consultando historial de tasas simple en o antes de fecha", "currency_code", currencyCode, "date", date, "limit", limit)
+
+	query := `
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		FROM public.exchange_rates e
+		JOIN catalogs.currency c ON e.currency_id = c.id
+		WHERE c.code = $1 AND e.value_date <= $2
+		ORDER BY e.value_date DESC
+		LIMIT $3;
+	`
+
+	rows, err := r.db.Query(dbCtx, query, currencyCode, date, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error al consultar historial simple en o antes de fecha: %w", err)
+	}
+	defer rows.Close()
+
+	var rates []domain.ExchangeRate
+	for rows.Next() {
+		var rate domain.ExchangeRate
+		if err := rows.Scan(
+			&rate.ID,
+			&rate.CurrencyID,
+			&rate.CurrencyCode,
+			&rate.RateFrom,
+			&rate.RateTo,
+			&rate.RateAverage,
+			&rate.ValueDate,
+			&rate.CreatedAt,
+			&rate.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("error al escanear tasa de cambio del historial simple: %w", err)
+		}
+		rates = append(rates, rate)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error en iteración del historial simple de tasas: %w", err)
+	}
+
+	return rates, nil
+}
+
 // GetCalendarDates obtiene la lista de fechas únicas con tasas de cambio registradas, ordenadas de forma descendente.
 func (r *exchangeRateRepository) GetCalendarDates(ctx context.Context) ([]string, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)

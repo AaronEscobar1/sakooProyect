@@ -20,4 +20,6 @@ type UserOTP struct {
 type OTPRepository interface {
 	CreateOTP(ctx context.Context, otp *UserOTP) error
 	ValidateAndConsumeOTP(ctx context.Context, email, code, action string) error
+	ValidateOTPOnly(ctx context.Context, email, code, action string) error
 }
+
