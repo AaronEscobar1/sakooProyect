@@ -70,6 +70,16 @@ func ConnectAndMigrate(dbURL string) (*pgxpool.Pool, error) {
 	}
 	defer m.Close()
 
+	// Proactivo: Si la base de datos ya tiene una versión superior (por ejemplo, 12) debido a despliegues anteriores
+	// pero ahora hemos consolidado todo en la versión 1, forzamos a la versión 1 de forma automática.
+	version, _, errVersion := m.Version()
+	if errVersion == nil && version > 1 {
+		slog.Warn("Se detectó versión superior en base de datos debido a consolidación. Forzando a versión 1...", "version_actual", version)
+		if errForce := m.Force(1); errForce != nil {
+			return nil, fmt.Errorf("error al forzar consolidación a versión 1 de forma proactiva: %w", errForce)
+		}
+	}
+
 	if err := m.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
 			slog.Info("La base de datos ya está actualizada, no se aplicaron cambios")
@@ -90,6 +100,18 @@ func ConnectAndMigrate(dbURL string) (*pgxpool.Pool, error) {
 				}
 			} else {
 				return nil, fmt.Errorf("error al obtener versión actual de la base de datos sucia: %w", errVersion)
+			}
+		} else if strings.Contains(err.Error(), "no migration found") || strings.Contains(err.Error(), "file does not exist") {
+			slog.Warn("Se detectó incoherencia de versión en disco por consolidación (no migration found). Forzando a 1...")
+			if errForce := m.Force(1); errForce == nil {
+				slog.Info("Base de datos sincronizada con éxito en versión 1 tras consolidación. Reintentando...")
+				if errRetry := m.Up(); errRetry == nil || errors.Is(errRetry, migrate.ErrNoChange) {
+					slog.Info("Migraciones aplicadas con éxito tras forzar sincronización de consolidación!")
+				} else {
+					return nil, fmt.Errorf("error al reintentar aplicar migraciones tras forzar sincronización de consolidación: %w", errRetry)
+				}
+			} else {
+				return nil, fmt.Errorf("error al forzar sincronización de consolidación a versión 1: %w", errForce)
 			}
 		} else {
 			return nil, fmt.Errorf("error en la ejecución de la migración: %w", err)
