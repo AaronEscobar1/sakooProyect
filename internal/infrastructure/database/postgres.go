@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -72,6 +73,24 @@ func ConnectAndMigrate(dbURL string) (*pgxpool.Pool, error) {
 	if err := m.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
 			slog.Info("La base de datos ya está actualizada, no se aplicaron cambios")
+		} else if strings.Contains(err.Error(), "dirty") || strings.Contains(err.Error(), "Dirty") {
+			slog.Warn("Se detectó un estado 'dirty' (sucia) en la base de datos de migraciones. Intentando autorecuperación...")
+			version, _, errVersion := m.Version()
+			if errVersion == nil {
+				slog.Info("Forzando versión de base de datos a limpia", "version", version)
+				if errForce := m.Force(int(version)); errForce == nil {
+					slog.Info("Estado dirty limpiado automáticamente. Reintentando aplicar las migraciones...")
+					if errRetry := m.Up(); errRetry == nil || errors.Is(errRetry, migrate.ErrNoChange) {
+						slog.Info("Migraciones aplicadas con éxito tras limpiar el estado dirty de forma automática!")
+					} else {
+						return nil, fmt.Errorf("error al reintentar migraciones tras forzar limpieza automática: %w", errRetry)
+					}
+				} else {
+					return nil, fmt.Errorf("no se pudo forzar la limpieza del estado dirty de forma automática: %w", errForce)
+				}
+			} else {
+				return nil, fmt.Errorf("error al obtener versión actual de la base de datos sucia: %w", errVersion)
+			}
 		} else {
 			return nil, fmt.Errorf("error en la ejecución de la migración: %w", err)
 		}
