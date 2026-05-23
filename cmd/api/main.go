@@ -132,7 +132,7 @@ func main() {
 	mercantilScraperService := scraper.NewMercantilScraper()
 	mercantilScraperUseCase := usecase.NewMercantilScraperUseCase(mercantilScraperService, exchangeRateRepo)
 	
-	cronManager := cron.NewCronManager(bcvScraperUseCase, mercantilScraperUseCase)
+	cronManager := cron.NewCronManager(bcvScraperUseCase, mercantilScraperUseCase, pool)
 
 	exchangeRateUseCase := usecase.NewExchangeRateUseCase(exchangeRateRepo)
 	dashboardUseCase := usecase.NewDashboardUseCase(exchangeRateRepo)

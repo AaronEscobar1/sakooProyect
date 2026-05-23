@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/usecase"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/robfig/cron/v3"
 )
 
@@ -13,6 +14,7 @@ import (
 type CronManager struct {
 	bcvScraperUseCase       *usecase.ScraperUseCase
 	mercantilScraperUseCase *usecase.MercantilScraperUseCase
+	db                      *pgxpool.Pool
 	cronInstance            *cron.Cron
 }
 
@@ -28,7 +30,11 @@ func (cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 }
 
 // NewCronManager crea una nueva instancia de CronManager.
-func NewCronManager(bcvScraperUseCase *usecase.ScraperUseCase, mercantilScraperUseCase *usecase.MercantilScraperUseCase) *CronManager {
+func NewCronManager(
+	bcvScraperUseCase *usecase.ScraperUseCase, 
+	mercantilScraperUseCase *usecase.MercantilScraperUseCase,
+	db *pgxpool.Pool,
+) *CronManager {
 	logger := cronLogger{}
 
 	// Crear el planificador configurando de forma explícita la zona horaria UTC
@@ -43,6 +49,7 @@ func NewCronManager(bcvScraperUseCase *usecase.ScraperUseCase, mercantilScraperU
 	return &CronManager{
 		bcvScraperUseCase:       bcvScraperUseCase,
 		mercantilScraperUseCase: mercantilScraperUseCase,
+		db:                      db,
 		cronInstance:            c,
 	}
 }
@@ -88,6 +95,28 @@ func (cm *CronManager) Start(ctx context.Context) {
 
 	if errMercantil != nil {
 		slog.Error("Fallo crítico al registrar la tarea de Scraping Mercantil en CronManager", "expr", cronExprMercantil, "error", errMercantil)
+		return
+	}
+
+	// 3. Tarea de Limpieza Automática de Logs: cada 3 horas (prune de logs mayores a 24 horas para evitar bloat)
+	cronExprCleanup := "0 */3 * * *"
+	_, errCleanup := cm.cronInstance.AddFunc(cronExprCleanup, func() {
+		slog.Info("Cron Triggered: Ejecutando limpieza automática periódica de logs de auditoría antiguos...")
+		
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		query := `DELETE FROM public.api_logs WHERE created_at < NOW() - INTERVAL '24 hours';`
+		result, err := cm.db.Exec(cleanupCtx, query)
+		if err != nil {
+			slog.Error("Fallo en la ejecución de la tarea automática de limpieza de logs antiguos", "error", err)
+		} else {
+			slog.Info("Limpieza periódica de logs de auditoría completada con éxito", "filas_eliminadas", result.RowsAffected())
+		}
+	})
+
+	if errCleanup != nil {
+		slog.Error("Fallo crítico al registrar la tarea de Limpieza de Logs en CronManager", "expr", cronExprCleanup, "error", errCleanup)
 		return
 	}
 
