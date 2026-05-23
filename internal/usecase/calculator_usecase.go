@@ -47,10 +47,10 @@ func (uc *calculatorUseCase) CalculateConversion(ctx context.Context, currencyCo
 		if errParse != nil {
 			return decimal.Zero, fmt.Errorf("formato de fecha inválido (se requiere YYYY-MM-DD): %w", errParse)
 		}
-		// Buscar la tasa para esa fecha específica
-		rate, err = uc.repo.GetRateByDate(ctx, currencyCode, parsedDate)
+		// Buscar la tasa para esa fecha específica o la última disponible antes (regla de fines de semana y feriados)
+		rate, err = uc.repo.GetLatestRateBeforeOrAt(ctx, currencyCode, parsedDate)
 		if err != nil {
-			return decimal.Zero, err
+			return decimal.Zero, fmt.Errorf("no se encontró una tasa de cambio previa para la fecha indicada: %w", err)
 		}
 	} else {
 		// Obtener la tasa de cambio más reciente
