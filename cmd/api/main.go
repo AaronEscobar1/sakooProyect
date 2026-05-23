@@ -86,7 +86,13 @@ func main() {
 	// 4. Conectar a PostgreSQL y ejecutar las migraciones automáticamente
 	pool, err := database.ConnectAndMigrate(dbURL)
 	if err != nil {
-		slog.Error("Fallo crítico en la inicialización de la base de datos/migraciones", "error", err)
+		// Imprimir en texto plano con alta visibilidad para los logs de Railway
+		os.Stderr.WriteString("\n==================================================\n")
+		os.Stderr.WriteString("❌ ERROR CRÍTICO EN MIGRACIONES/BASE DE DATOS:\n")
+		os.Stderr.WriteString(err.Error() + "\n")
+		os.Stderr.WriteString("==================================================\n\n")
+
+		slog.Error("Fallo crítico en la inicialización de la base de datos/migraciones", "error", err.Error())
 		os.Exit(1)
 	}
 	// Garantizar el cierre seguro del pool al terminar la aplicación
