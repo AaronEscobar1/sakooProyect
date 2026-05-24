@@ -39,6 +39,13 @@ func isOriginAllowed(origin string) bool {
 		strings.HasPrefix(origin, "https://127.0.0.1:") {
 		return true
 	}
+
+	// Permitir de forma dinámica cualquier dominio de Railway en producción
+	if strings.HasSuffix(origin, ".railway.app") || 
+	   strings.HasSuffix(origin, ".up.railway.app") {
+		return true
+	}
+
 	return false
 }
 
