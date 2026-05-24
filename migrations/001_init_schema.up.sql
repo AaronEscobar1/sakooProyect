@@ -20,13 +20,21 @@ DROP TABLE IF EXISTS public.user_device_tokens CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
 DROP TABLE IF EXISTS public.users CASCADE;
 
--- 2. Crear esquemas estructurados de forma modular
-CREATE SCHEMA IF NOT EXISTS catalogs;
-CREATE SCHEMA IF NOT EXISTS security;
-CREATE SCHEMA IF NOT EXISTS market;
-CREATE SCHEMA IF NOT EXISTS finance;
-CREATE SCHEMA IF NOT EXISTS notifications;
-CREATE SCHEMA IF NOT EXISTS telemetry;
+-- 2. Limpieza de esquemas antiguos para una migración 100% limpia y fresca
+DROP SCHEMA IF EXISTS catalogs CASCADE;
+DROP SCHEMA IF EXISTS security CASCADE;
+DROP SCHEMA IF EXISTS market CASCADE;
+DROP SCHEMA IF EXISTS finance CASCADE;
+DROP SCHEMA IF EXISTS notifications CASCADE;
+DROP SCHEMA IF EXISTS telemetry CASCADE;
+
+-- 3. Crear esquemas estructurados de forma modular
+CREATE SCHEMA catalogs;
+CREATE SCHEMA security;
+CREATE SCHEMA market;
+CREATE SCHEMA finance;
+CREATE SCHEMA notifications;
+CREATE SCHEMA telemetry;
 
 -- ============================================================================
 -- ESQUEMA: catalogs (Tablas y Catálogos Maestros)
@@ -147,7 +155,7 @@ CREATE TABLE market.comments (
 -- Tabla de Banners Publicitarios e Informativos
 CREATE TABLE market.banners (
     id BIGSERIAL PRIMARY KEY,
-    image_url VARCHAR(255) NOT NULL,
+    image_url VARCHAR(255) UNIQUE NOT NULL,
     link VARCHAR(255) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -290,8 +298,7 @@ INSERT INTO catalogs.document_type (id, code, name) VALUES
     (4, 'C', 'Comuna'),
     (5, 'J', 'Jurídico'),
     (6, 'G', 'Gubernamental')
-ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name
-ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;
+ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name;
 
 SELECT setval('catalogs.document_type_id_seq', COALESCE((SELECT MAX(id) FROM catalogs.document_type), 1));
 
