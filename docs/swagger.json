@@ -1462,6 +1462,44 @@
                     }
                 }
             }
+        },
+        "/api/v1/users/search": {
+            "get": {
+                "description": "Busca usuarios por nombre de usuario (username) con coincidencia inicial (ej: \"jos%\"). Retorna un payload liviano optimizado para UI y mensajería.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuarios"
+                ],
+                "summary": "Buscar usuarios (Liviano)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Patrón de búsqueda (mínimo 3 caracteres)",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Búsqueda procesada correctamente",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_UserSearchResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Error al buscar usuarios",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1590,6 +1628,26 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Notification"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_UserSearchResult": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.UserSearchResult"
                     }
                 },
                 "message": {
@@ -2107,6 +2165,23 @@
                 "token": {
                     "type": "string",
                     "example": "fcm_token_12345"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.UserSearchResult": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
