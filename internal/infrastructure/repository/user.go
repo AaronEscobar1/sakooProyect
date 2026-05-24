@@ -344,3 +344,61 @@ func (r *userRepository) AddPasswordHistory(ctx context.Context, userID int64, p
 	slog.Info("Hash de contraseña insertado y limpiado en historial con éxito", "user_id", userID)
 	return nil
 }
+
+// SearchUsers busca usuarios cuyo username comience con el patrón indicado (case-insensitive), limitado y ordenado.
+func (r *userRepository) SearchUsers(ctx context.Context, query string, limit int) ([]domain.UserSearchResult, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Buscando usuarios en la base de datos", "query", query, "limit", limit)
+
+	// Búsqueda de tipo "Empieza con" (Ej: 'jos%') ordenada alfabéticamente
+	sqlQuery := `
+		SELECT id, username, first_name, last_name, avatar_index
+		FROM users
+		WHERE username ILIKE $1 AND deleted_at IS NULL
+		ORDER BY username ASC
+		LIMIT $2
+	`
+
+	// El patrón de búsqueda debe ser query + "%"
+	pattern := query + "%"
+
+	rows, err := r.db.Query(dbCtx, sqlQuery, pattern, limit)
+	if err != nil {
+		slog.Error("Fallo al buscar usuarios en PostgreSQL", "error", err, "query", query)
+		return nil, fmt.Errorf("error al buscar usuarios: %w", err)
+	}
+	defer rows.Close()
+
+	var results []domain.UserSearchResult
+	for rows.Next() {
+		var id int64
+		var username, firstName, lastName string
+		var avatarIndex int
+
+		err := rows.Scan(&id, &username, &firstName, &lastName, &avatarIndex)
+		if err != nil {
+			slog.Error("Fallo al escanear resultado de búsqueda de usuario", "error", err)
+			return nil, fmt.Errorf("error al escanear resultado de búsqueda: %w", err)
+		}
+
+		// Construir displayName y avatarURL de forma limpia y profesional
+		displayName := fmt.Sprintf("%s %s", firstName, lastName)
+		avatarURL := fmt.Sprintf("https://sakoo-public-assets.s3.amazonaws.com/avatars/avatar_%d.png", avatarIndex)
+
+		results = append(results, domain.UserSearchResult{
+			ID:          id,
+			Username:    username,
+			DisplayName: displayName,
+			AvatarURL:   avatarURL,
+		})
+	}
+
+	if results == nil {
+		results = []domain.UserSearchResult{}
+	}
+
+	return results, nil
+}
+

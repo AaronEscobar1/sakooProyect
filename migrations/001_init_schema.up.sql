@@ -98,6 +98,9 @@ CREATE TABLE security.users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Índice para optimizar búsquedas "Empieza con" en username
+CREATE INDEX IF NOT EXISTS idx_users_username ON security.users(username);
+
 -- Tabla de Historial de Contraseñas
 CREATE TABLE security.user_passwords_history (
     id BIGSERIAL PRIMARY KEY,

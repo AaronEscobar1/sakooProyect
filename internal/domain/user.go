@@ -67,6 +67,14 @@ type AuthResponse struct {
 	Token string `json:"token"`
 }
 
+// UserSearchResult representa el payload optimizado para la búsqueda de usuarios.
+type UserSearchResult struct {
+	ID          int64  `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	AvatarURL   string `json:"avatar_url"`
+}
+
 // UserRepository define la interfaz de persistencia para el módulo de usuarios.
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
@@ -76,6 +84,7 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, userID int64, passwordHash string) error
 	GetPasswordHistory(ctx context.Context, userID int64) ([]string, error)
 	AddPasswordHistory(ctx context.Context, userID int64, passwordHash string) error
+	SearchUsers(ctx context.Context, query string, limit int) ([]UserSearchResult, error)
 }
 
 // AuthUseCase define la lógica de negocio para el módulo de autenticación.
@@ -88,4 +97,5 @@ type AuthUseCase interface {
 	ResetPassword(ctx context.Context, email, newPassword, otpCode string) error
 	DeleteAccount(ctx context.Context, userID int64, otpCode string) error
 	GetProfile(ctx context.Context, userID int64) (*User, error)
+	SearchUsers(ctx context.Context, query string) ([]UserSearchResult, error)
 }

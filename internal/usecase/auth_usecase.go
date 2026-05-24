@@ -386,3 +386,18 @@ func (s *authUseCase) ValidateOTP(ctx context.Context, email, code, action strin
 	return s.otpRepo.ValidateOTPOnly(ctx, email, code, action)
 }
 
+// SearchUsers busca usuarios aplicando validaciones de MVP (mínimo 3 caracteres, límite 10).
+func (s *authUseCase) SearchUsers(ctx context.Context, query string) ([]domain.UserSearchResult, error) {
+	// Normalizar el query (quitar espacios sobrantes)
+	q := strings.TrimSpace(query)
+
+	// Si el parámetro tiene menos de 3 caracteres, retornar vacío inmediatamente sin consultar la BD
+	if len(q) < 3 {
+		slog.Debug("Búsqueda de usuarios omitida: el query tiene menos de 3 caracteres", "query", q)
+		return []domain.UserSearchResult{}, nil
+	}
+
+	// Consultar base de datos con un límite estricto de 10
+	return s.userRepo.SearchUsers(ctx, q, 10)
+}
+

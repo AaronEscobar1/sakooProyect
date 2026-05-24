@@ -266,6 +266,8 @@ func main() {
 
 	// Ruta Protegida: Endpoint para obtener el perfil completo del usuario autenticado
 	mux.Handle("GET /api/v1/me", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleGetProfile)))
+	// Ruta Protegida: Buscar otros usuarios en la plataforma de manera liviana
+	mux.Handle("GET /api/v1/users/search", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleSearchUsers)))
 
 	// Rutas Protegidas de Cuentas Bancarias (Propias)
 	mux.Handle("POST /api/v1/accounts/own", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccounts)))

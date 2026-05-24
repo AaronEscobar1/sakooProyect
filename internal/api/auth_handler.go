@@ -462,4 +462,32 @@ func (h *AuthHandler) HandleValidateOTP(w http.ResponseWriter, r *http.Request) 
 	response.Success(w, r.Context(), "SUCCESS", "Código OTP válido y vigente", nil)
 }
 
+// HandleSearchUsers maneja GET /api/v1/users/search para buscar usuarios de manera liviana.
+// @Summary      Buscar usuarios (Liviano)
+// @Description  Busca usuarios por nombre de usuario (username) con coincidencia inicial (ej: "jos%"). Retorna un payload liviano optimizado para UI y mensajería.
+// @Tags         Usuarios
+// @Accept       json
+// @Produce      json
+// @Param        q     query     string  true  "Patrón de búsqueda (mínimo 3 caracteres)"
+// @Success      200   {object}  response.APIResponse[[]domain.UserSearchResult]  "Búsqueda procesada correctamente"
+// @Failure      400   {object}  response.APIResponse[any]  "Error al buscar usuarios"
+// @Router       /api/v1/users/search [get]
+func (h *AuthHandler) HandleSearchUsers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	results, err := h.authUseCase.SearchUsers(r.Context(), query)
+	if err != nil {
+		slog.Error("Fallo al buscar usuarios", "error", err, "query", query)
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	response.Success(w, r.Context(), "SUCCESS", "Usuarios recuperados correctamente", results)
+}
+
+
 
