@@ -59,7 +59,24 @@ func NewEmailService() EmailService {
 		from = user
 	}
 
-	slog.Info("🚀 Servicio de correo SMTP de producción inicializado correctamente.")
+	env := os.Getenv("GO_ENV")
+	if env == "" {
+		env = "production"
+	}
+
+	var envSpanish string
+	switch env {
+	case "production":
+		envSpanish = "producción"
+	case "qa":
+		envSpanish = "qa"
+	case "local":
+		envSpanish = "local"
+	default:
+		envSpanish = env
+	}
+
+	slog.Info("🚀 Servicio de correo SMTP inicializado correctamente en " + envSpanish + ".", "ambiente", env)
 	return &smtpEmailService{
 		host:     host,
 		port:     port,

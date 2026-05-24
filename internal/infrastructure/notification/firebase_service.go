@@ -42,7 +42,24 @@ func NewPushNotificationService() domain.PushNotificationService {
 		return &firebasePushService{isMock: true}
 	}
 
-	slog.Info("🚀 Firebase Cloud Messaging (FCM) inicializado correctamente en producción.")
+	env := os.Getenv("GO_ENV")
+	if env == "" {
+		env = "production"
+	}
+
+	var envSpanish string
+	switch env {
+	case "production":
+		envSpanish = "producción"
+	case "qa":
+		envSpanish = "qa"
+	case "local":
+		envSpanish = "local"
+	default:
+		envSpanish = env
+	}
+
+	slog.Info("🚀 Firebase Cloud Messaging (FCM) inicializado correctamente en " + envSpanish + ".", "ambiente", env)
 	return &firebasePushService{
 		fcmClient: client,
 		isMock:    false,
