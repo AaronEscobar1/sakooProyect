@@ -29,7 +29,7 @@ func (r *bannerRepository) ListActive(ctx context.Context) ([]domain.Banner, err
 
 	query := `
 		SELECT id, image_url, link, is_active, created_at, updated_at
-		FROM public.banners
+		FROM banners
 		WHERE is_active = TRUE
 		ORDER BY created_at DESC;
 	`

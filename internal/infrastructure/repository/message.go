@@ -28,7 +28,7 @@ func (r *messageRepository) Create(ctx context.Context, msg *domain.Message) err
 	slog.Debug("Insertando nuevo mensaje", "sender_id", msg.SenderID, "receiver_id", msg.ReceiverID)
 
 	query := `
-		INSERT INTO public.messages (sender_id, receiver_id, content, read_at, created_at)
+		INSERT INTO messages (sender_id, receiver_id, content, read_at, created_at)
 		VALUES ($1, $2, $3, NULL, NOW())
 		RETURNING id, created_at;
 	`
@@ -50,7 +50,7 @@ func (r *messageRepository) ListByUserID(ctx context.Context, userID int64) ([]d
 	// 1. Obtener mensajes donde el usuario es el remitente o el destinatario
 	query := `
 		SELECT id, sender_id, receiver_id, content, read_at, created_at
-		FROM public.messages
+		FROM messages
 		WHERE sender_id = $1 OR receiver_id = $1
 		ORDER BY created_at ASC;
 	`
@@ -78,7 +78,7 @@ func (r *messageRepository) ListByUserID(ctx context.Context, userID int64) ([]d
 
 	// 2. Marcar automáticamente los recibidos no leídos como leídos en la base de datos
 	updateQuery := `
-		UPDATE public.messages
+		UPDATE messages
 		SET read_at = NOW()
 		WHERE receiver_id = $1 AND read_at IS NULL;
 	`
@@ -106,7 +106,7 @@ func (r *messageRepository) GetUnreadCount(ctx context.Context, userID int64) (i
 
 	query := `
 		SELECT COUNT(*)
-		FROM public.messages
+		FROM messages
 		WHERE receiver_id = $1 AND read_at IS NULL;
 	`
 	var count int

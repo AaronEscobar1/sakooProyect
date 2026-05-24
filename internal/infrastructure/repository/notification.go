@@ -23,7 +23,7 @@ func NewNotificationRepository(db *pgxpool.Pool) domain.NotificationRepository {
 
 func (r *notificationRepository) SaveDeviceToken(ctx context.Context, userID int64, token, platform string) error {
 	query := `
-		INSERT INTO public.user_device_tokens (user_id, token, platform, updated_at)
+		INSERT INTO user_device_tokens (user_id, token, platform, updated_at)
 		VALUES ($1, $2, $3, NOW())
 		ON CONFLICT (token) DO UPDATE 
 		SET user_id = EXCLUDED.user_id, platform = EXCLUDED.platform, updated_at = NOW();
@@ -37,7 +37,7 @@ func (r *notificationRepository) SaveDeviceToken(ctx context.Context, userID int
 }
 
 func (r *notificationRepository) DeleteDeviceToken(ctx context.Context, userID int64, token string) error {
-	query := `DELETE FROM public.user_device_tokens WHERE user_id = $1 AND token = $2;`
+	query := `DELETE FROM user_device_tokens WHERE user_id = $1 AND token = $2;`
 	_, err := r.db.Exec(ctx, query, userID, token)
 	if err != nil {
 		slog.Error("Fallo al eliminar token de dispositivo", "error", err, "user_id", userID)
@@ -47,7 +47,7 @@ func (r *notificationRepository) DeleteDeviceToken(ctx context.Context, userID i
 }
 
 func (r *notificationRepository) GetDeviceTokensByUserID(ctx context.Context, userID int64) ([]string, error) {
-	query := `SELECT token FROM public.user_device_tokens WHERE user_id = $1 ORDER BY updated_at DESC;`
+	query := `SELECT token FROM user_device_tokens WHERE user_id = $1 ORDER BY updated_at DESC;`
 	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		slog.Error("Fallo al obtener tokens de dispositivo", "error", err, "user_id", userID)
@@ -66,7 +66,7 @@ func (r *notificationRepository) GetDeviceTokensByUserID(ctx context.Context, us
 }
 
 func (r *notificationRepository) GetAllDeviceTokens(ctx context.Context) ([]string, error) {
-	query := `SELECT token FROM public.user_device_tokens;`
+	query := `SELECT token FROM user_device_tokens;`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		slog.Error("Fallo al obtener todos los tokens de dispositivo", "error", err)
@@ -96,7 +96,7 @@ func (r *notificationRepository) SaveNotification(ctx context.Context, n *domain
 	}
 
 	query := `
-		INSERT INTO public.notifications (user_id, title, body, is_read, data, created_at)
+		INSERT INTO notifications (user_id, title, body, is_read, data, created_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())
 		RETURNING id, created_at;
 	`
@@ -111,7 +111,7 @@ func (r *notificationRepository) SaveNotification(ctx context.Context, n *domain
 func (r *notificationRepository) GetNotificationsByUserID(ctx context.Context, userID int64) ([]domain.Notification, error) {
 	query := `
 		SELECT id, user_id, title, body, is_read, data, created_at
-		FROM public.notifications
+		FROM notifications
 		WHERE user_id = $1
 		ORDER BY created_at DESC;
 	`
@@ -138,7 +138,7 @@ func (r *notificationRepository) GetNotificationsByUserID(ctx context.Context, u
 }
 
 func (r *notificationRepository) MarkAsRead(ctx context.Context, userID int64, notificationID int64) error {
-	query := `UPDATE public.notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2;`
+	query := `UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2;`
 	res, err := r.db.Exec(ctx, query, notificationID, userID)
 	if err != nil {
 		slog.Error("Fallo al marcar notificación como leída", "error", err, "notification_id", notificationID, "user_id", userID)

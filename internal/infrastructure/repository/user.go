@@ -32,7 +32,7 @@ func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
 	slog.Debug("Creando registro de usuario en base de datos", "email", user.Email)
 
 	query := `
-		INSERT INTO public.users (
+		INSERT INTO users (
 			email, 
 			username,
 			first_name, 
@@ -105,7 +105,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain
 			deleted_at,
 			created_at, 
 			updated_at 
-		FROM public.users 
+		FROM users 
 		WHERE email = $1 AND deleted_at IS NULL;
 	`
 
@@ -168,7 +168,7 @@ func (r *userRepository) FindByID(ctx context.Context, id int64) (*domain.User, 
 			deleted_at,
 			created_at, 
 			updated_at 
-		FROM public.users 
+		FROM users 
 		WHERE id = $1 AND deleted_at IS NULL;
 	`
 
@@ -213,7 +213,7 @@ func (r *userRepository) SoftDelete(ctx context.Context, userID int64) error {
 	slog.Info("Ejecutando borrado lógico de usuario", "user_id", userID)
 
 	query := `
-		UPDATE public.users 
+		UPDATE users 
 		SET deleted_at = NOW(), updated_at = NOW() 
 		WHERE id = $1 AND deleted_at IS NULL;
 	`
@@ -240,7 +240,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, userID int64, passw
 	slog.Info("Actualizando contraseña de usuario en base de datos", "user_id", userID)
 
 	query := `
-		UPDATE public.users 
+		UPDATE users 
 		SET password_hash = $1, updated_at = NOW() 
 		WHERE id = $2 AND deleted_at IS NULL;
 	`
@@ -268,7 +268,7 @@ func (r *userRepository) GetPasswordHistory(ctx context.Context, userID int64) (
 
 	query := `
 		SELECT password_hash 
-		FROM public.user_passwords_history 
+		FROM user_passwords_history 
 		WHERE user_id = $1 
 		ORDER BY created_at DESC, id DESC 
 		LIMIT 5;
@@ -312,7 +312,7 @@ func (r *userRepository) AddPasswordHistory(ctx context.Context, userID int64, p
 	defer tx.Rollback(dbCtx)
 
 	insertQuery := `
-		INSERT INTO public.user_passwords_history (user_id, password_hash, created_at)
+		INSERT INTO user_passwords_history (user_id, password_hash, created_at)
 		VALUES ($1, $2, NOW());
 	`
 	_, err = tx.Exec(dbCtx, insertQuery, userID, passwordHash)
@@ -323,9 +323,9 @@ func (r *userRepository) AddPasswordHistory(ctx context.Context, userID int64, p
 
 	// Borrar registros de historial más antiguos de los últimos 5
 	deleteQuery := `
-		DELETE FROM public.user_passwords_history 
+		DELETE FROM user_passwords_history 
 		WHERE id NOT IN (
-			SELECT id FROM public.user_passwords_history 
+			SELECT id FROM user_passwords_history 
 			WHERE user_id = $1 
 			ORDER BY created_at DESC, id DESC 
 			LIMIT 5

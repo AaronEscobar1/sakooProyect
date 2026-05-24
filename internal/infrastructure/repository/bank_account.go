@@ -29,7 +29,7 @@ func (r *bankAccountRepository) CreateOwn(ctx context.Context, acc *domain.BankA
 	slog.Debug("Insertando cuenta propia en base de datos", "user_id", acc.UserID, "bank_name", acc.BankName)
 
 	query := `
-		INSERT INTO public.bank_accounts (
+		INSERT INTO bank_accounts (
 			user_id, 
 			bank_name, 
 			account_number, 
@@ -67,7 +67,7 @@ func (r *bankAccountRepository) ListOwn(ctx context.Context, userID int64) ([]do
 
 	query := `
 		SELECT id, user_id, bank_name, account_number, account_type, holder_name, created_at, updated_at
-		FROM public.bank_accounts
+		FROM bank_accounts
 		WHERE user_id = $1
 		ORDER BY created_at DESC;
 	`
@@ -118,7 +118,7 @@ func (r *bankAccountRepository) UpdateOwn(ctx context.Context, acc *domain.BankA
 	slog.Debug("Actualizando cuenta propia en base de datos", "id", acc.ID, "user_id", acc.UserID)
 
 	query := `
-		UPDATE public.bank_accounts
+		UPDATE bank_accounts
 		SET bank_name = $1, account_number = $2, account_type = $3, holder_name = $4, updated_at = NOW()
 		WHERE id = $5 AND user_id = $6
 		RETURNING updated_at;
@@ -149,7 +149,7 @@ func (r *bankAccountRepository) DeleteOwn(ctx context.Context, id int64, userID 
 	slog.Debug("Eliminando cuenta propia de base de datos", "id", id, "user_id", userID)
 
 	query := `
-		DELETE FROM public.bank_accounts
+		DELETE FROM bank_accounts
 		WHERE id = $1 AND user_id = $2;
 	`
 
@@ -174,7 +174,7 @@ func (r *bankAccountRepository) CreateThirdParty(ctx context.Context, acc *domai
 	slog.Debug("Insertando cuenta de terceros en base de datos", "user_id", acc.UserID, "bank_name", acc.BankName)
 
 	query := `
-		INSERT INTO public.third_party_accounts (
+		INSERT INTO third_party_accounts (
 			user_id, 
 			bank_name, 
 			account_number, 
@@ -216,7 +216,7 @@ func (r *bankAccountRepository) ListThirdParty(ctx context.Context, userID int64
 
 	query := `
 		SELECT id, user_id, bank_name, account_number, account_type, holder_name, alias, document_number, created_at, updated_at
-		FROM public.third_party_accounts
+		FROM third_party_accounts
 		WHERE user_id = $1
 		ORDER BY created_at DESC;
 	`
@@ -269,7 +269,7 @@ func (r *bankAccountRepository) UpdateThirdParty(ctx context.Context, acc *domai
 	slog.Debug("Actualizando cuenta de terceros en base de datos", "id", acc.ID, "user_id", acc.UserID)
 
 	query := `
-		UPDATE public.third_party_accounts
+		UPDATE third_party_accounts
 		SET bank_name = $1, account_number = $2, account_type = $3, holder_name = $4, alias = $5, document_number = $6, updated_at = NOW()
 		WHERE id = $7 AND user_id = $8
 		RETURNING updated_at;
@@ -302,7 +302,7 @@ func (r *bankAccountRepository) DeleteThirdParty(ctx context.Context, id int64, 
 	slog.Debug("Eliminando cuenta de terceros de base de datos", "id", id, "user_id", userID)
 
 	query := `
-		DELETE FROM public.third_party_accounts
+		DELETE FROM third_party_accounts
 		WHERE id = $1 AND user_id = $2;
 	`
 

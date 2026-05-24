@@ -113,7 +113,7 @@ func TraceAndLogMiddleware(db *pgxpool.Pool) func(http.Handler) http.Handler {
 					defer cancel()
 
 					query := `
-						INSERT INTO public.api_logs (
+						INSERT INTO api_logs (
 							track_code, 
 							user_id, 
 							method, 

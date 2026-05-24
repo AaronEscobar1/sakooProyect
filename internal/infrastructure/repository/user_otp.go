@@ -31,7 +31,7 @@ func (r *otpRepository) CreateOTP(ctx context.Context, otp *domain.UserOTP) erro
 	slog.Debug("Guardando OTP en base de datos", "email", otp.Email, "action", otp.Action)
 
 	query := `
-		INSERT INTO public.user_otps (
+		INSERT INTO user_otps (
 			email, 
 			otp_code, 
 			action, 
@@ -67,7 +67,7 @@ func (r *otpRepository) ValidateAndConsumeOTP(ctx context.Context, email, code, 
 	slog.Debug("Validando y consumiendo OTP de forma atómica", "email", email, "action", action)
 
 	query := `
-		UPDATE public.user_otps
+		UPDATE user_otps
 		SET used = true
 		WHERE email = $1 AND otp_code = $2 AND action = $3 AND used = false AND expires_at > (now() at time zone 'utc')
 		RETURNING id;
@@ -97,7 +97,7 @@ func (r *otpRepository) ValidateOTPOnly(ctx context.Context, email, code, action
 
 	query := `
 		SELECT id 
-		FROM public.user_otps
+		FROM user_otps
 		WHERE email = $1 AND otp_code = $2 AND action = $3 AND used = false AND expires_at > (now() at time zone 'utc')
 		LIMIT 1;
 	`

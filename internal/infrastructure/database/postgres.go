@@ -41,6 +41,16 @@ func ConnectAndMigrate(dbURL string) (*pgxpool.Pool, error) {
 	config.MaxConnLifetime = 30 * time.Minute
 	config.MaxConnIdleTime = 15 * time.Minute
 
+	// Configurar automáticamente el search_path para dar soporte al rediseño modular de esquemas
+	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx, "SET search_path TO security, market, finance, notifications, catalogs, telemetry, public;")
+		if err != nil {
+			slog.Error("Fallo al establecer el search_path en la conexión de PostgreSQL", "error", err)
+			return err
+		}
+		return nil
+	}
+
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("error al instanciar el pool de conexiones pgx: %w", err)

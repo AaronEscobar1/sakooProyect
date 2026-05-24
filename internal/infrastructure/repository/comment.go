@@ -28,7 +28,7 @@ func (r *commentRepository) Create(ctx context.Context, comment *domain.Comment)
 	slog.Debug("Insertando nuevo comentario de tasa", "user_id", comment.UserID, "rate_id", comment.RateID)
 
 	query := `
-		INSERT INTO public.comments (user_id, rate_id, content, created_at)
+		INSERT INTO comments (user_id, rate_id, content, created_at)
 		VALUES ($1, $2, $3, NOW())
 		RETURNING id, created_at;
 	`
@@ -50,7 +50,7 @@ func (r *commentRepository) HasCommentedOnRate(ctx context.Context, userID, rate
 	query := `
 		SELECT EXISTS (
 			SELECT 1 
-			FROM public.comments 
+			FROM comments 
 			WHERE user_id = $1 AND rate_id = $2
 		);
 	`
@@ -75,8 +75,8 @@ func (r *commentRepository) ListByRateIDAndDate(ctx context.Context, rateID int6
 	// Usamos e.g. CONCAT(u.first_name, ' ', u.last_name) o first_name como username.
 	query := `
 		SELECT c.id, c.user_id, COALESCE(u.first_name || ' ' || u.last_name, 'Usuario Anónimo') AS username, c.rate_id, c.content, c.created_at
-		FROM public.comments c
-		LEFT JOIN public.users u ON c.user_id = u.id
+		FROM comments c
+		LEFT JOIN users u ON c.user_id = u.id
 		WHERE c.rate_id = $1 AND c.created_at::date = $2::date
 		ORDER BY c.created_at DESC;
 	`

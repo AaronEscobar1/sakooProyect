@@ -106,7 +106,7 @@ func (cm *CronManager) Start(ctx context.Context) {
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 
-		query := `DELETE FROM public.api_logs WHERE created_at < NOW() - INTERVAL '24 hours';`
+		query := `DELETE FROM api_logs WHERE created_at < NOW() - INTERVAL '24 hours';`
 		result, err := cm.db.Exec(cleanupCtx, query)
 		if err != nil {
 			slog.Error("Fallo en la ejecución de la tarea automática de limpieza de logs antiguos", "error", err)

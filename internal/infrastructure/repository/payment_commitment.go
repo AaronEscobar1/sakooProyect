@@ -31,7 +31,7 @@ func (r *paymentCommitmentRepository) Create(ctx context.Context, pc *domain.Pay
 	slog.Debug("Insertando compromiso de pago en base de datos", "user_id", pc.UserID, "amount", pc.Amount)
 
 	query := `
-		INSERT INTO public.payment_commitments (
+		INSERT INTO payment_commitments (
 			user_id, 
 			amount, 
 			currency_id, 
@@ -68,7 +68,7 @@ func (r *paymentCommitmentRepository) FindByID(ctx context.Context, id int64) (*
 
 	query := `
 		SELECT id, user_id, amount, currency_id, due_date, status, created_at
-		FROM public.payment_commitments
+		FROM payment_commitments
 		WHERE id = $1;
 	`
 
@@ -103,7 +103,7 @@ func (r *paymentCommitmentRepository) FindByUserID(ctx context.Context, userID i
 
 	query := `
 		SELECT id, user_id, amount, currency_id, due_date, status, created_at
-		FROM public.payment_commitments
+		FROM payment_commitments
 		WHERE user_id = $1
 		ORDER BY due_date ASC;
 	`
@@ -153,7 +153,7 @@ func (r *paymentCommitmentRepository) Update(ctx context.Context, pc *domain.Pay
 	slog.Debug("Actualizando compromiso de pago en base de datos", "id", pc.ID, "user_id", pc.UserID)
 
 	query := `
-		UPDATE public.payment_commitments
+		UPDATE payment_commitments
 		SET amount = $1, currency_id = $2, due_date = $3, status = $4
 		WHERE id = $5 AND user_id = $6;
 	`
@@ -187,7 +187,7 @@ func (r *paymentCommitmentRepository) Delete(ctx context.Context, id int64, user
 	slog.Debug("Eliminando compromiso de pago de base de datos", "id", id, "user_id", userID)
 
 	query := `
-		DELETE FROM public.payment_commitments
+		DELETE FROM payment_commitments
 		WHERE id = $1 AND user_id = $2;
 	`
 
