@@ -26,6 +26,11 @@ const docTemplate = `{
     "paths": {
         "/api/admin/notifications/send": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Envía una notificación push asíncrona a un usuario en particular o a todos los usuarios del sistema (broadcast) con un título, cuerpo y payload de datos.",
                 "consumes": [
                     "application/json"
@@ -60,6 +65,11 @@ const docTemplate = `{
         },
         "/api/admin/scrape-binance": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Ejecuta de forma síncrona el worker de Binance P2P para un activo específico (USDT o USDC) y actualiza la base de datos.",
                 "produces": [
                     "application/json"
@@ -100,6 +110,11 @@ const docTemplate = `{
         },
         "/api/admin/scrape-mercantil": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Ejecuta de forma síncrona el web scraper de Mercantil para actualizar las tasas de cambio de este banco.",
                 "produces": [
                     "application/json"
@@ -126,6 +141,11 @@ const docTemplate = `{
         },
         "/api/admin/scrape-now": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Ejecuta de forma síncrona el web scraper del Banco Central de Venezuela (BCV) para actualizar las tasas de cambio.",
                 "produces": [
                     "application/json"
@@ -1965,8 +1985,8 @@ const docTemplate = `{
                 "account_type": {
                     "type": "string"
                 },
-                "bank_name": {
-                    "type": "string"
+                "bank_id": {
+                    "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
@@ -2041,6 +2061,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "display_order": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -2060,6 +2083,9 @@ const docTemplate = `{
                 },
                 "createdAt": {
                     "type": "string"
+                },
+                "displayOrder": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer",
@@ -2248,6 +2274,9 @@ const docTemplate = `{
                 "amount": {
                     "type": "number"
                 },
+                "concept": {
+                    "type": "string"
+                },
                 "currency_id": {
                     "type": "integer"
                 },
@@ -2264,6 +2293,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "amount": {
+                    "type": "string"
+                },
+                "concept": {
                     "type": "string"
                 },
                 "created_at": {
@@ -2388,8 +2420,8 @@ const docTemplate = `{
                 "account_type": {
                     "type": "string"
                 },
-                "bank_name": {
-                    "type": "string"
+                "bank_id": {
+                    "type": "integer"
                 },
                 "holder_name": {
                     "type": "string"
@@ -2566,13 +2598,16 @@ const docTemplate = `{
                 "alias": {
                     "type": "string"
                 },
-                "bank_name": {
-                    "type": "string"
+                "bank_id": {
+                    "type": "integer"
                 },
                 "document_number": {
                     "type": "string"
                 },
                 "holder_name": {
+                    "type": "string"
+                },
+                "phone_number": {
                     "type": "string"
                 }
             }

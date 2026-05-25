@@ -34,6 +34,13 @@ func (r *exchangeRateRepository) Upsert(ctx context.Context, rate *domain.Exchan
 		"value_date", rate.ValueDate,
 	)
 
+	if rate.Status == "" {
+		rate.Status = "REGISTERED"
+	}
+	if rate.Source == "" {
+		rate.Source = "SCRAPING"
+	}
+
 	// Consulta SQL idempotente: Si ya existe una tasa para esa moneda y fecha, se actualizan los valores
 	query := `
 		INSERT INTO exchange_rates (
@@ -42,15 +49,19 @@ func (r *exchangeRateRepository) Upsert(ctx context.Context, rate *domain.Exchan
 			rate_to, 
 			rate_average, 
 			value_date, 
+			status,
+			source,
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
 		ON CONFLICT (currency_id, value_date) 
 		DO UPDATE SET
 			rate_from = EXCLUDED.rate_from,
 			rate_to = EXCLUDED.rate_to,
 			rate_average = EXCLUDED.rate_average,
+			status = EXCLUDED.status,
+			source = EXCLUDED.source,
 			updated_at = NOW()
 		RETURNING id;
 	`
@@ -62,6 +73,8 @@ func (r *exchangeRateRepository) Upsert(ctx context.Context, rate *domain.Exchan
 		rate.RateTo,
 		rate.RateAverage,
 		rate.ValueDate,
+		rate.Status,
+		rate.Source,
 	).Scan(&rate.ID)
 
 	if err != nil {
@@ -125,7 +138,7 @@ func (r *exchangeRateRepository) GetLatestRates(ctx context.Context) ([]domain.E
 	// Obtiene solo el último registro por cada moneda en o antes del día de hoy (para evitar fuga anticipada los fines de semana)
 	query := `
 		SELECT DISTINCT ON (e.currency_id) 
-			e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.updated_at
+			e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
 		WHERE e.value_date <= CURRENT_DATE AND c."show" = TRUE
@@ -150,6 +163,8 @@ func (r *exchangeRateRepository) GetLatestRates(ctx context.Context) ([]domain.E
 			&rate.RateTo,
 			&rate.RateAverage,
 			&rate.ValueDate,
+			&rate.Status,
+			&rate.Source,
 			&rate.UpdatedAt,
 		); err != nil {
 			slog.Error("Fallo al escanear fila de exchange_rates", "error", err)
@@ -246,6 +261,8 @@ func (r *exchangeRateRepository) GetRatesHistoryPaginated(
 			e.rate_to, 
 			e.rate_average, 
 			e.value_date, 
+			e.status,
+			e.source,
 			e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
@@ -272,6 +289,8 @@ func (r *exchangeRateRepository) GetRatesHistoryPaginated(
 			&rate.RateTo,
 			&rate.RateAverage,
 			&rate.ValueDate,
+			&rate.Status,
+			&rate.Source,
 			&rate.UpdatedAt,
 		); err != nil {
 			slog.Error("Fallo al escanear fila de historial de exchange_rates", "error", err)
@@ -296,7 +315,7 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 	slog.Debug("Consultando última tasa de cambio para moneda", "currency_code", currencyCode)
 
 	query := `
-		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
 		WHERE c.code = $1 AND e.value_date <= CURRENT_DATE AND c."show" = TRUE
@@ -313,6 +332,8 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 		&rate.RateTo,
 		&rate.RateAverage,
 		&rate.ValueDate,
+		&rate.Status,
+		&rate.Source,
 		&rate.CreatedAt,
 		&rate.UpdatedAt,
 	)
@@ -331,7 +352,7 @@ func (r *exchangeRateRepository) GetPreviousRate(ctx context.Context, currencyCo
 	slog.Debug("Consultando tasa de cambio previa a fecha", "currency_code", currencyCode, "before_date", beforeDate)
 
 	query := `
-		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
 		WHERE c.code = $1 AND e.value_date < $2 AND c."show" = TRUE
@@ -348,6 +369,8 @@ func (r *exchangeRateRepository) GetPreviousRate(ctx context.Context, currencyCo
 		&rate.RateTo,
 		&rate.RateAverage,
 		&rate.ValueDate,
+		&rate.Status,
+		&rate.Source,
 		&rate.CreatedAt,
 		&rate.UpdatedAt,
 	)
@@ -366,7 +389,7 @@ func (r *exchangeRateRepository) GetRateByDate(ctx context.Context, currencyCode
 	slog.Debug("Consultando tasa de cambio por fecha", "currency_code", currencyCode, "date", date)
 
 	query := `
-		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
 		WHERE c.code = $1 AND e.value_date::date = $2::date AND c."show" = TRUE
@@ -383,6 +406,8 @@ func (r *exchangeRateRepository) GetRateByDate(ctx context.Context, currencyCode
 		&rate.RateTo,
 		&rate.RateAverage,
 		&rate.ValueDate,
+		&rate.Status,
+		&rate.Source,
 		&rate.CreatedAt,
 		&rate.UpdatedAt,
 	)
@@ -401,7 +426,7 @@ func (r *exchangeRateRepository) GetRatesHistory(ctx context.Context, currencyCo
 	slog.Debug("Consultando historial de tasas simple", "currency_code", currencyCode, "limit", limit)
 
 	query := `
-		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
 		WHERE c.code = $1 AND c."show" = TRUE
@@ -426,6 +451,8 @@ func (r *exchangeRateRepository) GetRatesHistory(ctx context.Context, currencyCo
 			&rate.RateTo,
 			&rate.RateAverage,
 			&rate.ValueDate,
+			&rate.Status,
+			&rate.Source,
 			&rate.CreatedAt,
 			&rate.UpdatedAt,
 		); err != nil {
@@ -449,7 +476,7 @@ func (r *exchangeRateRepository) GetLatestRateBeforeOrAt(ctx context.Context, cu
 	slog.Debug("Consultando última tasa de cambio en o antes de fecha", "currency_code", currencyCode, "date", date)
 
 	query := `
-		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
 		WHERE c.code = $1 AND e.value_date <= $2 AND c."show" = TRUE
@@ -466,6 +493,8 @@ func (r *exchangeRateRepository) GetLatestRateBeforeOrAt(ctx context.Context, cu
 		&rate.RateTo,
 		&rate.RateAverage,
 		&rate.ValueDate,
+		&rate.Status,
+		&rate.Source,
 		&rate.CreatedAt,
 		&rate.UpdatedAt,
 	)
@@ -484,7 +513,7 @@ func (r *exchangeRateRepository) GetRatesHistoryBeforeOrAt(ctx context.Context, 
 	slog.Debug("Consultando historial de tasas simple en o antes de fecha", "currency_code", currencyCode, "date", date, "limit", limit)
 
 	query := `
-		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
+		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
 		WHERE c.code = $1 AND e.value_date <= $2 AND c."show" = TRUE
@@ -509,6 +538,8 @@ func (r *exchangeRateRepository) GetRatesHistoryBeforeOrAt(ctx context.Context, 
 			&rate.RateTo,
 			&rate.RateAverage,
 			&rate.ValueDate,
+			&rate.Status,
+			&rate.Source,
 			&rate.CreatedAt,
 			&rate.UpdatedAt,
 		); err != nil {

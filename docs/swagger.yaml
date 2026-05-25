@@ -270,8 +270,8 @@ definitions:
         type: string
       account_type:
         type: string
-      bank_name:
-        type: string
+      bank_id:
+        type: integer
       created_at:
         type: string
       holder_name:
@@ -320,6 +320,8 @@ definitions:
         type: string
       created_at:
         type: string
+      display_order:
+        type: integer
       id:
         type: integer
       name:
@@ -333,6 +335,8 @@ definitions:
         type: string
       createdAt:
         type: string
+      displayOrder:
+        type: integer
       id:
         format: int64
         type: integer
@@ -458,6 +462,8 @@ definitions:
     properties:
       amount:
         type: number
+      concept:
+        type: string
       currency_id:
         type: integer
       due_date:
@@ -469,6 +475,8 @@ definitions:
   internal_api.CommitmentResponse:
     properties:
       amount:
+        type: string
+      concept:
         type: string
       created_at:
         type: string
@@ -550,8 +558,8 @@ definitions:
         type: string
       account_type:
         type: string
-      bank_name:
-        type: string
+      bank_id:
+        type: integer
       holder_name:
         type: string
     type: object
@@ -666,11 +674,13 @@ definitions:
         type: string
       alias:
         type: string
-      bank_name:
-        type: string
+      bank_id:
+        type: integer
       document_number:
         type: string
       holder_name:
+        type: string
+      phone_number:
         type: string
     type: object
   internal_api.ValidateOTPRequest:
@@ -718,6 +728,8 @@ paths:
           description: Notificación procesada y enviada
           schema:
             $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
       summary: Enviar notificación administrativa (BackOffice)
       tags:
       - Notificaciones
@@ -745,6 +757,8 @@ paths:
           description: Error interno al realizar el scraping
           schema:
             $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
       summary: Forzar raspado de Binance P2P (USDT/USDC)
       tags:
       - Administración
@@ -763,6 +777,8 @@ paths:
           description: Error interno al realizar el scraping
           schema:
             $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
       summary: Forzar raspado de tasas Mercantil
       tags:
       - Administración
@@ -781,6 +797,8 @@ paths:
           description: Error interno al realizar el scraping
           schema:
             $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
       summary: Forzar raspado de tasas BCV
       tags:
       - Administración

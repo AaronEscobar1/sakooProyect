@@ -28,9 +28,9 @@ func (r *catalogRepository) GetDocumentTypes(ctx context.Context) ([]domain.Docu
 	slog.Debug("Recuperando tipos de documento de la base de datos")
 
 	query := `
-		SELECT id, code, name, created_at
+		SELECT id, code, name, display_order, created_at
 		FROM catalogs.document_type
-		ORDER BY name ASC;
+		ORDER BY display_order ASC, name ASC;
 	`
 	rows, err := r.db.Query(dbCtx, query)
 	if err != nil {
@@ -42,7 +42,7 @@ func (r *catalogRepository) GetDocumentTypes(ctx context.Context) ([]domain.Docu
 	var docTypes []domain.DocumentType
 	for rows.Next() {
 		var dt domain.DocumentType
-		err := rows.Scan(&dt.ID, &dt.Code, &dt.Name, &dt.CreatedAt)
+		err := rows.Scan(&dt.ID, &dt.Code, &dt.Name, &dt.DisplayOrder, &dt.CreatedAt)
 		if err != nil {
 			slog.Error("Error al escanear fila de tipo de documento", "error", err)
 			return nil, fmt.Errorf("error al decodificar tipo de documento: %w", err)
@@ -64,10 +64,10 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 	slog.Debug("Recuperando monedas de la base de datos")
 
 	query := `
-		SELECT id, code, name, created_at, updated_at
+		SELECT id, code, name, display_order, created_at, updated_at
 		FROM catalogs.currency
 		WHERE "show" = TRUE
-		ORDER BY code ASC;
+		ORDER BY display_order ASC, name ASC;
 	`
 	rows, err := r.db.Query(dbCtx, query)
 	if err != nil {
@@ -79,7 +79,7 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 	var currencies []domain.Currency
 	for rows.Next() {
 		var c domain.Currency
-		err := rows.Scan(&c.ID, &c.Code, &c.Name, &c.CreatedAt, &c.UpdatedAt)
+		err := rows.Scan(&c.ID, &c.Code, &c.Name, &c.DisplayOrder, &c.CreatedAt, &c.UpdatedAt)
 		if err != nil {
 			slog.Error("Error al escanear fila de moneda", "error", err)
 			return nil, fmt.Errorf("error al decodificar moneda: %w", err)

@@ -9,7 +9,7 @@ import (
 type BankAccount struct {
 	ID            int64     `json:"id"`
 	UserID        int64     `json:"user_id"`
-	BankName      string    `json:"bank_name"`
+	BankID        int64     `json:"bank_id"`
 	AccountNumber string    `json:"account_number"`
 	AccountType   string    `json:"account_type"`
 	HolderName    string    `json:"holder_name"`
@@ -21,12 +21,13 @@ type BankAccount struct {
 type ThirdPartyAccount struct {
 	ID             int64     `json:"id"`
 	UserID         int64     `json:"user_id"`
-	BankName       string    `json:"bank_name"`
+	BankID         int64     `json:"bank_id"`
 	AccountNumber  string    `json:"account_number"`
 	AccountType    string    `json:"account_type"`
 	HolderName     string    `json:"holder_name"`
 	Alias          string    `json:"alias"`
 	DocumentNumber string    `json:"document_number"`
+	PhoneNumber    string    `json:"phone_number"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -49,14 +50,15 @@ type BankAccountRepository interface {
 // BankAccountUseCase define la lógica de negocio para gestionar cuentas bancarias.
 type BankAccountUseCase interface {
 	// Cuentas propias
-	CreateOwn(ctx context.Context, userID int64, bankName, accNum, accType, holder string) (*BankAccount, error)
+	CreateOwn(ctx context.Context, userID int64, bankID int64, accNum, accType, holder string) (*BankAccount, error)
 	ListOwn(ctx context.Context, userID int64) ([]BankAccount, error)
-	UpdateOwn(ctx context.Context, id, userID int64, bankName, accNum, accType, holder string) (*BankAccount, error)
+	UpdateOwn(ctx context.Context, id, userID int64, bankID int64, accNum, accType, holder string) (*BankAccount, error)
 	DeleteOwn(ctx context.Context, id int64, userID int64) error
 
 	// Cuentas de terceros
-	CreateThirdParty(ctx context.Context, userID int64, bankName, accNum, accType, holder, alias, docNum string) (*ThirdPartyAccount, error)
+	CreateThirdParty(ctx context.Context, userID int64, bankID int64, accNum, accType, holder, alias, docNum, phone string) (*ThirdPartyAccount, error)
 	ListThirdParty(ctx context.Context, userID int64) ([]ThirdPartyAccount, error)
-	UpdateThirdParty(ctx context.Context, id, userID int64, bankName, accNum, accType, holder, alias, docNum string) (*ThirdPartyAccount, error)
+	UpdateThirdParty(ctx context.Context, id, userID int64, bankID int64, accNum, accType, holder, alias, docNum, phone string) (*ThirdPartyAccount, error)
 	DeleteThirdParty(ctx context.Context, id int64, userID int64) error
 }
+

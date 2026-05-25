@@ -20,8 +20,7 @@ func NewBankAccountUseCase(repo domain.BankAccountRepository) domain.BankAccount
 }
 
 // CreateOwn valida y crea una cuenta bancaria propia.
-func (u *bankAccountUseCase) CreateOwn(ctx context.Context, userID int64, bankName, accNum, accType, holder string) (*domain.BankAccount, error) {
-	bankName = strings.TrimSpace(bankName)
+func (u *bankAccountUseCase) CreateOwn(ctx context.Context, userID int64, bankID int64, accNum, accType, holder string) (*domain.BankAccount, error) {
 	accNum = strings.TrimSpace(accNum)
 	accType = strings.TrimSpace(accType)
 	holder = strings.TrimSpace(holder)
@@ -29,8 +28,8 @@ func (u *bankAccountUseCase) CreateOwn(ctx context.Context, userID int64, bankNa
 	if userID <= 0 {
 		return nil, errors.New("ID de usuario inválido")
 	}
-	if bankName == "" || accNum == "" || accType == "" || holder == "" {
-		return nil, errors.New("los campos bank_name, account_number, account_type y holder_name son requeridos")
+	if bankID <= 0 || accNum == "" || accType == "" || holder == "" {
+		return nil, errors.New("los campos bank_id, account_number, account_type y holder_name son requeridos")
 	}
 
 	if len(accNum) < 10 {
@@ -39,7 +38,7 @@ func (u *bankAccountUseCase) CreateOwn(ctx context.Context, userID int64, bankNa
 
 	acc := &domain.BankAccount{
 		UserID:        userID,
-		BankName:      bankName,
+		BankID:        bankID,
 		AccountNumber: accNum,
 		AccountType:   accType,
 		HolderName:    holder,
@@ -61,8 +60,7 @@ func (u *bankAccountUseCase) ListOwn(ctx context.Context, userID int64) ([]domai
 }
 
 // UpdateOwn valida y actualiza una cuenta bancaria propia.
-func (u *bankAccountUseCase) UpdateOwn(ctx context.Context, id, userID int64, bankName, accNum, accType, holder string) (*domain.BankAccount, error) {
-	bankName = strings.TrimSpace(bankName)
+func (u *bankAccountUseCase) UpdateOwn(ctx context.Context, id, userID int64, bankID int64, accNum, accType, holder string) (*domain.BankAccount, error) {
 	accNum = strings.TrimSpace(accNum)
 	accType = strings.TrimSpace(accType)
 	holder = strings.TrimSpace(holder)
@@ -70,14 +68,14 @@ func (u *bankAccountUseCase) UpdateOwn(ctx context.Context, id, userID int64, ba
 	if id <= 0 || userID <= 0 {
 		return nil, errors.New("IDs de cuenta o usuario inválidos")
 	}
-	if bankName == "" || accNum == "" || accType == "" || holder == "" {
-		return nil, errors.New("los campos bank_name, account_number, account_type y holder_name son requeridos")
+	if bankID <= 0 || accNum == "" || accType == "" || holder == "" {
+		return nil, errors.New("los campos bank_id, account_number, account_type y holder_name son requeridos")
 	}
 
 	acc := &domain.BankAccount{
 		ID:            id,
 		UserID:        userID,
-		BankName:      bankName,
+		BankID:        bankID,
 		AccountNumber: accNum,
 		AccountType:   accType,
 		HolderName:    holder,
@@ -99,19 +97,19 @@ func (u *bankAccountUseCase) DeleteOwn(ctx context.Context, id int64, userID int
 }
 
 // CreateThirdParty valida y crea una cuenta bancaria de terceros.
-func (u *bankAccountUseCase) CreateThirdParty(ctx context.Context, userID int64, bankName, accNum, accType, holder, alias, docNum string) (*domain.ThirdPartyAccount, error) {
-	bankName = strings.TrimSpace(bankName)
+func (u *bankAccountUseCase) CreateThirdParty(ctx context.Context, userID int64, bankID int64, accNum, accType, holder, alias, docNum, phone string) (*domain.ThirdPartyAccount, error) {
 	accNum = strings.TrimSpace(accNum)
 	accType = strings.TrimSpace(accType)
 	holder = strings.TrimSpace(holder)
 	alias = strings.TrimSpace(alias)
 	docNum = strings.TrimSpace(docNum)
+	phone = strings.TrimSpace(phone)
 
 	if userID <= 0 {
 		return nil, errors.New("ID de usuario inválido")
 	}
-	if bankName == "" || accNum == "" || accType == "" || holder == "" || alias == "" || docNum == "" {
-		return nil, errors.New("los campos bank_name, account_number, account_type, holder_name, alias y document_number son requeridos")
+	if bankID <= 0 || accNum == "" || accType == "" || holder == "" || alias == "" || docNum == "" {
+		return nil, errors.New("los campos bank_id, account_number, account_type, holder_name, alias y document_number son requeridos")
 	}
 
 	if len(accNum) < 10 {
@@ -120,12 +118,13 @@ func (u *bankAccountUseCase) CreateThirdParty(ctx context.Context, userID int64,
 
 	acc := &domain.ThirdPartyAccount{
 		UserID:         userID,
-		BankName:       bankName,
+		BankID:         bankID,
 		AccountNumber:  accNum,
 		AccountType:    accType,
 		HolderName:     holder,
 		Alias:          alias,
 		DocumentNumber: docNum,
+		PhoneNumber:    phone,
 	}
 
 	if err := u.repo.CreateThirdParty(ctx, acc); err != nil {
@@ -144,30 +143,31 @@ func (u *bankAccountUseCase) ListThirdParty(ctx context.Context, userID int64) (
 }
 
 // UpdateThirdParty valida y actualiza una cuenta de terceros.
-func (u *bankAccountUseCase) UpdateThirdParty(ctx context.Context, id, userID int64, bankName, accNum, accType, holder, alias, docNum string) (*domain.ThirdPartyAccount, error) {
-	bankName = strings.TrimSpace(bankName)
+func (u *bankAccountUseCase) UpdateThirdParty(ctx context.Context, id, userID int64, bankID int64, accNum, accType, holder, alias, docNum, phone string) (*domain.ThirdPartyAccount, error) {
 	accNum = strings.TrimSpace(accNum)
 	accType = strings.TrimSpace(accType)
 	holder = strings.TrimSpace(holder)
 	alias = strings.TrimSpace(alias)
 	docNum = strings.TrimSpace(docNum)
+	phone = strings.TrimSpace(phone)
 
 	if id <= 0 || userID <= 0 {
 		return nil, errors.New("IDs de cuenta o usuario inválidos")
 	}
-	if bankName == "" || accNum == "" || accType == "" || holder == "" || alias == "" || docNum == "" {
-		return nil, errors.New("los campos bank_name, account_number, account_type, holder_name, alias y document_number son requeridos")
+	if bankID <= 0 || accNum == "" || accType == "" || holder == "" || alias == "" || docNum == "" {
+		return nil, errors.New("los campos bank_id, account_number, account_type, holder_name, alias y document_number son requeridos")
 	}
 
 	acc := &domain.ThirdPartyAccount{
 		ID:             id,
 		UserID:         userID,
-		BankName:       bankName,
+		BankID:         bankID,
 		AccountNumber:  accNum,
 		AccountType:    accType,
 		HolderName:     holder,
 		Alias:          alias,
 		DocumentNumber: docNum,
+		PhoneNumber:    phone,
 	}
 
 	if err := u.repo.UpdateThirdParty(ctx, acc); err != nil {

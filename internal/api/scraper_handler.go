@@ -33,6 +33,7 @@ func NewScraperHandler(
 // HandleScrapeNow fuerza y ejecuta la extracción de tasas en caliente de forma síncrona.
 // @Summary      Forzar raspado de tasas BCV
 // @Description  Ejecuta de forma síncrona el web scraper del Banco Central de Venezuela (BCV) para actualizar las tasas de cambio.
+// @Security     ApiKeyAuth
 // @Tags         Administración
 // @Produce      json
 // @Success      200  {object}  response.APIResponse[any]  "Raspado y actualización del BCV ejecutados con éxito"
@@ -56,6 +57,7 @@ func (h *ScraperHandler) HandleScrapeNow(w http.ResponseWriter, r *http.Request)
 // HandleScrapeMercantilNow fuerza y ejecuta la extracción de tasas de Mercantil en caliente de forma síncrona.
 // @Summary      Forzar raspado de tasas Mercantil
 // @Description  Ejecuta de forma síncrona el web scraper de Mercantil para actualizar las tasas de cambio de este banco.
+// @Security     ApiKeyAuth
 // @Tags         Administración
 // @Produce      json
 // @Success      200  {object}  response.APIResponse[any]  "Raspado y actualización de Mercantil ejecutados con éxito"
@@ -79,6 +81,7 @@ func (h *ScraperHandler) HandleScrapeMercantilNow(w http.ResponseWriter, r *http
 // HandleScrapeBinance fuerza y ejecuta el worker de Binance P2P en caliente de forma síncrona.
 // @Summary      Forzar raspado de Binance P2P (USDT/USDC)
 // @Description  Ejecuta de forma síncrona el worker de Binance P2P para un activo específico (USDT o USDC) y actualiza la base de datos.
+// @Security     ApiKeyAuth
 // @Tags         Administración
 // @Param        asset  query     string  false  "Activo a raspar (USDT o USDC, por defecto USDT)"
 // @Produce      json

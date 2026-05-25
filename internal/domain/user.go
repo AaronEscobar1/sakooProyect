@@ -15,10 +15,11 @@ type UserType struct {
 
 // DocumentType representa el tipo de documento de identidad (ej: DNI, PASSPORT).
 type DocumentType struct {
-	ID        int64
-	Code      string
-	Name      string
-	CreatedAt time.Time
+	ID           int64
+	Code         string
+	Name         string
+	DisplayOrder int
+	CreatedAt    time.Time
 }
 
 // User representa a un usuario registrado en el sistema.

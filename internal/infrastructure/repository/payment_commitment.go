@@ -37,9 +37,10 @@ func (r *paymentCommitmentRepository) Create(ctx context.Context, pc *domain.Pay
 			currency_id, 
 			due_date, 
 			status, 
+			concept,
 			created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
 		RETURNING id, created_at;
 	`
 
@@ -49,6 +50,7 @@ func (r *paymentCommitmentRepository) Create(ctx context.Context, pc *domain.Pay
 		pc.CurrencyID,
 		pc.DueDate,
 		pc.Status,
+		pc.Concept,
 	).Scan(&pc.ID, &pc.CreatedAt)
 
 	if err != nil {
@@ -67,7 +69,7 @@ func (r *paymentCommitmentRepository) FindByID(ctx context.Context, id int64) (*
 	slog.Debug("Buscando compromiso de pago por ID", "id", id)
 
 	query := `
-		SELECT id, user_id, amount, currency_id, due_date, status, created_at
+		SELECT id, user_id, amount, currency_id, due_date, status, concept, created_at
 		FROM payment_commitments
 		WHERE id = $1;
 	`
@@ -80,6 +82,7 @@ func (r *paymentCommitmentRepository) FindByID(ctx context.Context, id int64) (*
 		&pc.CurrencyID,
 		&pc.DueDate,
 		&pc.Status,
+		&pc.Concept,
 		&pc.CreatedAt,
 	)
 
@@ -102,7 +105,7 @@ func (r *paymentCommitmentRepository) FindByUserID(ctx context.Context, userID i
 	slog.Debug("Consultando compromisos de pago por usuario en base de datos", "user_id", userID)
 
 	query := `
-		SELECT id, user_id, amount, currency_id, due_date, status, created_at
+		SELECT id, user_id, amount, currency_id, due_date, status, concept, created_at
 		FROM payment_commitments
 		WHERE user_id = $1
 		ORDER BY due_date ASC;
@@ -125,6 +128,7 @@ func (r *paymentCommitmentRepository) FindByUserID(ctx context.Context, userID i
 			&pc.CurrencyID,
 			&pc.DueDate,
 			&pc.Status,
+			&pc.Concept,
 			&pc.CreatedAt,
 		)
 		if err != nil {
@@ -154,8 +158,8 @@ func (r *paymentCommitmentRepository) Update(ctx context.Context, pc *domain.Pay
 
 	query := `
 		UPDATE payment_commitments
-		SET amount = $1, currency_id = $2, due_date = $3, status = $4
-		WHERE id = $5 AND user_id = $6;
+		SET amount = $1, currency_id = $2, due_date = $3, status = $4, concept = $5
+		WHERE id = $6 AND user_id = $7;
 	`
 
 	res, err := r.db.Exec(dbCtx, query,
@@ -163,6 +167,7 @@ func (r *paymentCommitmentRepository) Update(ctx context.Context, pc *domain.Pay
 		pc.CurrencyID,
 		pc.DueDate,
 		pc.Status,
+		pc.Concept,
 		pc.ID,
 		pc.UserID,
 	)

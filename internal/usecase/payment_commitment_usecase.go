@@ -22,8 +22,9 @@ func NewPaymentCommitmentUseCase(repo domain.PaymentCommitmentRepository) domain
 }
 
 // Create valida y registra un nuevo compromiso de pago.
-func (u *paymentCommitmentUseCase) Create(ctx context.Context, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string) (*domain.PaymentCommitment, error) {
+func (u *paymentCommitmentUseCase) Create(ctx context.Context, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string, concept string) (*domain.PaymentCommitment, error) {
 	status = strings.TrimSpace(strings.ToUpper(status))
+	concept = strings.TrimSpace(concept)
 
 	if userID <= 0 {
 		return nil, errors.New("ID de usuario inválido")
@@ -47,6 +48,7 @@ func (u *paymentCommitmentUseCase) Create(ctx context.Context, userID int64, amo
 		CurrencyID: currencyID,
 		DueDate:    dueDate,
 		Status:     status,
+		Concept:    concept,
 	}
 
 	if err := u.repo.Create(ctx, pc); err != nil {
@@ -100,8 +102,9 @@ func (u *paymentCommitmentUseCase) GetSegmentedCommitments(ctx context.Context, 
 }
 
 // Update valida y actualiza un compromiso de pago existente.
-func (u *paymentCommitmentUseCase) Update(ctx context.Context, id, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string) (*domain.PaymentCommitment, error) {
+func (u *paymentCommitmentUseCase) Update(ctx context.Context, id, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string, concept string) (*domain.PaymentCommitment, error) {
 	status = strings.TrimSpace(strings.ToUpper(status))
+	concept = strings.TrimSpace(concept)
 
 	if id <= 0 || userID <= 0 {
 		return nil, errors.New("IDs de cuenta o usuario inválidos")
@@ -126,6 +129,7 @@ func (u *paymentCommitmentUseCase) Update(ctx context.Context, id, userID int64,
 		CurrencyID: currencyID,
 		DueDate:    dueDate,
 		Status:     status,
+		Concept:    concept,
 	}
 
 	if err := u.repo.Update(ctx, pc); err != nil {

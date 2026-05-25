@@ -16,6 +16,8 @@ type ExchangeRate struct {
 	RateTo      decimal.Decimal // Tasa de destino
 	RateAverage decimal.Decimal // Tasa promedio
 	ValueDate   time.Time       // Fecha de la tasa (solo año, mes y día)
+	Status      string          // Estado (REGISTERED / APPROVED)
+	Source      string          // Origen (SCRAPING / MANUAL)
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

@@ -171,6 +171,7 @@ func (h *NotificationHandler) HandleMarkAsRead(w http.ResponseWriter, r *http.Re
 // HandleSendAdminNotification maneja POST /api/admin/notifications/send
 // @Summary      Enviar notificación administrativa (BackOffice)
 // @Description  Envía una notificación push asíncrona a un usuario en particular o a todos los usuarios del sistema (broadcast) con un título, cuerpo y payload de datos.
+// @Security     ApiKeyAuth
 // @Tags         Notificaciones
 // @Accept       json
 // @Produce      json

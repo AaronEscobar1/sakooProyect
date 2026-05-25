@@ -12,7 +12,7 @@ import (
 
 // OwnAccountRequest define los campos requeridos para crear/actualizar una cuenta bancaria propia.
 type OwnAccountRequest struct {
-	BankName      string `json:"bank_name"`
+	BankID        int64  `json:"bank_id"`
 	AccountNumber string `json:"account_number"`
 	AccountType   string `json:"account_type"`
 	HolderName    string `json:"holder_name"`
@@ -20,12 +20,13 @@ type OwnAccountRequest struct {
 
 // ThirdPartyAccountRequest define los campos requeridos para crear/actualizar una cuenta bancaria de terceros.
 type ThirdPartyAccountRequest struct {
-	BankName       string `json:"bank_name"`
+	BankID         int64  `json:"bank_id"`
 	AccountNumber  string `json:"account_number"`
 	AccountType    string `json:"account_type"`
 	HolderName     string `json:"holder_name"`
 	Alias          string `json:"alias"`
 	DocumentNumber string `json:"document_number"`
+	PhoneNumber    string `json:"phone_number"`
 }
 
 type BankAccountHandler struct {
@@ -67,7 +68,7 @@ func (h *BankAccountHandler) HandleOwnAccounts(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		acc, err := h.useCase.CreateOwn(r.Context(), userID, req.BankName, req.AccountNumber, req.AccountType, req.HolderName)
+		acc, err := h.useCase.CreateOwn(r.Context(), userID, req.BankID, req.AccountNumber, req.AccountType, req.HolderName)
 		if err != nil {
 			slog.Error("Fallo al crear cuenta propia", "error", err, "user_id", userID)
 			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())
@@ -130,7 +131,7 @@ func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *ht
 			return
 		}
 
-		acc, err := h.useCase.UpdateOwn(r.Context(), id, userID, req.BankName, req.AccountNumber, req.AccountType, req.HolderName)
+		acc, err := h.useCase.UpdateOwn(r.Context(), id, userID, req.BankID, req.AccountNumber, req.AccountType, req.HolderName)
 		if err != nil {
 			slog.Error("Fallo al actualizar cuenta propia", "error", err, "id", id, "user_id", userID)
 			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())
@@ -182,7 +183,7 @@ func (h *BankAccountHandler) HandleThirdPartyAccounts(w http.ResponseWriter, r *
 			return
 		}
 
-		acc, err := h.useCase.CreateThirdParty(r.Context(), userID, req.BankName, req.AccountNumber, req.AccountType, req.HolderName, req.Alias, req.DocumentNumber)
+		acc, err := h.useCase.CreateThirdParty(r.Context(), userID, req.BankID, req.AccountNumber, req.AccountType, req.HolderName, req.Alias, req.DocumentNumber, req.PhoneNumber)
 		if err != nil {
 			slog.Error("Fallo al crear cuenta de terceros", "error", err, "user_id", userID)
 			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())
@@ -245,7 +246,7 @@ func (h *BankAccountHandler) HandleThirdPartyAccountDetail(w http.ResponseWriter
 			return
 		}
 
-		acc, err := h.useCase.UpdateThirdParty(r.Context(), id, userID, req.BankName, req.AccountNumber, req.AccountType, req.HolderName, req.Alias, req.DocumentNumber)
+		acc, err := h.useCase.UpdateThirdParty(r.Context(), id, userID, req.BankID, req.AccountNumber, req.AccountType, req.HolderName, req.Alias, req.DocumentNumber, req.PhoneNumber)
 		if err != nil {
 			slog.Error("Fallo al actualizar cuenta de terceros", "error", err, "id", id, "user_id", userID)
 			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())

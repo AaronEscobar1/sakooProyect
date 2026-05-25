@@ -18,6 +18,7 @@ type CommitmentRequest struct {
 	CurrencyID int64           `json:"currency_id"`
 	DueDateStr string          `json:"due_date"` // YYYY-MM-DD
 	Status     string          `json:"status"`
+	Concept    string          `json:"concept"`
 }
 
 // CommitmentResponse representa el DTO de un compromiso de pago devuelto.
@@ -28,6 +29,7 @@ type CommitmentResponse struct {
 	CurrencyID int64  `json:"currency_id"`
 	DueDate    string `json:"due_date"`
 	Status     string `json:"status"`
+	Concept    string `json:"concept"`
 	CreatedAt  string `json:"created_at"`
 }
 
@@ -82,7 +84,7 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 			return
 		}
 
-		pc, err := h.useCase.Create(r.Context(), userID, req.Amount, req.CurrencyID, parsedDate, req.Status)
+		pc, err := h.useCase.Create(r.Context(), userID, req.Amount, req.CurrencyID, parsedDate, req.Status, req.Concept)
 		if err != nil {
 			slog.Error("Fallo al crear compromiso de pago", "error", err, "user_id", userID)
 			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())
@@ -96,6 +98,7 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 			CurrencyID: pc.CurrencyID,
 			DueDate:    pc.DueDate.Format("2006-01-02"),
 			Status:     pc.Status,
+			Concept:    pc.Concept,
 			CreatedAt:  pc.CreatedAt.Format(time.RFC3339),
 		}
 
@@ -124,6 +127,7 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 					CurrencyID: pc.CurrencyID,
 					DueDate:    pc.DueDate.Format("2006-01-02"),
 					Status:     pc.Status,
+					Concept:    pc.Concept,
 					CreatedAt:  pc.CreatedAt.Format(time.RFC3339),
 				})
 			}
@@ -138,6 +142,7 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 					CurrencyID: pc.CurrencyID,
 					DueDate:    pc.DueDate.Format("2006-01-02"),
 					Status:     pc.Status,
+					Concept:    pc.Concept,
 					CreatedAt:  pc.CreatedAt.Format(time.RFC3339),
 				})
 			}
@@ -152,6 +157,7 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 					CurrencyID: pc.CurrencyID,
 					DueDate:    pc.DueDate.Format("2006-01-02"),
 					Status:     pc.Status,
+					Concept:    pc.Concept,
 					CreatedAt:  pc.CreatedAt.Format(time.RFC3339),
 				})
 			}
@@ -209,7 +215,7 @@ func (h *PaymentCommitmentHandler) HandleCommitmentDetail(w http.ResponseWriter,
 			return
 		}
 
-		pc, err := h.useCase.Update(r.Context(), id, userID, req.Amount, req.CurrencyID, parsedDate, req.Status)
+		pc, err := h.useCase.Update(r.Context(), id, userID, req.Amount, req.CurrencyID, parsedDate, req.Status, req.Concept)
 		if err != nil {
 			slog.Error("Fallo al actualizar compromiso de pago", "error", err, "id", id, "user_id", userID)
 			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())
@@ -223,6 +229,7 @@ func (h *PaymentCommitmentHandler) HandleCommitmentDetail(w http.ResponseWriter,
 			CurrencyID: pc.CurrencyID,
 			DueDate:    pc.DueDate.Format("2006-01-02"),
 			Status:     pc.Status,
+			Concept:    pc.Concept,
 			CreatedAt:  pc.CreatedAt.Format(time.RFC3339),
 		}
 

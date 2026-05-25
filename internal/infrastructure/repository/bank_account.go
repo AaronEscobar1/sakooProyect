@@ -26,12 +26,12 @@ func (r *bankAccountRepository) CreateOwn(ctx context.Context, acc *domain.BankA
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Insertando cuenta propia en base de datos", "user_id", acc.UserID, "bank_name", acc.BankName)
+	slog.Debug("Insertando cuenta propia en base de datos", "user_id", acc.UserID, "bank_id", acc.BankID)
 
 	query := `
 		INSERT INTO bank_accounts (
 			user_id, 
-			bank_name, 
+			bank_id, 
 			account_number, 
 			account_type, 
 			holder_name, 
@@ -44,7 +44,7 @@ func (r *bankAccountRepository) CreateOwn(ctx context.Context, acc *domain.BankA
 
 	err := r.db.QueryRow(dbCtx, query,
 		acc.UserID,
-		acc.BankName,
+		acc.BankID,
 		acc.AccountNumber,
 		acc.AccountType,
 		acc.HolderName,
@@ -66,7 +66,7 @@ func (r *bankAccountRepository) ListOwn(ctx context.Context, userID int64) ([]do
 	slog.Debug("Consultando cuentas propias en base de datos", "user_id", userID)
 
 	query := `
-		SELECT id, user_id, bank_name, account_number, account_type, holder_name, created_at, updated_at
+		SELECT id, user_id, bank_id, account_number, account_type, holder_name, created_at, updated_at
 		FROM bank_accounts
 		WHERE user_id = $1
 		ORDER BY created_at DESC;
@@ -85,7 +85,7 @@ func (r *bankAccountRepository) ListOwn(ctx context.Context, userID int64) ([]do
 		err := rows.Scan(
 			&acc.ID,
 			&acc.UserID,
-			&acc.BankName,
+			&acc.BankID,
 			&acc.AccountNumber,
 			&acc.AccountType,
 			&acc.HolderName,
@@ -119,13 +119,13 @@ func (r *bankAccountRepository) UpdateOwn(ctx context.Context, acc *domain.BankA
 
 	query := `
 		UPDATE bank_accounts
-		SET bank_name = $1, account_number = $2, account_type = $3, holder_name = $4, updated_at = NOW()
+		SET bank_id = $1, account_number = $2, account_type = $3, holder_name = $4, updated_at = NOW()
 		WHERE id = $5 AND user_id = $6
 		RETURNING updated_at;
 	`
 
 	err := r.db.QueryRow(dbCtx, query,
-		acc.BankName,
+		acc.BankID,
 		acc.AccountNumber,
 		acc.AccountType,
 		acc.HolderName,
@@ -171,32 +171,34 @@ func (r *bankAccountRepository) CreateThirdParty(ctx context.Context, acc *domai
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Insertando cuenta de terceros en base de datos", "user_id", acc.UserID, "bank_name", acc.BankName)
+	slog.Debug("Insertando cuenta de terceros en base de datos", "user_id", acc.UserID, "bank_id", acc.BankID)
 
 	query := `
 		INSERT INTO third_party_accounts (
 			user_id, 
-			bank_name, 
+			bank_id, 
 			account_number, 
 			account_type, 
 			holder_name, 
 			alias,
 			document_number,
+			phone_number,
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 		RETURNING id, created_at, updated_at;
 	`
 
 	err := r.db.QueryRow(dbCtx, query,
 		acc.UserID,
-		acc.BankName,
+		acc.BankID,
 		acc.AccountNumber,
 		acc.AccountType,
 		acc.HolderName,
 		acc.Alias,
 		acc.DocumentNumber,
+		acc.PhoneNumber,
 	).Scan(&acc.ID, &acc.CreatedAt, &acc.UpdatedAt)
 
 	if err != nil {
@@ -215,7 +217,7 @@ func (r *bankAccountRepository) ListThirdParty(ctx context.Context, userID int64
 	slog.Debug("Consultando cuentas de terceros en base de datos", "user_id", userID)
 
 	query := `
-		SELECT id, user_id, bank_name, account_number, account_type, holder_name, alias, document_number, created_at, updated_at
+		SELECT id, user_id, bank_id, account_number, account_type, holder_name, alias, document_number, phone_number, created_at, updated_at
 		FROM third_party_accounts
 		WHERE user_id = $1
 		ORDER BY created_at DESC;
@@ -234,12 +236,13 @@ func (r *bankAccountRepository) ListThirdParty(ctx context.Context, userID int64
 		err := rows.Scan(
 			&acc.ID,
 			&acc.UserID,
-			&acc.BankName,
+			&acc.BankID,
 			&acc.AccountNumber,
 			&acc.AccountType,
 			&acc.HolderName,
 			&acc.Alias,
 			&acc.DocumentNumber,
+			&acc.PhoneNumber,
 			&acc.CreatedAt,
 			&acc.UpdatedAt,
 		)
@@ -270,18 +273,19 @@ func (r *bankAccountRepository) UpdateThirdParty(ctx context.Context, acc *domai
 
 	query := `
 		UPDATE third_party_accounts
-		SET bank_name = $1, account_number = $2, account_type = $3, holder_name = $4, alias = $5, document_number = $6, updated_at = NOW()
-		WHERE id = $7 AND user_id = $8
+		SET bank_id = $1, account_number = $2, account_type = $3, holder_name = $4, alias = $5, document_number = $6, phone_number = $7, updated_at = NOW()
+		WHERE id = $8 AND user_id = $9
 		RETURNING updated_at;
 	`
 
 	err := r.db.QueryRow(dbCtx, query,
-		acc.BankName,
+		acc.BankID,
 		acc.AccountNumber,
 		acc.AccountType,
 		acc.HolderName,
 		acc.Alias,
 		acc.DocumentNumber,
+		acc.PhoneNumber,
 		acc.ID,
 		acc.UserID,
 	).Scan(&acc.UpdatedAt)

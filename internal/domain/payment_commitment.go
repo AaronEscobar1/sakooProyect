@@ -15,6 +15,7 @@ type PaymentCommitment struct {
 	CurrencyID int64           `json:"currency_id"`
 	DueDate    time.Time       `json:"due_date"`
 	Status     string          `json:"status"` // Ej: PENDIENTE, CUMPLIDO, VENCIDO
+	Concept    string          `json:"concept"`
 	CreatedAt  time.Time       `json:"created_at"`
 }
 
@@ -29,8 +30,8 @@ type PaymentCommitmentRepository interface {
 
 // PaymentCommitmentUseCase define la lógica de negocio para los compromisos de pago.
 type PaymentCommitmentUseCase interface {
-	Create(ctx context.Context, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string) (*PaymentCommitment, error)
+	Create(ctx context.Context, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string, concept string) (*PaymentCommitment, error)
 	GetSegmentedCommitments(ctx context.Context, userID int64) (map[string][]PaymentCommitment, error)
-	Update(ctx context.Context, id, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string) (*PaymentCommitment, error)
+	Update(ctx context.Context, id, userID int64, amount decimal.Decimal, currencyID int64, dueDate time.Time, status string, concept string) (*PaymentCommitment, error)
 	Delete(ctx context.Context, id int64, userID int64) error
 }
