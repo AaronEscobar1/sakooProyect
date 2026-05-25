@@ -259,6 +259,7 @@ func main() {
 	// Rutas de Catálogos (Públicas)
 	mux.HandleFunc("GET /api/v1/catalogs/document-types", catalogHandler.HandleGetDocumentTypes)
 	mux.HandleFunc("GET /api/v1/catalogs/currencies", catalogHandler.HandleGetCurrencies)
+	mux.HandleFunc("GET /api/v1/catalogs/banks", catalogHandler.HandleGetBanks)
 
 	// Ruta de Scraping Manual (Pruebas en caliente)
 	mux.HandleFunc("POST /api/admin/scrape-now", scraperHandler.HandleScrapeNow)

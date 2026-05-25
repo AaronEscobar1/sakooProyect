@@ -63,3 +63,26 @@ func (h *CatalogHandler) HandleGetCurrencies(w http.ResponseWriter, r *http.Requ
 
 	response.Success(w, r.Context(), "SUCCESS", "Monedas recuperadas exitosamente", currencies)
 }
+
+// HandleGetBanks maneja GET /api/v1/catalogs/banks (Público, retorna catálogo de bancos)
+// @Summary      Obtener catálogo de bancos
+// @Description  Retorna una lista de bancos registrados en el sistema.
+// @Tags         Catálogos
+// @Produce      json
+// @Success      200  {object}  response.APIResponse[[]domain.Bank]  "Bancos recuperados exitosamente"
+// @Failure      200  {object}  response.APIResponse[any]            "Error interno del servidor"
+// @Router       /api/v1/catalogs/banks [get]
+func (h *CatalogHandler) HandleGetBanks(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		return
+	}
+
+	banks, err := h.useCase.GetBanks(r.Context())
+	if err != nil {
+		response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	response.Success(w, r.Context(), "SUCCESS", "Bancos recuperados exitosamente", banks)
+}

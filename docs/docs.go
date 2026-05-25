@@ -886,6 +886,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/catalogs/banks": {
+            "get": {
+                "description": "Retorna una lista de bancos registrados en el sistema.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Catálogos"
+                ],
+                "summary": "Obtener catálogo de bancos",
+                "responses": {
+                    "200": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/catalogs/currencies": {
             "get": {
                 "description": "Retorna una lista de monedas registradas en el sistema.",
@@ -1584,6 +1604,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Bank": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Bank"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Banner": {
             "type": "object",
             "properties": {
@@ -1973,6 +2013,26 @@ const docTemplate = `{
             "properties": {
                 "token": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_aaron_sakoo-backend_internal_domain.Bank": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "show": {
+                    "type": "boolean"
                 }
             }
         },

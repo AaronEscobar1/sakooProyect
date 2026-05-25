@@ -20,6 +20,7 @@ type Bank struct {
 	ID        int64     `json:"id"`
 	Code      string    `json:"code"`
 	Name      string    `json:"name"`
+	Show      bool      `json:"show"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
@@ -27,10 +28,12 @@ type Bank struct {
 type CatalogRepository interface {
 	GetDocumentTypes(ctx context.Context) ([]DocumentType, error)
 	GetCurrencies(ctx context.Context) ([]Currency, error)
+	GetBanks(ctx context.Context) ([]Bank, error)
 }
 
 // CatalogUseCase define la lógica de negocio para consultar catálogos.
 type CatalogUseCase interface {
 	GetDocumentTypes(ctx context.Context) ([]DocumentType, error)
 	GetCurrencies(ctx context.Context) ([]Currency, error)
+	GetBanks(ctx context.Context) ([]Bank, error)
 }

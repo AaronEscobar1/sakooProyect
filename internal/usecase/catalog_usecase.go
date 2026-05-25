@@ -27,3 +27,8 @@ func (uc *catalogUseCase) GetCurrencies(ctx context.Context) ([]domain.Currency,
 	slog.Info("Procesando listado de monedas")
 	return uc.repo.GetCurrencies(ctx)
 }
+
+func (uc *catalogUseCase) GetBanks(ctx context.Context) ([]domain.Bank, error) {
+	slog.Info("Procesando listado de bancos")
+	return uc.repo.GetBanks(ctx)
+}
