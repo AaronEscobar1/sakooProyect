@@ -191,8 +191,9 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 	// 5. Parseo y limpieza de datos usando shopspring/decimal
 	var rates []domain.ExchangeRate
 	// Resolver la fecha de valor
-	now := time.Now().UTC()
-	valueDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	loc := time.FixedZone("America/Caracas", -4*60*60)
+	nowVET := time.Now().In(loc)
+	valueDate := time.Date(nowVET.Year(), nowVET.Month(), nowVET.Day(), 0, 0, 0, 0, time.UTC)
 
 	if dateText != "" {
 		parsedDate, err := parseBCVDate(dateText)

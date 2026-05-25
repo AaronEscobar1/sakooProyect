@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/aaron/sakoo-backend/internal/infrastructure/scraper"
 	"github.com/aaron/sakoo-backend/internal/usecase"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/robfig/cron/v3"
@@ -117,6 +118,46 @@ func (cm *CronManager) Start(ctx context.Context) {
 
 	if errCleanup != nil {
 		slog.Error("Fallo crítico al registrar la tarea de Limpieza de Logs en CronManager", "expr", cronExprCleanup, "error", errCleanup)
+		return
+	}
+
+	// 4. Cron de Binance P2P USDT: cada 1 hora todos los días (en el minuto 0)
+	cronExprBinanceUSDT := "0 * * * *"
+	_, errUSDT := cm.cronInstance.AddFunc(cronExprBinanceUSDT, func() {
+		slog.Info("Cron Triggered: Iniciando ciclo automático de Binance P2P Worker para USDT...")
+		
+		workerCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+
+		if err := scraper.RunBinanceWorker(workerCtx, cm.db, "USDT"); err != nil {
+			slog.Error("Fallo en la ejecución del Binance P2P Worker para USDT", "error", err)
+		} else {
+			slog.Info("Ciclo automático de Binance P2P Worker para USDT completado con éxito")
+		}
+	})
+
+	if errUSDT != nil {
+		slog.Error("Fallo crítico al registrar la tarea de Binance P2P USDT en CronManager", "expr", cronExprBinanceUSDT, "error", errUSDT)
+		return
+	}
+
+	// 5. Cron de Binance P2P USDC: cada 1 hora todos los días (en el minuto 5)
+	cronExprBinanceUSDC := "5 * * * *"
+	_, errUSDC := cm.cronInstance.AddFunc(cronExprBinanceUSDC, func() {
+		slog.Info("Cron Triggered: Iniciando ciclo automático de Binance P2P Worker para USDC...")
+		
+		workerCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+
+		if err := scraper.RunBinanceWorker(workerCtx, cm.db, "USDC"); err != nil {
+			slog.Error("Fallo en la ejecución del Binance P2P Worker para USDC", "error", err)
+		} else {
+			slog.Info("Ciclo automático de Binance P2P Worker para USDC completado con éxito")
+		}
+	})
+
+	if errUSDC != nil {
+		slog.Error("Fallo crítico al registrar la tarea de Binance P2P USDC en CronManager", "expr", cronExprBinanceUSDC, "error", errUSDC)
 		return
 	}
 

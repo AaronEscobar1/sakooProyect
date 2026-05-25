@@ -115,8 +115,9 @@ func (s *MercantilScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRa
 	parsedAverage := parsedCompra.Add(parsedVenta).Div(decimal.NewFromInt(2))
 
 	// 2. Parsear la fecha valor, con fallback a la fecha del sistema truncada
-	now := time.Now().UTC()
-	valueDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	loc := time.FixedZone("America/Caracas", -4*60*60)
+	nowVET := time.Now().In(loc)
+	valueDate := time.Date(nowVET.Year(), nowVET.Month(), nowVET.Day(), 0, 0, 0, 0, time.UTC)
 
 	if dateStr != "" {
 		parsedDate, err := time.Parse("02/01/2006", dateStr)
