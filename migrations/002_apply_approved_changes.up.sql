@@ -11,12 +11,35 @@ CREATE TABLE IF NOT EXISTS catalogs.banks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Registrar bancos semilla básicos por defecto para evitar llaves vacías
+-- Registrar la lista completa y oficial de bancos activos en Venezuela con sus códigos oficiales de Sudeban
 INSERT INTO catalogs.banks (code, name) VALUES 
-('MERCANTIL', 'Banco Mercantil'),
-('BANESCO', 'Banesco Banco Universal'),
-('PROVINCIAL', 'BBVA Provincial'),
-('BDV', 'Banco de Venezuela')
+('0102', 'Banco de Venezuela, S.A. Banco Universal'),
+('0104', 'Venezolano de Crédito, S.A. Banco Universal'),
+('0105', 'Banco Mercantil, C.A. Banco Universal'),
+('0108', 'Provincial, S.A. Banco Universal (BBVA Provincial)'),
+('0114', 'Bancaribe, C.A. Banco Universal'),
+('0115', 'Banco Exterior, C.A. Banco Universal'),
+('0128', 'Banco Caroní, C.A. Banco Universal'),
+('0134', 'Banesco Banco Universal, C.A.'),
+('0138', 'Banco Plaza, C.A. Banco Universal'),
+('0151', 'BFC Banco Fondo Común, C.A. Banco Universal'),
+('0156', '100% Banco, Banco Universal, C.A.'),
+('0157', 'DelSur, Banco Universal, C.A.'),
+('0163', 'Banco del Tesoro, C.A. Banco Universal'),
+('0166', 'Banco Agrícola de Venezuela, C.A. Banco Universal'),
+('0168', 'Bancrecer, S.A. Banco Microfinanciero'),
+('0169', 'Mi Banco, Banco Microfinanciero, C.A.'),
+('0171', 'Banco Activo, C.A. Banco Universal'),
+('0172', 'Bancamiga Banco Universal, C.A.'),
+('0174', 'Banplus Banco Universal, C.A.'),
+('0175', 'Banco Bicentenario del Pueblo, Banco Universal C.A.'),
+('0177', 'BANFANB (Banco de la Fuerza Armada Nacional Bolivariana)'),
+('0191', 'BNC Banco Nacional de Crédito, C.A. Banco Universal'),
+-- Mantener códigos legados para total compatibilidad hacia atrás
+('MERCANTIL', 'Banco Mercantil (Legado)'),
+('BANESCO', 'Banesco Banco Universal (Legado)'),
+('PROVINCIAL', 'BBVA Provincial (Legado)'),
+('BDV', 'Banco de Venezuela (Legado)')
 ON CONFLICT (code) DO NOTHING;
 
 -- En finance.bank_accounts: quitar bank_name y agregar bank_id FK
