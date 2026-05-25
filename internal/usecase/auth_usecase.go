@@ -59,11 +59,11 @@ func (s *authUseCase) RequestOTP(ctx context.Context, email string, action strin
 	slog.Info("Procesando solicitud de OTP", "email", email, "action", action)
 
 	if email == "" || action == "" {
-		return "", errors.New("el correo electrónico y la acción son requeridos")
+		return "", errors.New("El correo electrónico y la acción son requeridos")
 	}
 
 	if action != "REGISTER" && action != "RECOVER" && action != "DELETE" {
-		return "", fmt.Errorf("acción de OTP inválida: %s", action)
+		return "", fmt.Errorf("Acción de OTP inválida: %s", action)
 	}
 
 	// 1. Generar código OTP
@@ -151,7 +151,7 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 
 	// Validaciones básicas de negocio
 	if req.Email == "" || req.Username == "" || req.Password == "" || req.FirstName == "" || req.LastName == "" || req.OTPCode == "" {
-		return res, errors.New("los campos email, username, password, first_name, last_name y otp_code son requeridos")
+		return res, errors.New("Los campos email, username, password, first_name, last_name y otp_code son requeridos")
 	}
 
 	// 1. Validar y consumir OTP para el registro
@@ -226,21 +226,21 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 	var res domain.AuthResponse
 
 	if req.Email == "" || req.Password == "" {
-		return res, errors.New("correo y contraseña requeridos")
+		return res, errors.New("El correo electrónico y la contraseña son requeridos")
 	}
 
 	// 1. Buscar el usuario registrado por email
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		slog.Warn("Login denegado: usuario no encontrado en base de datos", "email", req.Email)
-		return res, errors.New("credenciales incorrectas")
+		return res, errors.New("Credenciales incorrectas")
 	}
 
 	// 2. Comparar el hash bcrypt con la contraseña recibida
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
 	if err != nil {
 		slog.Warn("Login denegado: contraseña incorrecta", "email", req.Email, "user_id", user.ID)
-		return res, errors.New("credenciales incorrectas")
+		return res, errors.New("Credenciales incorrectas")
 	}
 
 	// 3. Crear token JWT con claims estándar inyectando user_id como int64
@@ -277,48 +277,48 @@ func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otp
 	slog.Info("Ejecutando caso de uso de Restablecimiento de Contraseña", "email", email)
 
 	if email == "" || newPassword == "" || otpCode == "" {
-		return errors.New("los campos email, new_password y otp_code son requeridos")
+		return errors.New("Los campos email, new_password y otp_code son requeridos")
 	}
 
-	// 1. Validar y consumir OTP para "RECOVER"
+	// 1. Buscar al usuario activo por email para garantizar su existencia
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		slog.Warn("Usuario no encontrado para restablecimiento de contraseña", "email", email)
+		return errors.New("El correo electrónico ingresado no corresponde a ningún usuario activo")
+	}
+
+	// 2. Obtener los últimos 5 hashes del historial del usuario
+	history, err := s.userRepo.GetPasswordHistory(ctx, user.ID)
+	if err != nil {
+		slog.Error("Fallo al obtener historial de contraseñas", "error", err, "user_id", user.ID)
+		return fmt.Errorf("Error al verificar el historial de contraseñas: %w", err)
+	}
+
+	// 3. Comparar la nueva contraseña con la contraseña actual
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(newPassword)); err == nil {
+		return errors.New("La nueva contraseña no puede coincidir con ninguna de las últimas 5 contraseñas")
+	}
+
+	// 4. Comparar la nueva contraseña con las contraseñas previas del historial
+	for _, histHash := range history {
+		if err := bcrypt.CompareHashAndPassword([]byte(histHash), []byte(newPassword)); err == nil {
+			return errors.New("La nueva contraseña no puede coincidir con ninguna de las últimas 5 contraseñas")
+		}
+	}
+
+	// 5. Validar y consumir OTP para "RECOVER" (se consume después de validar el historial)
 	if err := s.otpRepo.ValidateAndConsumeOTP(ctx, email, otpCode, "RECOVER"); err != nil {
 		return err
 	}
 
-	// 2. Buscar al usuario activo por email para garantizar su existencia
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		slog.Warn("Usuario no encontrado para restablecimiento de contraseña", "email", email)
-		return errors.New("el correo electrónico ingresado no corresponde a ningún usuario activo")
-	}
-
-	// Obtener los últimos 5 hashes del historial del usuario
-	history, err := s.userRepo.GetPasswordHistory(ctx, user.ID)
-	if err != nil {
-		slog.Error("Fallo al obtener historial de contraseñas", "error", err, "user_id", user.ID)
-		return fmt.Errorf("error al verificar historial de contraseñas: %w", err)
-	}
-
-	// Comparar la nueva contraseña con la contraseña actual
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(newPassword)); err == nil {
-		return errors.New("la nueva contraseña no puede coincidir con ninguna de las últimas 5 contraseñas")
-	}
-
-	// Comparar la nueva contraseña con las contraseñas previas del historial
-	for _, histHash := range history {
-		if err := bcrypt.CompareHashAndPassword([]byte(histHash), []byte(newPassword)); err == nil {
-			return errors.New("la nueva contraseña no puede coincidir con ninguna de las últimas 5 contraseñas")
-		}
-	}
-
-	// 3. Hashear la nueva contraseña con bcrypt
+	// 6. Hashear la nueva contraseña con bcrypt
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
 	if err != nil {
 		slog.Error("Fallo al hashear la nueva contraseña", "error", err)
-		return fmt.Errorf("error al procesar credenciales: %w", err)
+		return fmt.Errorf("Error al procesar credenciales: %w", err)
 	}
 
-	// 4. Actualizar en la base de datos
+	// 7. Actualizar en la base de datos
 	if err := s.userRepo.UpdatePassword(ctx, user.ID, string(hashedPassword)); err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otp
 	// Registrar el nuevo hash en el historial de contraseñas del usuario
 	if err := s.userRepo.AddPasswordHistory(ctx, user.ID, string(hashedPassword)); err != nil {
 		slog.Error("Fallo al agregar la nueva contraseña al historial", "error", err, "user_id", user.ID)
-		return fmt.Errorf("error al registrar en historial de contraseñas: %w", err)
+		return fmt.Errorf("Error al registrar en el historial de contraseñas: %w", err)
 	}
 
 	slog.Info("Contraseña restablecida de manera exitosa", "user_id", user.ID, "email", email)
@@ -341,14 +341,14 @@ func (s *authUseCase) DeleteAccount(ctx context.Context, userID int64, otpCode s
 		return errors.New("ID de usuario inválido")
 	}
 	if otpCode == "" {
-		return errors.New("el código OTP es requerido para confirmar la eliminación de la cuenta")
+		return errors.New("El código OTP es requerido para confirmar la eliminación de la cuenta")
 	}
 
 	// 1. Obtener los datos del usuario mediante FindByID para recuperar su correo electrónico
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		slog.Warn("Usuario no encontrado para eliminación", "user_id", userID)
-		return errors.New("usuario no encontrado o ya inactivo")
+		return errors.New("Usuario no encontrado o ya inactivo")
 	}
 
 	// 2. Validar y consumir OTP para "DELETE" atado a su email
@@ -376,11 +376,11 @@ func (s *authUseCase) ValidateOTP(ctx context.Context, email, code, action strin
 	slog.Info("Procesando caso de uso de validación de OTP (sin consumo)", "email", email, "action", action)
 
 	if email == "" || code == "" || action == "" {
-		return errors.New("el correo electrónico, el código OTP y la acción son campos requeridos")
+		return errors.New("El correo electrónico, el código OTP y la acción son campos requeridos")
 	}
 
 	if action != "REGISTER" && action != "RECOVER" && action != "DELETE" {
-		return fmt.Errorf("acción de OTP inválida: %s", action)
+		return fmt.Errorf("Acción de OTP inválida: %s", action)
 	}
 
 	return s.otpRepo.ValidateOTPOnly(ctx, email, code, action)

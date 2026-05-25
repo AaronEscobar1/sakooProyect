@@ -21,10 +21,10 @@ func NewMessageUseCase(repo domain.MessageRepository) domain.MessageUseCase {
 
 func (uc *messageUseCase) SendMessage(ctx context.Context, senderID, receiverID int64, content string) (*domain.Message, error) {
 	if content == "" {
-		return nil, errors.New("el contenido del mensaje no puede estar vacío")
+		return nil, errors.New("El contenido del mensaje no puede estar vacío")
 	}
 	if senderID == receiverID {
-		return nil, errors.New("no puedes enviarte un mensaje a ti mismo")
+		return nil, errors.New("No puedes enviarte un mensaje a ti mismo")
 	}
 
 	slog.Info("Procesando envío de mensaje", "sender_id", senderID, "receiver_id", receiverID)

@@ -22,10 +22,10 @@ func NewCommentUseCase(repo domain.CommentRepository) domain.CommentUseCase {
 
 func (uc *commentUseCase) AddComment(ctx context.Context, userID, rateID int64, content string) (*domain.Comment, error) {
 	if content == "" {
-		return nil, errors.New("el contenido del comentario no puede estar vacío")
+		return nil, errors.New("El contenido del comentario no puede estar vacío")
 	}
 	if rateID <= 0 {
-		return nil, errors.New("el ID de tasa 'rate_id' no es válido")
+		return nil, errors.New("El ID de tasa 'rate_id' no es válido")
 	}
 
 	slog.Info("Procesando creación de comentario para tasa", "user_id", userID, "rate_id", rateID)
@@ -36,7 +36,7 @@ func (uc *commentUseCase) AddComment(ctx context.Context, userID, rateID int64, 
 		return nil, err
 	}
 	if alreadyCommented {
-		return nil, errors.New("el usuario ya ha comentado en esta tasa de cambio, solo se permite un comentario por tasa")
+		return nil, errors.New("El usuario ya ha comentado en esta tasa de cambio, solo se permite un comentario por tasa")
 	}
 
 	comment := &domain.Comment{
@@ -55,7 +55,7 @@ func (uc *commentUseCase) AddComment(ctx context.Context, userID, rateID int64, 
 
 func (uc *commentUseCase) GetCommentsByRate(ctx context.Context, rateID int64) ([]domain.Comment, error) {
 	if rateID <= 0 {
-		return nil, errors.New("el ID de tasa 'rate_id' no es válido")
+		return nil, errors.New("El ID de tasa 'rate_id' no es válido")
 	}
 
 	slog.Info("Procesando listado de opiniones del día para tasa", "rate_id", rateID)

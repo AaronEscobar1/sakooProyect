@@ -29,11 +29,11 @@ func (u *bankAccountUseCase) CreateOwn(ctx context.Context, userID int64, bankID
 		return nil, errors.New("ID de usuario inválido")
 	}
 	if bankID <= 0 || accNum == "" || accType == "" || holder == "" {
-		return nil, errors.New("los campos bank_id, account_number, account_type y holder_name son requeridos")
+		return nil, errors.New("Los campos bank_id, account_number, account_type y holder_name son requeridos")
 	}
 
 	if len(accNum) < 10 {
-		return nil, errors.New("el número de cuenta debe tener al menos 10 caracteres")
+		return nil, errors.New("El número de cuenta debe tener al menos 10 caracteres")
 	}
 
 	acc := &domain.BankAccount{
@@ -69,7 +69,7 @@ func (u *bankAccountUseCase) UpdateOwn(ctx context.Context, id, userID int64, ba
 		return nil, errors.New("IDs de cuenta o usuario inválidos")
 	}
 	if bankID <= 0 || accNum == "" || accType == "" || holder == "" {
-		return nil, errors.New("los campos bank_id, account_number, account_type y holder_name son requeridos")
+		return nil, errors.New("Los campos bank_id, account_number, account_type y holder_name son requeridos")
 	}
 
 	acc := &domain.BankAccount{
@@ -109,11 +109,11 @@ func (u *bankAccountUseCase) CreateThirdParty(ctx context.Context, userID int64,
 		return nil, errors.New("ID de usuario inválido")
 	}
 	if bankID <= 0 || accNum == "" || accType == "" || holder == "" || alias == "" || docNum == "" {
-		return nil, errors.New("los campos bank_id, account_number, account_type, holder_name, alias y document_number son requeridos")
+		return nil, errors.New("Los campos bank_id, account_number, account_type, holder_name, alias y document_number son requeridos")
 	}
 
 	if len(accNum) < 10 {
-		return nil, errors.New("el número de cuenta debe tener al menos 10 caracteres")
+		return nil, errors.New("El número de cuenta debe tener al menos 10 caracteres")
 	}
 
 	acc := &domain.ThirdPartyAccount{
@@ -155,7 +155,7 @@ func (u *bankAccountUseCase) UpdateThirdParty(ctx context.Context, id, userID in
 		return nil, errors.New("IDs de cuenta o usuario inválidos")
 	}
 	if bankID <= 0 || accNum == "" || accType == "" || holder == "" || alias == "" || docNum == "" {
-		return nil, errors.New("los campos bank_id, account_number, account_type, holder_name, alias y document_number son requeridos")
+		return nil, errors.New("Los campos bank_id, account_number, account_type, holder_name, alias y document_number son requeridos")
 	}
 
 	acc := &domain.ThirdPartyAccount{

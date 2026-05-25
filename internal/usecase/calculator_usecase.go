@@ -30,10 +30,10 @@ func NewCalculatorUseCase(repo domain.ExchangeRateRepository) CalculatorUseCase 
 // CalculateConversion obtiene la tasa de cambio para la moneda (la más reciente o la de una fecha específica si se provee) y multiplica el monto por la tasa promedio.
 func (uc *calculatorUseCase) CalculateConversion(ctx context.Context, currencyCode string, amount decimal.Decimal, dateStr string) (decimal.Decimal, error) {
 	if currencyCode == "" {
-		return decimal.Zero, errors.New("el código de moneda es requerido")
+		return decimal.Zero, errors.New("El código de moneda es requerido")
 	}
 	if amount.IsNegative() {
-		return decimal.Zero, errors.New("el monto a convertir no puede ser negativo")
+		return decimal.Zero, errors.New("El monto a convertir no puede ser negativo")
 	}
 
 	slog.Info("Realizando conversión de moneda", "currency_code", currencyCode, "amount", amount.String(), "date", dateStr)
@@ -45,12 +45,12 @@ func (uc *calculatorUseCase) CalculateConversion(ctx context.Context, currencyCo
 		// Intentar parsear la fecha provista
 		parsedDate, errParse := time.Parse("2006-01-02", dateStr)
 		if errParse != nil {
-			return decimal.Zero, fmt.Errorf("formato de fecha inválido (se requiere YYYY-MM-DD): %w", errParse)
+			return decimal.Zero, fmt.Errorf("Formato de fecha inválido (se requiere YYYY-MM-DD): %w", errParse)
 		}
 		// Buscar la tasa para esa fecha específica o la última disponible antes (regla de fines de semana y feriados)
 		rate, err = uc.repo.GetLatestRateBeforeOrAt(ctx, currencyCode, parsedDate)
 		if err != nil {
-			return decimal.Zero, fmt.Errorf("no se encontró una tasa de cambio previa para la fecha indicada: %w", err)
+			return decimal.Zero, fmt.Errorf("No se encontró una tasa de cambio previa para la fecha indicada: %w", err)
 		}
 	} else {
 		// Obtener la tasa de cambio más reciente

@@ -30,13 +30,13 @@ func (u *paymentCommitmentUseCase) Create(ctx context.Context, userID int64, amo
 		return nil, errors.New("ID de usuario inválido")
 	}
 	if amount.IsNegative() || amount.IsZero() {
-		return nil, errors.New("el monto del compromiso de pago debe ser positivo")
+		return nil, errors.New("El monto del compromiso de pago debe ser positivo")
 	}
 	if currencyID <= 0 {
 		return nil, errors.New("ID de moneda inválido")
 	}
 	if dueDate.IsZero() {
-		return nil, errors.New("la fecha límite de pago es requerida")
+		return nil, errors.New("La fecha límite de pago es requerida")
 	}
 	if status == "" {
 		status = "PENDIENTE"
@@ -110,13 +110,13 @@ func (u *paymentCommitmentUseCase) Update(ctx context.Context, id, userID int64,
 		return nil, errors.New("IDs de cuenta o usuario inválidos")
 	}
 	if amount.IsNegative() || amount.IsZero() {
-		return nil, errors.New("el monto debe ser un valor positivo")
+		return nil, errors.New("El monto debe ser un valor positivo")
 	}
 	if currencyID <= 0 {
 		return nil, errors.New("ID de moneda inválido")
 	}
 	if dueDate.IsZero() {
-		return nil, errors.New("la fecha límite de pago es requerida")
+		return nil, errors.New("La fecha límite de pago es requerida")
 	}
 	if status == "" {
 		status = "PENDIENTE"

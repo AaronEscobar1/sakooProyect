@@ -23,14 +23,14 @@ func NewNotificationUseCase(repo domain.NotificationRepository, pushService doma
 
 func (uc *notificationUseCase) RegisterDevice(ctx context.Context, userID int64, token, platform string) error {
 	if token == "" || platform == "" {
-		return fmt.Errorf("token y plataforma son requeridos")
+		return fmt.Errorf("Token y plataforma son requeridos")
 	}
 	return uc.repo.SaveDeviceToken(ctx, userID, token, platform)
 }
 
 func (uc *notificationUseCase) UnregisterDevice(ctx context.Context, userID int64, token string) error {
 	if token == "" {
-		return fmt.Errorf("el token es requerido")
+		return fmt.Errorf("El token es requerido")
 	}
 	return uc.repo.DeleteDeviceToken(ctx, userID, token)
 }
