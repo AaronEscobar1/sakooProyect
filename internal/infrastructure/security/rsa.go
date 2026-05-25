@@ -72,7 +72,7 @@ func DecryptPassword(base64Ciphertext string) (string, error) {
 	}
 
 	if base64Ciphertext == "" {
-		return "", errors.New("el texto cifrado está vacío")
+		return "", errors.New("El texto cifrado está vacío")
 	}
 
 	// Inteligente Fallback para Desarrollo y Pruebas Manuales (Bruno/Postman):
@@ -87,7 +87,7 @@ func DecryptPassword(base64Ciphertext string) (string, error) {
 	ciphertext, err := base64.StdEncoding.DecodeString(base64Ciphertext)
 	if err != nil {
 		slog.Warn("Fallo al decodificar texto cifrado desde Base64", "error", err)
-		return "", errors.New("formato de encriptación incorrecto (se esperaba Base64)")
+		return "", errors.New("Formato de encriptación incorrecto (se esperaba Base64)")
 	}
 
 	// 2. Desencriptar usando RSA-OAEP con hash SHA-256
@@ -99,7 +99,7 @@ func DecryptPassword(base64Ciphertext string) (string, error) {
 		plaintext, err = rsa.DecryptPKCS1v15(rng, privateKey, ciphertext)
 		if err != nil {
 			slog.Error("Fallo crítico al descifrar contraseña usando RSA", "error", err)
-			return "", errors.New("credenciales inválidas o error de descifrado")
+			return "", errors.New("Credenciales inválidas o error de descifrado")
 		}
 	}
 

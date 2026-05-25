@@ -78,10 +78,10 @@ func (r *otpRepository) ValidateAndConsumeOTP(ctx context.Context, email, code, 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			slog.Warn("Intento de validación fallido: OTP inválido, expirado o ya consumido", "email", email, "action", action)
-			return errors.New("código OTP inválido, expirado o ya consumido")
+			return errors.New("Código OTP inválido, expirado o ya consumido")
 		}
 		slog.Error("Error al consumir OTP en PostgreSQL", "error", err, "email", email)
-		return fmt.Errorf("error al verificar el código OTP: %w", err)
+		return fmt.Errorf("Error al verificar el código OTP: %w", err)
 	}
 
 	slog.Info("OTP validado y consumido correctamente", "id", id, "email", email, "action", action)
@@ -107,10 +107,10 @@ func (r *otpRepository) ValidateOTPOnly(ctx context.Context, email, code, action
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			slog.Warn("Intento de validación de OTP fallido: OTP inválido, expirado o ya consumido", "email", email, "action", action)
-			return errors.New("código OTP inválido, expirado o ya consumido")
+			return errors.New("Código OTP inválido, expirado o ya consumido")
 		}
 		slog.Error("Error al validar OTP en PostgreSQL", "error", err, "email", email)
-		return fmt.Errorf("error al verificar el código OTP: %w", err)
+		return fmt.Errorf("Error al verificar el código OTP: %w", err)
 	}
 
 	slog.Info("OTP validado correctamente (sin consumir)", "id", id, "email", email, "action", action)

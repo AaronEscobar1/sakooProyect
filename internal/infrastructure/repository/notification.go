@@ -145,7 +145,7 @@ func (r *notificationRepository) MarkAsRead(ctx context.Context, userID int64, n
 		return err
 	}
 	if res.RowsAffected() == 0 {
-		return errors.New("notificación no encontrada o no autorizada")
+		return errors.New("Notificación no encontrada o no autorizada")
 	}
 	return nil
 }

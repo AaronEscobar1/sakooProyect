@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"unicode"
+	"unicode/utf8"
 )
 
 // contextKey es un tipo de clave privada para evitar colisiones en context.Context
@@ -56,6 +58,15 @@ func GetResponseCodeInt(code string) int {
 	}
 }
 
+// Capitalize asegura que la primera letra de un mensaje comience siempre con mayúscula, respetando UTF-8
+func Capitalize(s string) string {
+	if s == "" {
+		return ""
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[size:]
+}
+
 // Success envía una respuesta HTTP exitosa (JSON) estandarizada e inyecta el track_code y X-Response-Code
 func Success(w http.ResponseWriter, ctx context.Context, code string, msg string, data any) {
 	trackCode := GetTrackCode(ctx)
@@ -68,7 +79,7 @@ func Success(w http.ResponseWriter, ctx context.Context, code string, msg string
 
 	resp := APIResponse[any]{
 		Code:      GetResponseCodeInt(code),
-		Message:   msg,
+		Message:   Capitalize(msg),
 		Data:      data,
 		TrackCode: trackCode,
 	}
@@ -88,7 +99,7 @@ func Error(w http.ResponseWriter, ctx context.Context, httpStatus int, code stri
 
 	resp := APIResponse[any]{
 		Code:      GetResponseCodeInt(code),
-		Message:   msg,
+		Message:   Capitalize(msg),
 		TrackCode: trackCode,
 	}
 
