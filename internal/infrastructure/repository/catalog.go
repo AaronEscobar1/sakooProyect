@@ -66,6 +66,7 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 	query := `
 		SELECT id, code, name, created_at, updated_at
 		FROM catalogs.currency
+		WHERE "show" = TRUE
 		ORDER BY code ASC;
 	`
 	rows, err := r.db.Query(dbCtx, query)

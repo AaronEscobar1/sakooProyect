@@ -128,7 +128,7 @@ func (r *exchangeRateRepository) GetLatestRates(ctx context.Context) ([]domain.E
 			e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE e.value_date <= CURRENT_DATE
+		WHERE e.value_date <= CURRENT_DATE AND c."show" = TRUE
 		ORDER BY e.currency_id, e.value_date DESC;
 	`
 	
@@ -183,7 +183,7 @@ func (r *exchangeRateRepository) GetRatesHistoryPaginated(
 	)
 
 	// Construcción dinámica de condiciones WHERE y argumentos
-	var whereClauses []string
+	whereClauses := []string{`c."show" = TRUE`}
 	var args []interface{}
 	argIndex := 1
 
@@ -299,7 +299,7 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1 AND e.value_date <= CURRENT_DATE
+		WHERE c.code = $1 AND e.value_date <= CURRENT_DATE AND c."show" = TRUE
 		ORDER BY e.value_date DESC
 		LIMIT 1;
 	`
@@ -334,7 +334,7 @@ func (r *exchangeRateRepository) GetPreviousRate(ctx context.Context, currencyCo
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1 AND e.value_date < $2
+		WHERE c.code = $1 AND e.value_date < $2 AND c."show" = TRUE
 		ORDER BY e.value_date DESC
 		LIMIT 1;
 	`
@@ -369,7 +369,7 @@ func (r *exchangeRateRepository) GetRateByDate(ctx context.Context, currencyCode
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1 AND e.value_date::date = $2::date
+		WHERE c.code = $1 AND e.value_date::date = $2::date AND c."show" = TRUE
 		ORDER BY e.value_date DESC
 		LIMIT 1;
 	`
@@ -404,7 +404,7 @@ func (r *exchangeRateRepository) GetRatesHistory(ctx context.Context, currencyCo
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1
+		WHERE c.code = $1 AND c."show" = TRUE
 		ORDER BY e.value_date DESC
 		LIMIT $2;
 	`
@@ -452,7 +452,7 @@ func (r *exchangeRateRepository) GetLatestRateBeforeOrAt(ctx context.Context, cu
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1 AND e.value_date <= $2
+		WHERE c.code = $1 AND e.value_date <= $2 AND c."show" = TRUE
 		ORDER BY e.value_date DESC
 		LIMIT 1;
 	`
@@ -487,7 +487,7 @@ func (r *exchangeRateRepository) GetRatesHistoryBeforeOrAt(ctx context.Context, 
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1 AND e.value_date <= $2
+		WHERE c.code = $1 AND e.value_date <= $2 AND c."show" = TRUE
 		ORDER BY e.value_date DESC
 		LIMIT $3;
 	`
@@ -532,9 +532,11 @@ func (r *exchangeRateRepository) GetCalendarDates(ctx context.Context) ([]string
 	slog.Debug("Consultando fechas únicas de calendario de tasas")
 
 	query := `
-		SELECT DISTINCT value_date 
-		FROM exchange_rates 
-		ORDER BY value_date DESC;
+		SELECT DISTINCT e.value_date 
+		FROM exchange_rates e
+		JOIN catalogs.currency c ON e.currency_id = c.id
+		WHERE c."show" = TRUE
+		ORDER BY e.value_date DESC;
 	`
 	rows, err := r.db.Query(dbCtx, query)
 	if err != nil {
