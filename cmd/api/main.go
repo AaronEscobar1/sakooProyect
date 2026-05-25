@@ -150,7 +150,7 @@ func main() {
 
 	// 8. Instanciar controladores HTTP de la capa API
 	authHandler := api.NewAuthHandler(authUseCase)
-	scraperHandler := api.NewScraperHandler(bcvScraperUseCase, mercantilScraperUseCase)
+	scraperHandler := api.NewScraperHandler(bcvScraperUseCase, mercantilScraperUseCase, pool)
 	exchangeRateHandler := api.NewExchangeRateHandler(exchangeRateUseCase)
 	ratesHandler := api.NewRatesHandler(dashboardUseCase, calculatorUseCase, exchangeRateUseCase)
 	bankAccountHandler := api.NewBankAccountHandler(bankAccountUseCase)
@@ -263,6 +263,7 @@ func main() {
 	// Ruta de Scraping Manual (Pruebas en caliente)
 	mux.HandleFunc("POST /api/admin/scrape-now", scraperHandler.HandleScrapeNow)
 	mux.HandleFunc("POST /api/admin/scrape-mercantil", scraperHandler.HandleScrapeMercantilNow)
+	mux.HandleFunc("POST /api/admin/scrape-binance", scraperHandler.HandleScrapeBinance)
 
 	// Ruta Protegida: Endpoint para obtener el perfil completo del usuario autenticado
 	mux.Handle("GET /api/v1/me", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleGetProfile)))

@@ -58,6 +58,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/scrape-binance": {
+            "post": {
+                "description": "Ejecuta de forma síncrona el worker de Binance P2P para un activo específico (USDT o USDC) y actualiza la base de datos.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Forzar raspado de Binance P2P (USDT/USDC)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Activo a raspar (USDT o USDC, por defecto USDT)",
+                        "name": "asset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Raspado y actualización de Binance P2P completados con éxito",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Activo inválido",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno al realizar el scraping",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/scrape-mercantil": {
             "post": {
                 "description": "Ejecuta de forma síncrona el web scraper de Mercantil para actualizar las tasas de cambio de este banco.",

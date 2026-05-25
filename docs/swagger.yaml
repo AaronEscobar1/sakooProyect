@@ -721,6 +721,33 @@ paths:
       summary: Enviar notificación administrativa (BackOffice)
       tags:
       - Notificaciones
+  /api/admin/scrape-binance:
+    post:
+      description: Ejecuta de forma síncrona el worker de Binance P2P para un activo
+        específico (USDT o USDC) y actualiza la base de datos.
+      parameters:
+      - description: Activo a raspar (USDT o USDC, por defecto USDT)
+        in: query
+        name: asset
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Raspado y actualización de Binance P2P completados con éxito
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "400":
+          description: Activo inválido
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+        "500":
+          description: Error interno al realizar el scraping
+          schema:
+            $ref: '#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any'
+      summary: Forzar raspado de Binance P2P (USDT/USDC)
+      tags:
+      - Administración
   /api/admin/scrape-mercantil:
     post:
       description: Ejecuta de forma síncrona el web scraper de Mercantil para actualizar
