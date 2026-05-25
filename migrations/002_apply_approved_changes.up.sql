@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS catalogs.banks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Asegurar de forma explícita que la columna 'show' exista si la tabla ya había sido creada anteriormente sin ella
+ALTER TABLE catalogs.banks ADD COLUMN IF NOT EXISTS show BOOLEAN DEFAULT TRUE;
+
 -- Limpiar la tabla antes de re-sembrar para evitar duplicados locales y limpiar códigos de letras legados
 TRUNCATE TABLE catalogs.banks RESTART IDENTITY CASCADE;
 
