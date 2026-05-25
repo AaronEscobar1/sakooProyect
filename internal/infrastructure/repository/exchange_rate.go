@@ -122,12 +122,13 @@ func (r *exchangeRateRepository) GetLatestRates(ctx context.Context) ([]domain.E
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	// Obtiene solo el último registro por cada moneda basado en la fecha valor
+	// Obtiene solo el último registro por cada moneda en o antes del día de hoy (para evitar fuga anticipada los fines de semana)
 	query := `
 		SELECT DISTINCT ON (e.currency_id) 
 			e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
+		WHERE e.value_date <= CURRENT_DATE
 		ORDER BY e.currency_id, e.value_date DESC;
 	`
 	
@@ -298,7 +299,7 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1
+		WHERE c.code = $1 AND e.value_date <= CURRENT_DATE
 		ORDER BY e.value_date DESC
 		LIMIT 1;
 	`
