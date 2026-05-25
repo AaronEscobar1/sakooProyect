@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS catalogs.banks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Limpiar la tabla antes de re-sembrar para evitar duplicados locales y limpiar códigos de letras legados
+TRUNCATE TABLE catalogs.banks RESTART IDENTITY CASCADE;
+
 -- Registrar la lista completa y oficial de bancos activos en Venezuela con sus códigos oficiales de Sudeban
 INSERT INTO catalogs.banks (code, name) VALUES 
 ('0102', 'Banco de Venezuela, S.A. Banco Universal'),
@@ -34,12 +37,7 @@ INSERT INTO catalogs.banks (code, name) VALUES
 ('0174', 'Banplus Banco Universal, C.A.'),
 ('0175', 'Banco Bicentenario del Pueblo, Banco Universal C.A.'),
 ('0177', 'BANFANB (Banco de la Fuerza Armada Nacional Bolivariana)'),
-('0191', 'BNC Banco Nacional de Crédito, C.A. Banco Universal'),
--- Mantener códigos legados para total compatibilidad hacia atrás
-('MERCANTIL', 'Banco Mercantil (Legado)'),
-('BANESCO', 'Banesco Banco Universal (Legado)'),
-('PROVINCIAL', 'BBVA Provincial (Legado)'),
-('BDV', 'Banco de Venezuela (Legado)')
+('0191', 'BNC Banco Nacional de Crédito, C.A. Banco Universal')
 ON CONFLICT (code) DO NOTHING;
 
 -- En finance.bank_accounts: quitar bank_name y agregar bank_id FK
