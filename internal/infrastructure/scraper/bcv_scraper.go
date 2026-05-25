@@ -222,12 +222,20 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 			continue // Continuar procesando las demás monedas
 		}
 
+		// Calcular rate_from (rate_to * 0.9975 para spread de compra de 0.25%)
+		multiplier := decimal.NewFromFloat(0.9975)
+		rateFrom := parsedDecimal.Mul(multiplier)
+
+		// Calcular rate_average como promedio simple: (rate_from + rate_to) / 2
+		two := decimal.NewFromInt(2)
+		rateAverage := rateFrom.Add(parsedDecimal).Div(two)
+
 		// Construir la entidad con la equivalencia de 1 Unidad Extranjera a X Unidades Locales (VES)
 		rate := domain.ExchangeRate{
 			CurrencyCode: code,
-			RateFrom:     decimal.NewFromInt(1), // 1.0 de la moneda origen (ej: 1 USD)
-			RateTo:       parsedDecimal,         // Valor de destino (ej: 36.54 VES)
-			RateAverage:  parsedDecimal,         // Tasa promedio oficial publicada
+			RateFrom:     rateFrom,      // Tasa de compra calculada con spread
+			RateTo:       parsedDecimal, // Tasa de venta oficial del BCV
+			RateAverage:  rateAverage,   // Promedio ponderado
 			ValueDate:    valueDate,
 		}
 
