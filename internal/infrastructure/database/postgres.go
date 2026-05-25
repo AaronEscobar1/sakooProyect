@@ -130,6 +130,23 @@ func ConnectAndMigrate(dbURL string) (*pgxpool.Pool, error) {
 		slog.Info("Migraciones aplicadas de manera exitosa en el esquema")
 	}
 
+	// Paso Autocurativo: Aplicar visibilidad de monedas al front
+	slog.Info("Aplicando configuración autocurativa de visibilidad de monedas...")
+	setupQueries := []string{
+		`ALTER TABLE catalogs.currency ADD COLUMN IF NOT EXISTS "show" BOOLEAN DEFAULT TRUE;`,
+		`UPDATE catalogs.currency SET "show" = FALSE WHERE code NOT IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
+		`UPDATE catalogs.currency SET "show" = TRUE WHERE code IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
+		`INSERT INTO telemetry.configurations (key, payload)
+		 VALUES ('visible_currencies', '["USD", "EUR", "USDT", "USDC", "UDI"]'::jsonb)
+		 ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload;`,
+	}
+	for _, q := range setupQueries {
+		if _, err := pool.Exec(ctx, q); err != nil {
+			slog.Warn("No se pudo ejecutar query autocurativo de visibilidad en base de datos", "query", q, "error", err)
+		}
+	}
+	slog.Info("Configuración autocurativa de visibilidad de monedas completada")
+
 	return pool, nil
 }
 
