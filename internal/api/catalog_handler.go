@@ -28,7 +28,7 @@ func NewCatalogHandler(useCase domain.CatalogUseCase) *CatalogHandler {
 // @Router       /api/v1/catalogs/document-types [get]
 func (h *CatalogHandler) HandleGetDocumentTypes(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
@@ -51,7 +51,7 @@ func (h *CatalogHandler) HandleGetDocumentTypes(w http.ResponseWriter, r *http.R
 // @Router       /api/v1/catalogs/currencies [get]
 func (h *CatalogHandler) HandleGetCurrencies(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *CatalogHandler) HandleGetCurrencies(w http.ResponseWriter, r *http.Requ
 // @Router       /api/v1/catalogs/banks [get]
 func (h *CatalogHandler) HandleGetBanks(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 

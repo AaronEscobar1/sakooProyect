@@ -34,19 +34,19 @@ func NewNotificationHandler(useCase domain.NotificationUseCase) *NotificationHan
 // @Router       /api/v1/devices/register [post]
 func (h *NotificationHandler) HandleRegisterDevice(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return
 	}
 
 	var req domain.RegisterDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
@@ -71,19 +71,19 @@ func (h *NotificationHandler) HandleRegisterDevice(w http.ResponseWriter, r *htt
 // @Router       /api/v1/devices/unregister [post]
 func (h *NotificationHandler) HandleUnregisterDevice(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return
 	}
 
 	var req domain.UnregisterDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
@@ -106,13 +106,13 @@ func (h *NotificationHandler) HandleUnregisterDevice(w http.ResponseWriter, r *h
 // @Router       /api/v1/notifications [get]
 func (h *NotificationHandler) HandleGetNotifications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return
 	}
 
@@ -137,13 +137,13 @@ func (h *NotificationHandler) HandleGetNotifications(w http.ResponseWriter, r *h
 // @Router       /api/v1/notifications/{id}/read [put]
 func (h *NotificationHandler) HandleMarkAsRead(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere PUT)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere PUT)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return
 	}
 
@@ -180,18 +180,18 @@ func (h *NotificationHandler) HandleMarkAsRead(w http.ResponseWriter, r *http.Re
 // @Router       /api/admin/notifications/send [post]
 func (h *NotificationHandler) HandleSendAdminNotification(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req domain.SendAdminNotificationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.Title == "" || req.Body == "" {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "título y cuerpo de notificación son requeridos")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "Título y cuerpo de notificación son requeridos")
 		return
 	}
 

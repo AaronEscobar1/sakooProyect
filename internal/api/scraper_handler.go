@@ -41,13 +41,13 @@ func NewScraperHandler(
 // @Router       /api/admin/scrape-now [post]
 func (h *ScraperHandler) HandleScrapeNow(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	err := h.bcvScraperUseCase.ExecuteScraping(r.Context())
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "error al realizar el scraping manual de tasas del BCV")
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al realizar el scraping manual de tasas del BCV")
 		return
 	}
 
@@ -65,13 +65,13 @@ func (h *ScraperHandler) HandleScrapeNow(w http.ResponseWriter, r *http.Request)
 // @Router       /api/admin/scrape-mercantil [post]
 func (h *ScraperHandler) HandleScrapeMercantilNow(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	err := h.mercantilScraperUseCase.ExecuteScraping(r.Context())
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "error al realizar el scraping manual de tasas de Mercantil")
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al realizar el scraping manual de tasas de Mercantil")
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *ScraperHandler) HandleScrapeMercantilNow(w http.ResponseWriter, r *http
 // @Router       /api/admin/scrape-binance [post]
 func (h *ScraperHandler) HandleScrapeBinance(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
@@ -101,7 +101,7 @@ func (h *ScraperHandler) HandleScrapeBinance(w http.ResponseWriter, r *http.Requ
 	}
 
 	if asset != "USDT" && asset != "USDC" {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_ASSET", "el activo solicitado debe ser USDT o USDC")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_ASSET", "El activo solicitado debe ser USDT o USDC")
 		return
 	}
 

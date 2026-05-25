@@ -58,13 +58,13 @@ func NewExchangeRateHandler(useCase *usecase.ExchangeRateUseCase) *ExchangeRateH
 // @Router       /api/rates [post]
 func (h *ExchangeRateHandler) HandleGetLatestRates(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	rates, err := h.useCase.GetLatestRates(r.Context())
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "error al obtener las tasas de cambio")
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al obtener las tasas de cambio")
 		return
 	}
 
@@ -100,13 +100,13 @@ func (h *ExchangeRateHandler) HandleGetLatestRates(w http.ResponseWriter, r *htt
 // @Router       /api/rates/history [post]
 func (h *ExchangeRateHandler) HandleGetRatesHistory(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req HistoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 

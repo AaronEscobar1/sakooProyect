@@ -65,7 +65,7 @@ func NewPaymentCommitmentHandler(useCase domain.PaymentCommitmentUseCase) *Payme
 func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
@@ -74,13 +74,13 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 		var req CommitmentRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 			return
 		}
 
 		parsedDate, err := time.Parse("2006-01-02", req.DueDateStr)
 		if err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "formato de fecha límite 'due_date' inválido (debe ser YYYY-MM-DD)")
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "Formato de fecha límite 'due_date' inválido (debe ser YYYY-MM-DD)")
 			return
 		}
 
@@ -102,13 +102,13 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 			CreatedAt:  pc.CreatedAt.Format(time.RFC3339),
 		}
 
-		response.Success(w, r.Context(), "CREATED", "compromiso de pago creado exitosamente", res)
+		response.Success(w, r.Context(), "CREATED", "Compromiso de pago creado exitosamente", res)
 
 	case http.MethodGet:
 		segmented, err := h.useCase.GetSegmentedCommitments(r.Context(), userID)
 		if err != nil {
 			slog.Error("Fallo al obtener compromisos segmentados", "error", err, "user_id", userID)
-			response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "error al recuperar compromisos de pago")
+			response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "Error al recuperar compromisos de pago")
 			return
 		}
 
@@ -163,10 +163,10 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 			}
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "compromisos de pago segmentados obtenidos exitosamente", dto)
+		response.Success(w, r.Context(), "SUCCESS", "Compromisos de pago segmentados obtenidos exitosamente", dto)
 
 	default:
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido")
 	}
 }
 
@@ -186,7 +186,7 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 func (h *PaymentCommitmentHandler) HandleCommitmentDetail(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
@@ -205,13 +205,13 @@ func (h *PaymentCommitmentHandler) HandleCommitmentDetail(w http.ResponseWriter,
 		var req CommitmentRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 			return
 		}
 
 		parsedDate, err := time.Parse("2006-01-02", req.DueDateStr)
 		if err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "formato de fecha límite 'due_date' inválido (debe ser YYYY-MM-DD)")
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "Formato de fecha límite 'due_date' inválido (debe ser YYYY-MM-DD)")
 			return
 		}
 
@@ -233,7 +233,7 @@ func (h *PaymentCommitmentHandler) HandleCommitmentDetail(w http.ResponseWriter,
 			CreatedAt:  pc.CreatedAt.Format(time.RFC3339),
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "compromiso de pago actualizado exitosamente", res)
+		response.Success(w, r.Context(), "SUCCESS", "Compromiso de pago actualizado exitosamente", res)
 
 	case http.MethodDelete:
 		err := h.useCase.Delete(r.Context(), id, userID)
@@ -243,9 +243,9 @@ func (h *PaymentCommitmentHandler) HandleCommitmentDetail(w http.ResponseWriter,
 			return
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "compromiso de pago eliminado exitosamente", nil)
+		response.Success(w, r.Context(), "SUCCESS", "Compromiso de pago eliminado exitosamente", nil)
 
 	default:
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido")
 	}
 }

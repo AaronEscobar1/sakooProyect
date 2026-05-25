@@ -38,29 +38,29 @@ func NewMessageHandler(useCase domain.MessageUseCase) *MessageHandler {
 // @Router       /api/v1/messages/send [post]
 func (h *MessageHandler) HandleSendMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	senderID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return
 	}
 
 	var req SendMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.ReceiverID <= 0 {
-		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el destinatario 'receiver_id' es requerido y debe ser mayor a cero")
+		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El destinatario 'receiver_id' es requerido y debe ser mayor a cero")
 		return
 	}
 
 	if req.Content == "" {
-		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el contenido 'content' no puede estar vacío")
+		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El contenido 'content' no puede estar vacío")
 		return
 	}
 
@@ -84,13 +84,13 @@ func (h *MessageHandler) HandleSendMessage(w http.ResponseWriter, r *http.Reques
 // @Router       /api/v1/messages [get]
 func (h *MessageHandler) HandleGetMessages(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return
 	}
 
@@ -114,13 +114,13 @@ func (h *MessageHandler) HandleGetMessages(w http.ResponseWriter, r *http.Reques
 // @Router       /api/v1/messages/unread-count [get]
 func (h *MessageHandler) HandleGetUnreadCount(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return
 	}
 

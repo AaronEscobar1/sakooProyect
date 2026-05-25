@@ -39,29 +39,29 @@ func NewCommentHandler(useCase domain.CommentUseCase) *CommentHandler {
 // @Router       /api/v1/rates/comments [post]
 func (h *CommentHandler) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "usuario no autenticado")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return
 	}
 
 	var req CommentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.RateID <= 0 {
-		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el ID de tasa 'rate_id' es requerido y debe ser mayor a cero")
+		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El ID de tasa 'rate_id' es requerido y debe ser mayor a cero")
 		return
 	}
 
 	if req.Content == "" {
-		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el contenido del comentario no puede estar vacío")
+		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El contenido del comentario no puede estar vacío")
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *CommentHandler) HandleAddComment(w http.ResponseWriter, r *http.Request
 // @Router       /api/v1/rates/{rate_id}/comments [get]
 func (h *CommentHandler) HandleGetRateComments(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 

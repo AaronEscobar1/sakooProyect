@@ -28,7 +28,7 @@ func NewBannerHandler(useCase domain.BannerUseCase) *BannerHandler {
 // @Router       /api/v1/banners [get]
 func (h *BannerHandler) HandleGetBanners(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 

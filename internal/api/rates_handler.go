@@ -69,13 +69,13 @@ func NewRatesHandler(dashboardUseCase usecase.DashboardUseCase, calculatorUseCas
 // @Router       /api/v1/rates/dashboard [get]
 func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
 	currency := r.URL.Query().Get("currency")
 	if currency == "" {
-		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el parámetro query 'currency' es requerido")
+		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El parámetro query 'currency' es requerido")
 		return
 	}
 
@@ -83,7 +83,7 @@ func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.
 	if dateStr := r.URL.Query().Get("date"); dateStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", dateStr)
 		if err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el parámetro query 'date' debe tener el formato YYYY-MM-DD")
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El parámetro query 'date' debe tener el formato YYYY-MM-DD")
 			return
 		}
 		refDate = &parsedDate
@@ -93,7 +93,7 @@ func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.
 	if err != nil {
 		// Control estricto de pgx.ErrNoRows: Responder HTTP 200, código interno diferente de 1000
 		if errors.Is(err, pgx.ErrNoRows) || (err != nil && (errors.Is(err, pgx.ErrNoRows) || (errors.Unwrap(err) != nil && errors.Is(errors.Unwrap(err), pgx.ErrNoRows)) || err.Error() == "no rows in result set" || (len(err.Error()) > 20 && err.Error()[len(err.Error())-22:] == "no rows in result set"))) {
-			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "no se encontraron tasas de cambio para la moneda especificada")
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "No se encontraron tasas de cambio para la moneda especificada")
 			return
 		}
 		response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", err.Error())
@@ -134,23 +134,23 @@ func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.
 // @Router       /api/v1/rates/calculate [post]
 func (h *RatesHandler) HandleCalculateConversion(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req ConversionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.Currency == "" {
-		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el código de moneda 'currency' es requerido")
+		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El código de moneda 'currency' es requerido")
 		return
 	}
 
 	if req.Amount.IsNegative() {
-		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el monto 'amount' no puede ser negativo")
+		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El monto 'amount' no puede ser negativo")
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *RatesHandler) HandleCalculateConversion(w http.ResponseWriter, r *http.
 	if err != nil {
 		// Control estricto de pgx.ErrNoRows: Responder HTTP 200, código interno diferente de 1000
 		if errors.Is(err, pgx.ErrNoRows) || (err != nil && (errors.Is(err, pgx.ErrNoRows) || (errors.Unwrap(err) != nil && errors.Is(errors.Unwrap(err), pgx.ErrNoRows)) || err.Error() == "no rows in result set" || (len(err.Error()) > 20 && err.Error()[len(err.Error())-22:] == "no rows in result set"))) {
-			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "no se encontraron tasas de cambio para realizar la conversión en la fecha indicada")
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "No se encontraron tasas de cambio para realizar la conversión en la fecha indicada")
 			return
 		}
 		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())
@@ -184,7 +184,7 @@ func (h *RatesHandler) HandleCalculateConversion(w http.ResponseWriter, r *http.
 // @Router       /api/v1/rates/calendar-dates [get]
 func (h *RatesHandler) HandleGetCalendarDates(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 

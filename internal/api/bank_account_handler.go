@@ -55,7 +55,7 @@ func (h *BankAccountHandler) HandleOwnAccounts(w http.ResponseWriter, r *http.Re
 	// Extraer el userID del contexto (inyectado por AuthMiddleware)
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *BankAccountHandler) HandleOwnAccounts(w http.ResponseWriter, r *http.Re
 		var req OwnAccountRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 			return
 		}
 
@@ -75,20 +75,20 @@ func (h *BankAccountHandler) HandleOwnAccounts(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		response.Success(w, r.Context(), "CREATED", "cuenta propia creada exitosamente", acc)
+		response.Success(w, r.Context(), "CREATED", "Cuenta propia creada exitosamente", acc)
 
 	case http.MethodGet:
 		accounts, err := h.useCase.ListOwn(r.Context(), userID)
 		if err != nil {
 			slog.Error("Fallo al listar cuentas propias", "error", err, "user_id", userID)
-			response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "error al listar cuentas bancarias")
+			response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "Error al listar cuentas bancarias")
 			return
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "cuentas propias obtenidas exitosamente", accounts)
+		response.Success(w, r.Context(), "SUCCESS", "Cuentas propias obtenidas exitosamente", accounts)
 
 	default:
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido")
 	}
 }
 
@@ -108,7 +108,7 @@ func (h *BankAccountHandler) HandleOwnAccounts(w http.ResponseWriter, r *http.Re
 func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *ht
 		var req OwnAccountRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 			return
 		}
 
@@ -138,7 +138,7 @@ func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *ht
 			return
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "cuenta propia actualizada exitosamente", acc)
+		response.Success(w, r.Context(), "SUCCESS", "Cuenta propia actualizada exitosamente", acc)
 
 	case http.MethodDelete:
 		err := h.useCase.DeleteOwn(r.Context(), id, userID)
@@ -148,10 +148,10 @@ func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *ht
 			return
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "cuenta propia eliminada exitosamente", nil)
+		response.Success(w, r.Context(), "SUCCESS", "Cuenta propia eliminada exitosamente", nil)
 
 	default:
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido")
 	}
 }
 
@@ -170,7 +170,7 @@ func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *ht
 func (h *BankAccountHandler) HandleThirdPartyAccounts(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *BankAccountHandler) HandleThirdPartyAccounts(w http.ResponseWriter, r *
 		var req ThirdPartyAccountRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 			return
 		}
 
@@ -190,20 +190,20 @@ func (h *BankAccountHandler) HandleThirdPartyAccounts(w http.ResponseWriter, r *
 			return
 		}
 
-		response.Success(w, r.Context(), "CREATED", "cuenta de terceros creada exitosamente", acc)
+		response.Success(w, r.Context(), "CREATED", "Cuenta de terceros creada exitosamente", acc)
 
 	case http.MethodGet:
 		accounts, err := h.useCase.ListThirdParty(r.Context(), userID)
 		if err != nil {
 			slog.Error("Fallo al listar cuentas de terceros", "error", err, "user_id", userID)
-			response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "error al listar cuentas bancarias de terceros")
+			response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "Error al listar cuentas bancarias de terceros")
 			return
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "cuentas de terceros obtenidas exitosamente", accounts)
+		response.Success(w, r.Context(), "SUCCESS", "Cuentas de terceros obtenidas exitosamente", accounts)
 
 	default:
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido")
 	}
 }
 
@@ -223,7 +223,7 @@ func (h *BankAccountHandler) HandleThirdPartyAccounts(w http.ResponseWriter, r *
 func (h *BankAccountHandler) HandleThirdPartyAccountDetail(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
@@ -242,7 +242,7 @@ func (h *BankAccountHandler) HandleThirdPartyAccountDetail(w http.ResponseWriter
 		var req ThirdPartyAccountRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "formato de cuerpo JSON inválido")
+			response.Error(w, r.Context(), http.StatusOK, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 			return
 		}
 
@@ -253,7 +253,7 @@ func (h *BankAccountHandler) HandleThirdPartyAccountDetail(w http.ResponseWriter
 			return
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "cuenta de terceros actualizada exitosamente", acc)
+		response.Success(w, r.Context(), "SUCCESS", "Cuenta de terceros actualizada exitosamente", acc)
 
 	case http.MethodDelete:
 		err := h.useCase.DeleteThirdParty(r.Context(), id, userID)
@@ -263,9 +263,9 @@ func (h *BankAccountHandler) HandleThirdPartyAccountDetail(w http.ResponseWriter
 			return
 		}
 
-		response.Success(w, r.Context(), "SUCCESS", "cuenta de terceros eliminada exitosamente", nil)
+		response.Success(w, r.Context(), "SUCCESS", "Cuenta de terceros eliminada exitosamente", nil)
 
 	default:
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido")
 	}
 }

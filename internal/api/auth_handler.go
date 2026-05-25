@@ -81,13 +81,13 @@ func NewAuthHandler(authUseCase domain.AuthUseCase) *AuthHandler {
 // @Router       /api/auth/public-key [get]
 func (h *AuthHandler) HandlePublicKey(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
 	pubKey, err := security.GetPublicKeyPEM()
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "error al recuperar la clave pública de tránsito")
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al recuperar la clave pública de tránsito")
 		return
 	}
 
@@ -108,19 +108,19 @@ func (h *AuthHandler) HandlePublicKey(w http.ResponseWriter, r *http.Request) {
 // @Router       /api/v1/auth/otp/request [post]
 func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req RequestOTPRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.Email == "" || req.Action == "" {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "el correo electrónico y la acción son campos requeridos")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "El correo electrónico y la acción son campos requeridos")
 		return
 	}
 
@@ -151,13 +151,13 @@ func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 // @Router       /api/v1/auth/register [post]
 func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req domain.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
@@ -183,7 +183,7 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	// 1. Descifrar la contraseña cifrada en RSA que viene en formato Base64 desde el cliente
 	decryptedPassword, err := security.DecryptPassword(req.Password)
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "las credenciales enviadas no tienen el formato de seguridad esperado")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "Las credenciales enviadas no tienen el formato de seguridad esperado")
 		return
 	}
 	req.Password = decryptedPassword
@@ -194,10 +194,10 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Fallo al registrar usuario con OTP", "error", err, "email", req.Email)
 		if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "users_email_key") || strings.Contains(err.Error(), "users_username_key") {
 			if strings.Contains(err.Error(), "users_username_key") {
-				response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "el nombre de usuario ingresado ya se encuentra registrado")
+				response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El nombre de usuario ingresado ya se encuentra registrado")
 				return
 			}
-			response.Error(w, r.Context(), http.StatusOK, "USER_ALREADY_EXISTS", "el correo electrónico ingresado ya se encuentra registrado")
+			response.Error(w, r.Context(), http.StatusOK, "USER_ALREADY_EXISTS", "El correo electrónico ingresado ya se encuentra registrado")
 			return
 		}
 		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())
@@ -219,20 +219,20 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 // @Router       /api/auth/login [post]
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req domain.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	// 1. Descifrar la contraseña cifrada en RSA que viene en formato Base64 desde el cliente
 	decryptedPassword, err := security.DecryptPassword(req.Password)
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "las credenciales enviadas no tienen el formato de seguridad esperado")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "Las credenciales enviadas no tienen el formato de seguridad esperado")
 		return
 	}
 	req.Password = decryptedPassword
@@ -240,7 +240,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// 2. Autenticar e iniciar sesión
 	res, err := h.authUseCase.Login(r.Context(), req)
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "correo electrónico o contraseña incorrectos")
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Correo electrónico o contraseña incorrectos")
 		return
 	}
 
@@ -259,26 +259,26 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 // @Router       /api/v1/auth/password/reset [post]
 func (h *AuthHandler) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req ResetPasswordRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.Email == "" || req.NewPassword == "" || req.OTPCode == "" {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "los campos email, new_password y otp_code son requeridos")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "Los campos email, new_password y otp_code son requeridos")
 		return
 	}
 
 	// 1. Descifrar la nueva contraseña cifrada en RSA
 	decryptedPassword, err := security.DecryptPassword(req.NewPassword)
 	if err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "la contraseña enviada no tiene el formato de seguridad esperado")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "La contraseña enviada no tiene el formato de seguridad esperado")
 		return
 	}
 	req.NewPassword = decryptedPassword
@@ -309,25 +309,25 @@ func (h *AuthHandler) HandleResetPassword(w http.ResponseWriter, r *http.Request
 // @Router       /api/v1/account [delete]
 func (h *AuthHandler) HandleDeleteAccountV1(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere DELETE)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere DELETE)")
 		return
 	}
 
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
 	var req DeleteAccountRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.OTPCode == "" {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "el código OTP es requerido para confirmar la eliminación de la cuenta")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "El código OTP es requerido para confirmar la eliminación de la cuenta")
 		return
 	}
 
@@ -352,21 +352,21 @@ func (h *AuthHandler) HandleDeleteAccountV1(w http.ResponseWriter, r *http.Reque
 // @Router       /api/v1/me [get]
 func (h *AuthHandler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusOK, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
 	// Extraer el userID del contexto (inyectado por AuthMiddleware)
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
 	user, err := h.authUseCase.GetProfile(r.Context(), userID)
 	if err != nil {
 		slog.Error("Fallo al obtener perfil del usuario", "error", err, "user_id", userID)
-		response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "error al recuperar el perfil del usuario")
+		response.Error(w, r.Context(), http.StatusOK, "INTERNAL_ERROR", "Error al recuperar el perfil del usuario")
 		return
 	}
 
@@ -401,21 +401,21 @@ func (h *AuthHandler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 // @Router       /api/v1/auth/logout [post]
 func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	// Extraer el userID del contexto (inyectado por AuthMiddleware)
 	userID, ok := GetUserIDFromContext(r.Context())
 	if !ok {
-		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: no se pudo recuperar el ID del usuario")
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
 	// Invocar el caso de uso
 	if err := h.authUseCase.Logout(r.Context(), userID); err != nil {
 		slog.Error("Fallo al cerrar sesión del usuario", "error", err, "user_id", userID)
-		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "error al cerrar la sesión")
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al cerrar la sesión")
 		return
 	}
 
@@ -437,18 +437,18 @@ func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 // @Router       /api/v1/auth/otp/validate [post]
 func (h *AuthHandler) HandleValidateOTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere POST)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
 		return
 	}
 
 	var req ValidateOTPRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "formato de cuerpo JSON inválido")
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
 		return
 	}
 
 	if req.Email == "" || req.OTPCode == "" || req.Action == "" {
-		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "el correo electrónico, el código OTP y la acción son campos requeridos")
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "El correo electrónico, el código OTP y la acción son campos requeridos")
 		return
 	}
 
@@ -474,7 +474,7 @@ func (h *AuthHandler) HandleValidateOTP(w http.ResponseWriter, r *http.Request) 
 // @Router       /api/v1/users/search [get]
 func (h *AuthHandler) HandleSearchUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método no permitido (se requiere GET)")
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
 		return
 	}
 
