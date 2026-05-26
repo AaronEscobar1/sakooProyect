@@ -171,10 +171,9 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 	if !hasPrev {
 		rateChanged = true
 	} else {
-		// Comparar con dos decimales de precisión
-		pVal, _ := prevAvg.Round(2).Float64()
-		nVal, _ := avgGlobal.Round(2).Float64()
-		if pVal != nVal {
+		// Calcular la diferencia absoluta y verificar si varía como mínimo 0.20 Bs.
+		diff := avgGlobal.Sub(prevAvg).Abs()
+		if diff.GreaterThanOrEqual(decimal.NewFromFloat(0.20)) {
 			rateChanged = true
 		}
 	}
