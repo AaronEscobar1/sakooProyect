@@ -2112,6 +2112,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "display_order": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
