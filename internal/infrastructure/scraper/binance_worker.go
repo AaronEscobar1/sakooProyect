@@ -171,9 +171,9 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 	if !hasPrev {
 		rateChanged = true
 	} else {
-		// Calcular la diferencia absoluta y verificar si varía como mínimo 0.20 Bs.
+		// Calcular la diferencia absoluta y verificar si varía como mínimo 20.00 Bs.
 		diff := avgGlobal.Sub(prevAvg).Abs()
-		if diff.GreaterThanOrEqual(decimal.NewFromFloat(0.20)) {
+		if diff.GreaterThanOrEqual(decimal.NewFromFloat(20.00)) {
 			rateChanged = true
 		}
 	}
