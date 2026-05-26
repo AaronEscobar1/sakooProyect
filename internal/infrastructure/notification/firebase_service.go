@@ -133,3 +133,33 @@ func (s *firebasePushService) SendMulticastPush(ctx context.Context, tokens []st
 	)
 	return nil
 }
+
+func (s *firebasePushService) SendTopicPush(ctx context.Context, topic string, title, body string, data map[string]string) error {
+	if s.isMock {
+		slog.Info("📢 [MOCK PUSH] Enviando notificación push a Topic", 
+			"topic", topic, 
+			"title", title, 
+			"body", body, 
+			"data", data,
+		)
+		return nil
+	}
+
+	msg := &messaging.Message{
+		Topic: topic,
+		Notification: &messaging.Notification{
+			Title: title,
+			Body:  body,
+		},
+		Data: data,
+	}
+
+	res, err := s.fcmClient.Send(ctx, msg)
+	if err != nil {
+		slog.Error("Fallo al enviar notificación push a Topic vía Firebase", "error", err, "topic", topic)
+		return err
+	}
+
+	slog.Info("Notificación push a Topic enviada con éxito vía Firebase", "message_id", res, "topic", topic)
+	return nil
+}

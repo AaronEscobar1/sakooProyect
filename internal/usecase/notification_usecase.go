@@ -103,3 +103,19 @@ func (uc *notificationUseCase) SendBroadcastNotification(ctx context.Context, ti
 
 	return nil
 }
+
+func (uc *notificationUseCase) SendTopicNotification(ctx context.Context, topic string, title, body string, payload map[string]interface{}) error {
+	// 1. Convertir el payload a map[string]string
+	fcmData := make(map[string]string)
+	for k, v := range payload {
+		fcmData[k] = fmt.Sprintf("%v", v)
+	}
+
+	// 2. Disparar el envío asíncrono al Topic
+	go func(tp, t, b string, data map[string]string) {
+		bgCtx := context.Background()
+		_ = uc.pushService.SendTopicPush(bgCtx, tp, t, b, data)
+	}(topic, title, body, fcmData)
+
+	return nil
+}

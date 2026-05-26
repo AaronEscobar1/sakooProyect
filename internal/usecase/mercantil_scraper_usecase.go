@@ -11,15 +11,21 @@ import (
 
 // MercantilScraperUseCase orquesta el proceso de raspado de la tasa "Dólar Intervención" (UDI) del Mercantil.
 type MercantilScraperUseCase struct {
-	scraperService scraper.ScraperService
-	repo           domain.ExchangeRateRepository
+	scraperService      scraper.ScraperService
+	repo                domain.ExchangeRateRepository
+	notificationUseCase domain.NotificationUseCase
 }
 
 // NewMercantilScraperUseCase crea una nueva instancia del caso de uso de Scraping para el Mercantil Banco.
-func NewMercantilScraperUseCase(scraperService scraper.ScraperService, repo domain.ExchangeRateRepository) *MercantilScraperUseCase {
+func NewMercantilScraperUseCase(
+	scraperService scraper.ScraperService,
+	repo domain.ExchangeRateRepository,
+	notificationUseCase domain.NotificationUseCase,
+) *MercantilScraperUseCase {
 	return &MercantilScraperUseCase{
-		scraperService: scraperService,
-		repo:           repo,
+		scraperService:      scraperService,
+		repo:                repo,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -61,6 +67,15 @@ func (uc *MercantilScraperUseCase) ExecuteScraping(ctx context.Context) error {
 		"tasa", rate.RateAverage.String(),
 	)
 
+	// Verificar si la tasa cambió realmente antes del Upsert
+	rateChanged := false
+	latestRate, errLatest := uc.repo.GetLatestRate(ctx, rate.CurrencyCode)
+	if errLatest != nil {
+		rateChanged = true
+	} else if latestRate != nil && !latestRate.RateAverage.Equal(rate.RateAverage) {
+		rateChanged = true
+	}
+
 	// 3. Persistir de forma segura e idempotente
 	if err := uc.repo.Upsert(ctx, &rate); err != nil {
 		slog.Error("Resiliencia - Error al guardar la tasa de cambio de Mercantil en la base de datos",
@@ -69,6 +84,21 @@ func (uc *MercantilScraperUseCase) ExecuteScraping(ctx context.Context) error {
 			"error", err,
 		)
 		return err
+	}
+
+	// 4. Si cambió la tasa de Mercantil, disparar la notificación push al Topic
+	if rateChanged {
+		title := "¡La tasa de Mercantil ha cambiado! 🚀"
+		body := fmt.Sprintf("La nueva tasa del Dólar Intervención es de %s Bs.", rate.RateAverage.String())
+		payload := map[string]interface{}{
+			"type":          "rate_update",
+			"source":        "MERCANTIL",
+			"currency_code": rate.CurrencyCode,
+			"rate":          rate.RateAverage.String(),
+		}
+
+		slog.Info("Disparando notificación push de Mercantil por Topic...", "rate", rate.RateAverage.String())
+		_ = uc.notificationUseCase.SendTopicNotification(ctx, "exchange_rates", title, body, payload)
 	}
 
 	slog.Info("Resumen del ciclo de Scraping Mercantil completado exitosamente")

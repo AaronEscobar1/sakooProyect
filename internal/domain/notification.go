@@ -58,6 +58,7 @@ type NotificationRepository interface {
 type PushNotificationService interface {
 	SendPush(ctx context.Context, token string, title, body string, data map[string]string) error
 	SendMulticastPush(ctx context.Context, tokens []string, title, body string, data map[string]string) error
+	SendTopicPush(ctx context.Context, topic string, title, body string, data map[string]string) error
 }
 
 // NotificationUseCase define la lógica de negocio para las notificaciones.
@@ -68,4 +69,5 @@ type NotificationUseCase interface {
 	MarkNotificationAsRead(ctx context.Context, userID int64, notificationID int64) error
 	SendSystemNotification(ctx context.Context, userID int64, title, body string, payload map[string]interface{}) error
 	SendBroadcastNotification(ctx context.Context, title, body string, payload map[string]interface{}) error
+	SendTopicNotification(ctx context.Context, topic string, title, body string, payload map[string]interface{}) error
 }

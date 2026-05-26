@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aaron/sakoo-backend/internal/infrastructure/notification"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
@@ -153,6 +154,31 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 	)
 
 	// Paso 4: Actualizar Tabla Principal (Upsert)
+	// Verificar si la tasa de Binance ha cambiado sustancialmente (redondeada a 2 decimales) antes de actualizar
+	var prevAvg decimal.Decimal
+	hasPrev := false
+	checkQuery := `
+		SELECT rate_average 
+		FROM market.exchange_rates 
+		WHERE currency_id = $1 AND value_date = $2;
+	`
+	errCheck := db.QueryRow(ctx, checkQuery, currencyID, valueDate).Scan(&prevAvg)
+	if errCheck == nil {
+		hasPrev = true
+	}
+
+	rateChanged := false
+	if !hasPrev {
+		rateChanged = true
+	} else {
+		// Comparar con dos decimales de precisión
+		pVal, _ := prevAvg.Round(2).Float64()
+		nVal, _ := avgGlobal.Round(2).Float64()
+		if pVal != nVal {
+			rateChanged = true
+		}
+	}
+
 	upsertMainQuery := `
 		INSERT INTO market.exchange_rates (currency_id, rate_from, rate_to, rate_average, value_date, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
@@ -168,6 +194,27 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 		return fmt.Errorf("error al realizar upsert en la tabla market.exchange_rates: %w", err)
 	}
 	slog.Info("Tabla principal de tasas de cambio actualizada con éxito", "asset", targetAsset)
+
+	// Si cambió la tasa de Binance, disparar la notificación push al Topic de forma asíncrona
+	if rateChanged {
+		slog.Info("Detectado cambio en la tasa de Binance P2P. Enviando notificación push...", "asset", targetAsset, "prev", prevAvg.String(), "new", avgGlobal.String())
+		
+		// Instanciar el servicio de notificaciones al vuelo
+		pushSrv := notification.NewPushNotificationService()
+		title := fmt.Sprintf("¡La tasa de %s (Binance P2P) ha cambiado! 🚀", targetAsset)
+		body := fmt.Sprintf("La nueva tasa promedio de Binance P2P es de %s Bs.", avgGlobal.StringFixed(2))
+		fcmData := map[string]string{
+			"type":          "rate_update",
+			"source":        "BINANCE",
+			"currency_code": targetAsset,
+			"rate":          avgGlobal.StringFixed(2),
+		}
+
+		go func() {
+			bgCtx := context.Background()
+			_ = pushSrv.SendTopicPush(bgCtx, "exchange_rates", title, body, fcmData)
+		}()
+	}
 
 	// Paso 5: Purgar de forma segura muestras de días anteriores para mantener base de datos limpia
 	pruneQuery := `

@@ -123,16 +123,20 @@ func main() {
 	catalogRepo := repository.NewCatalogRepository(pool)
 	notificationRepo := repository.NewNotificationRepository(pool)
 
+	// Instanciar servicios de notificaciones push globales
+	pushService := notification.NewPushNotificationService()
+	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo, pushService)
+
 	// 7. Instanciar casos de uso de la capa de dominio
 	authUseCase := usecase.NewAuthUseCase(userRepo, otpRepo, emailSrv, jwtSecret)
 	
 	// Instanciar servicios de Scraping y Cron
 	bcvScraperService := scraper.NewBCVScraper()
-	bcvScraperUseCase := usecase.NewScraperUseCase(bcvScraperService, exchangeRateRepo)
+	bcvScraperUseCase := usecase.NewScraperUseCase(bcvScraperService, exchangeRateRepo, notificationUseCase)
 	
 	// Instanciar servicios de Scraping Mercantil
 	mercantilScraperService := scraper.NewMercantilScraper()
-	mercantilScraperUseCase := usecase.NewMercantilScraperUseCase(mercantilScraperService, exchangeRateRepo)
+	mercantilScraperUseCase := usecase.NewMercantilScraperUseCase(mercantilScraperService, exchangeRateRepo, notificationUseCase)
 	
 	cronManager := cron.NewCronManager(bcvScraperUseCase, mercantilScraperUseCase, pool)
 
@@ -145,8 +149,6 @@ func main() {
 	commentUseCase := usecase.NewCommentUseCase(commentRepo)
 	bannerUseCase := usecase.NewBannerUseCase(bannerRepo)
 	catalogUseCase := usecase.NewCatalogUseCase(catalogRepo)
-	pushService := notification.NewPushNotificationService()
-	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo, pushService)
 
 	// 8. Instanciar controladores HTTP de la capa API
 	authHandler := api.NewAuthHandler(authUseCase)
