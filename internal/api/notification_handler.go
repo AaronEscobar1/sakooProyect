@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -210,4 +211,87 @@ func (h *NotificationHandler) HandleSendAdminNotification(w http.ResponseWriter,
 	}
 
 	response.Success(w, r.Context(), "SUCCESS", "Notificación administrativa enviada y procesada correctamente", nil)
+}
+
+// HandleTestPushNotification maneja POST /api/admin/notifications/test
+// @Summary      Probar envío de notificaciones push por moneda
+// @Description  Simula el cambio de tasa de una moneda específica y gatilla su respectiva notificación push FCM al canal "exchange_rates".
+// @Tags         Notificaciones
+// @Produce      json
+// @Param        currency  query     string  true  "Código de la moneda o fuente para gatillar la notificación (valores soportados: USDT, USDC, UDI, MERCANTIL, USD, EUR, BCV)"
+// @Success      200       {object}  response.APIResponse[any]  "Notificación de prueba enviada con éxito"
+// @Failure      400       {object}  response.APIResponse[any]  "Moneda inválida o no soportada"
+// @Failure      500       {object}  response.APIResponse[any]  "Error al enviar la notificación de prueba"
+// @Router       /api/admin/notifications/test [post]
+func (h *NotificationHandler) HandleTestPushNotification(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
+		return
+	}
+
+	currency := strings.ToUpper(r.URL.Query().Get("currency"))
+	if currency == "" {
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "El parámetro query 'currency' es requerido")
+		return
+	}
+
+	var title, body string
+	payload := make(map[string]interface{})
+
+	switch currency {
+	case "USDT", "USDC":
+		title = fmt.Sprintf("¡La tasa de %s (Binance P2P) ha cambiado! 🚀", currency)
+		body = "La nueva tasa promedio de Binance P2P es de 39.75 Bs."
+		payload = map[string]interface{}{
+			"type":          "rate_update",
+			"source":        "BINANCE",
+			"currency_code": currency,
+			"rate":          "39.75",
+		}
+	case "UDI", "MERCANTIL":
+		title = "¡La tasa de Mercantil ha cambiado! 🚀"
+		body = "La nueva tasa del Dólar Intervención es de 39.50 Bs."
+		payload = map[string]interface{}{
+			"type":          "rate_update",
+			"source":        "MERCANTIL",
+			"currency_code": "UDI",
+			"rate":          "39.50",
+		}
+	case "USD":
+		title = "¡La tasa de USD ha cambiado! 🚀"
+		body = "La nueva tasa oficial es de 36.50 Bs."
+		payload = map[string]interface{}{
+			"type":          "rate_update",
+			"source":        "BCV",
+			"currency_code": "USD",
+			"rate":          "36.50",
+		}
+	case "EUR":
+		title = "¡La tasa de EUR ha cambiado! 🚀"
+		body = "La nueva tasa oficial es de 39.40 Bs."
+		payload = map[string]interface{}{
+			"type":          "rate_update",
+			"source":        "BCV",
+			"currency_code": "EUR",
+			"rate":          "39.40",
+		}
+	case "BCV":
+		title = "¡Las tasas del BCV han cambiado! 🚀"
+		body = "El Banco Central de Venezuela actualizó múltiples tasas oficiales en la plataforma."
+		payload = map[string]interface{}{
+			"type":   "rate_update",
+			"source": "BCV",
+		}
+	default:
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_CURRENCY", "Moneda no soportada. Use: USDT, USDC, UDI, MERCANTIL, USD, EUR, BCV")
+		return
+	}
+
+	err := h.useCase.SendTopicNotification(r.Context(), "exchange_rates", title, body, payload)
+	if err != nil {
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al enviar la notificación push de prueba: "+err.Error())
+		return
+	}
+
+	response.Success(w, r.Context(), "SUCCESS", fmt.Sprintf("Notificación push de prueba para %s enviada con éxito al topic exchange_rates", currency), nil)
 }

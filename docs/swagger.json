@@ -57,6 +57,47 @@
                 }
             }
         },
+        "/api/admin/notifications/test": {
+            "post": {
+                "description": "Simula el cambio de tasa de una moneda específica y gatilla su respectiva notificación push FCM al canal \"exchange_rates\".",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Probar envío de notificaciones push por moneda",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código de la moneda o fuente para gatillar la notificación (valores soportados: USDT, USDC, UDI, MERCANTIL, USD, EUR, BCV)",
+                        "name": "currency",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notificación de prueba enviada con éxito",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Moneda inválida o no soportada",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al enviar la notificación de prueba",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/scrape-binance": {
             "post": {
                 "security": [

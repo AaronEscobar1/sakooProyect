@@ -299,6 +299,7 @@ func main() {
 
 	// Ruta de Administración de Notificaciones (BackOffice)
 	mux.HandleFunc("POST /api/admin/notifications/send", notificationHandler.HandleSendAdminNotification)
+	mux.HandleFunc("POST /api/admin/notifications/test", notificationHandler.HandleTestPushNotification)
 
 	// 10. Aplicar el Middleware de Trazabilidad y Logs asíncronos de forma global
 	globalHandler := api.TraceAndLogMiddleware(pool)(mux)
