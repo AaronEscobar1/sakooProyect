@@ -59,10 +59,10 @@ func NewCronManager(
 func (cm *CronManager) Start(ctx context.Context) {
 	slog.Info("Inicializando el planificador CronManager...")
 
-	// 1. Cron del BCV: cada 30 minutos, entre 7:00 PM y 10:59 PM UTC, de lunes a viernes
-	cronExprBCV := "*/30 19-22 * * 1-5"
+	// 1. Cron del BCV (Vespertino/Nocturno): cada 30 minutos, entre 3:00 PM y 10:59 PM VET (19:00 a 02:59 UTC del día siguiente)
+	cronExprBCV := "*/30 19-23,0-2 * * *"
 	_, err := cm.cronInstance.AddFunc(cronExprBCV, func() {
-		slog.Info("Cron Triggered: Iniciando ciclo automático de scraping de tasas del BCV...")
+		slog.Info("Cron Triggered: Iniciando ciclo automático de scraping de tasas del BCV (Vespertino/Nocturno)...")
 		
 		scrapeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
@@ -76,6 +76,27 @@ func (cm *CronManager) Start(ctx context.Context) {
 
 	if err != nil {
 		slog.Error("Fallo crítico al registrar la tarea de Scraping BCV en CronManager", "expr", cronExprBCV, "error", err)
+		return
+	}
+
+	// 1.1 Cron del BCV (Respaldo Matutino): cada hora, entre 8:00 AM y 11:59 AM VET (12:00 a 15:59 UTC), de lunes a viernes
+	// Garantiza capturar las tasas si el BCV las publica sumamente tarde en la noche o si hubo fallas de red previas.
+	cronExprBCVMorning := "0 12-15 * * 1-5"
+	_, errMorning := cm.cronInstance.AddFunc(cronExprBCVMorning, func() {
+		slog.Info("Cron Triggered: Iniciando ciclo de respaldo matutino de scraping de tasas del BCV...")
+		
+		scrapeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+
+		if err := cm.bcvScraperUseCase.ExecuteScraping(scrapeCtx); err != nil {
+			slog.Error("Fallo en la ejecución automática del Cron de Respaldo Matutino BCV", "error", err)
+		} else {
+			slog.Info("Ciclo automático de respaldo matutino de scraping de tasas BCV ejecutado con éxito")
+		}
+	})
+
+	if errMorning != nil {
+		slog.Error("Fallo crítico al registrar la tarea de Respaldo Matutino BCV en CronManager", "expr", cronExprBCVMorning, "error", errMorning)
 		return
 	}
 
