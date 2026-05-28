@@ -102,7 +102,7 @@ func (uc *ScraperUseCase) ExecuteScraping(ctx context.Context) error {
 				"currency_id", rate.CurrencyID,
 			)
 			totalSuccess++
-			if rateChanged {
+			if rateChanged && (rate.CurrencyCode == "USD" || rate.CurrencyCode == "EUR") {
 				changedRates = append(changedRates, rate)
 			}
 		}

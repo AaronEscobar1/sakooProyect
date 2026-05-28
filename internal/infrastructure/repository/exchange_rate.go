@@ -318,7 +318,7 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1 AND e.value_date <= CURRENT_DATE AND c."show" = TRUE
+		WHERE c.code = $1
 		ORDER BY e.value_date DESC
 		LIMIT 1;
 	`
