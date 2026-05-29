@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -71,8 +72,13 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 		"rublo": "RUB",
 	}
 
-	// Recolector de resultados durante el scraping
+	// Recolector de resultados y fecha valor durante el scraping
 	found := make(map[string]string) // currencyCode -> rateStr
+	var bcvDateText string
+
+	c.OnHTML("div.pull-right.dinpro.center", func(e *colly.HTMLElement) {
+		bcvDateText = strings.TrimSpace(e.Text)
+	})
 
 	// El BCV publica cada divisa en un bloque como:
 	//   <div id="dolar" class="...">
@@ -130,13 +136,22 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 		return nil, fmt.Errorf("no se encontraron tasas del BCV en bcv.org.ve (el sitio puede haber cambiado su estructura HTML)")
 	}
 
-	// Fecha valor: siempre HOY en Venezuela (UTC-4), truncado al día.
-	// NO usamos la fecha que publica el BCV porque puede llevar días sin actualizarse
-	// (ej: publicó el 26-may y el cartel sigue igual el 27 y 28). Si usáramos esa fecha,
-	// el Upsert pisaría el registro viejo en lugar de crear uno nuevo para hoy.
+	// Fecha valor: se intenta extraer directamente de la web del BCV (div.pull-right.dinpro.center)
+	// y se cae en fallback a la fecha de HOY en Venezuela (UTC-4) si algo falla.
 	loc := time.FixedZone("America/Caracas", -4*60*60)
 	nowVET := time.Now().In(loc)
 	valueDate := time.Date(nowVET.Year(), nowVET.Month(), nowVET.Day(), 0, 0, 0, 0, time.UTC)
+
+	if bcvDateText != "" {
+		if parsedDate, err := parseSpanishDate(bcvDateText); err == nil {
+			valueDate = parsedDate
+			slog.Info("Fecha Valor del BCV parseada con éxito del portal", "fecha", valueDate.Format("2006-01-02"))
+		} else {
+			slog.Warn("No se pudo parsear la Fecha Valor del portal BCV, usando fallback (hoy en VET)", "texto", bcvDateText, "error", err)
+		}
+	} else {
+		slog.Warn("No se encontró el texto de Fecha Valor en el HTML del BCV, usando fallback (hoy en VET)")
+	}
 
 	var rates []domain.ExchangeRate
 
@@ -175,4 +190,63 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 
 	slog.Info("Raspado de tasas BCV desde bcv.org.ve completado", "tasas_obtenidas", len(rates))
 	return rates, nil
+}
+
+// parseSpanishDate convierte un texto de fecha en español del BCV a time.Time en UTC.
+// Formatos esperados del portal: "Fecha Valor: Viernes, 29 Mayo  2026", "Viernes, 29 Mayo 2026", etc.
+func parseSpanishDate(text string) (time.Time, error) {
+	// Remover "Fecha Valor:" si está presente
+	if idx := strings.Index(text, "Fecha Valor:"); idx != -1 {
+		text = text[idx+len("Fecha Valor:"):]
+	}
+	text = strings.TrimSpace(text)
+
+	// Remover el día de la semana si tiene coma, ej: "Viernes, 29 Mayo 2026"
+	if idx := strings.Index(text, ","); idx != -1 {
+		text = text[idx+1:]
+	}
+	text = strings.TrimSpace(text)
+
+	// Normalizar espacios múltiples
+	fields := strings.Fields(text)
+	if len(fields) < 3 {
+		return time.Time{}, fmt.Errorf("formato de fecha insuficiente (se requieren al menos 3 campos): %s", text)
+	}
+
+	dayStr := fields[0]
+	monthStr := strings.ToLower(fields[1])
+	yearStr := fields[2]
+
+	day, err := strconv.Atoi(dayStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("error al parsear día '%s': %w", dayStr, err)
+	}
+
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("error al parsear año '%s': %w", yearStr, err)
+	}
+
+	months := map[string]time.Month{
+		"enero":      time.January,
+		"febrero":    time.February,
+		"marzo":      time.March,
+		"abril":      time.April,
+		"mayo":       time.May,
+		"junio":      time.June,
+		"julio":      time.July,
+		"agosto":     time.August,
+		"septiembre": time.September,
+		"setiembre":  time.September,
+		"octubre":    time.October,
+		"noviembre":  time.November,
+		"diciembre":  time.December,
+	}
+
+	month, ok := months[monthStr]
+	if !ok {
+		return time.Time{}, fmt.Errorf("mes en español desconocido: %s", monthStr)
+	}
+
+	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC), nil
 }
