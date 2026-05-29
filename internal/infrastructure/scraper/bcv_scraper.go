@@ -2,8 +2,10 @@ package scraper
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strings"
 	"time"
 
@@ -52,6 +54,12 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 		colly.AllowedDomains("www.bcv.org.ve", "bcv.org.ve"),
 	)
 	c.SetRequestTimeout(25 * time.Second)
+
+	// Omitir la verificación de certificados TLS/SSL porque bcv.org.ve
+	// a menudo usa certificados no reconocidos por los CAs estándar de producción.
+	c.WithTransport(&http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	})
 
 	// Mapeo de ID del div -> código de moneda ISO
 	// El BCV usa: #dolar (USD), #euro (EUR), #yuan (CNY), #lira (TRY), #rublo (RUB)
