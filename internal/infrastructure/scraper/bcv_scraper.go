@@ -58,6 +58,9 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 	divToCode := map[string]string{
 		"dolar": "USD",
 		"euro":  "EUR",
+		"yuan":  "CNY",
+		"lira":  "TRY",
+		"rublo": "RUB",
 	}
 
 	// Recolector de resultados durante el scraping

@@ -134,10 +134,10 @@ func ConnectAndMigrate(dbURL string) (*pgxpool.Pool, error) {
 	slog.Info("Aplicando configuración autocurativa de visibilidad de monedas...")
 	setupQueries := []string{
 		`ALTER TABLE catalogs.currency ADD COLUMN IF NOT EXISTS "show" BOOLEAN DEFAULT TRUE;`,
-		`UPDATE catalogs.currency SET "show" = FALSE WHERE code NOT IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
-		`UPDATE catalogs.currency SET "show" = TRUE WHERE code IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
+		`UPDATE catalogs.currency SET "show" = FALSE WHERE code NOT IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI', 'CNY', 'TRY', 'RUB');`,
+		`UPDATE catalogs.currency SET "show" = TRUE WHERE code IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI', 'CNY', 'TRY', 'RUB');`,
 		`INSERT INTO telemetry.configurations (key, payload)
-		 VALUES ('visible_currencies', '["USD", "EUR", "USDT", "USDC", "UDI"]'::jsonb)
+		 VALUES ('visible_currencies', '["USD", "EUR", "USDT", "USDC", "UDI", "CNY", "TRY", "RUB"]'::jsonb)
 		 ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload;`,
 	}
 	for _, q := range setupQueries {
