@@ -10,6 +10,8 @@ import (
 
 // RateResponse define el DTO de respuesta para una tasa de cambio individual.
 type RateResponse struct {
+	RateID       int64  `json:"rate_id"`
+	CurrencyID   int64  `json:"currency_id"`
 	CurrencyCode string `json:"currency_code"`
 	RateFrom     string `json:"rate_from"`
 	RateTo       string `json:"rate_to"`
@@ -71,6 +73,8 @@ func (h *ExchangeRateHandler) HandleGetLatestRates(w http.ResponseWriter, r *htt
 	var data []RateResponse
 	for _, rate := range rates {
 		data = append(data, RateResponse{
+			RateID:       rate.ID,
+			CurrencyID:   rate.CurrencyID,
 			CurrencyCode: rate.CurrencyCode,
 			RateFrom:     rate.RateFrom.String(),
 			RateTo:       rate.RateTo.String(),
@@ -134,6 +138,8 @@ func (h *ExchangeRateHandler) HandleGetRatesHistory(w http.ResponseWriter, r *ht
 	var data []RateResponse
 	for _, rate := range rates {
 		data = append(data, RateResponse{
+			RateID:       rate.ID,
+			CurrencyID:   rate.CurrencyID,
 			CurrencyCode: rate.CurrencyCode,
 			RateFrom:     rate.RateFrom.String(),
 			RateTo:       rate.RateTo.String(),
