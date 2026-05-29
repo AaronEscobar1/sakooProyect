@@ -28,11 +28,20 @@ func (r *commentRepository) Create(ctx context.Context, comment *domain.Comment)
 	slog.Debug("Insertando nuevo comentario de tasa", "user_id", comment.UserID, "rate_id", comment.RateID)
 
 	query := `
-		INSERT INTO comments (user_id, rate_id, content, created_at)
-		VALUES ($1, $2, $3, NOW())
-		RETURNING id, created_at;
+		WITH inserted AS (
+			INSERT INTO comments (user_id, rate_id, content, created_at)
+			VALUES ($1, $2, $3, NOW())
+			RETURNING id, user_id, created_at
+		)
+		SELECT i.id, i.created_at, COALESCE(u.username, u.first_name || ' ' || u.last_name, 'Usuario Anónimo') AS username
+		FROM inserted i
+		LEFT JOIN users u ON i.user_id = u.id;
 	`
-	err := r.db.QueryRow(dbCtx, query, comment.UserID, comment.RateID, comment.Content).Scan(&comment.ID, &comment.CreatedAt)
+	err := r.db.QueryRow(dbCtx, query, comment.UserID, comment.RateID, comment.Content).Scan(
+		&comment.ID,
+		&comment.CreatedAt,
+		&comment.Username,
+	)
 	if err != nil {
 		slog.Error("Fallo al guardar comentario en PostgreSQL", "error", err)
 		return fmt.Errorf("error al guardar comentario: %w", err)
@@ -71,10 +80,9 @@ func (r *commentRepository) ListByRateIDAndDate(ctx context.Context, rateID int6
 	slog.Debug("Listando opiniones del día para la tasa", "rate_id", rateID, "date", date)
 
 	// Listar comentarios para un rate_id específico creados en un día específico.
-	// Hacemos un JOIN con la tabla de usuarios para recuperar su first_name y last_name para pintar en el front.
-	// Usamos e.g. CONCAT(u.first_name, ' ', u.last_name) o first_name como username.
+	// Hacemos un JOIN con la tabla de usuarios para recuperar su username oficial con fallback al nombre completo para pintar en el front.
 	query := `
-		SELECT c.id, c.user_id, COALESCE(u.first_name || ' ' || u.last_name, 'Usuario Anónimo') AS username, c.rate_id, c.content, c.created_at
+		SELECT c.id, c.user_id, COALESCE(u.username, u.first_name || ' ' || u.last_name, 'Usuario Anónimo') AS username, c.rate_id, c.content, c.created_at
 		FROM comments c
 		LEFT JOIN users u ON c.user_id = u.id
 		WHERE c.rate_id = $1 AND c.created_at::date = $2::date
