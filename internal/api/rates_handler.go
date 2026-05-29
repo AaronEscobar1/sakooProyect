@@ -15,7 +15,6 @@ import (
 // DashboardExchangeRate representa el DTO de una tasa en el dashboard.
 type DashboardExchangeRate struct {
 	RateID       int64  `json:"rate_id"`
-	CurrencyID   int64  `json:"currency_id"`
 	CurrencyCode string `json:"currency_code"`
 	RateFrom     string `json:"rate_from"`
 	RateTo       string `json:"rate_to"`
@@ -106,7 +105,6 @@ func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.
 	for _, rate := range summary.History {
 		historyDTO = append(historyDTO, DashboardExchangeRate{
 			RateID:       rate.ID,
-			CurrencyID:   rate.CurrencyID,
 			CurrencyCode: rate.CurrencyCode,
 			RateFrom:     rate.RateFrom.String(),
 			RateTo:       rate.RateTo.String(),
