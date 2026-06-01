@@ -24,6 +24,7 @@ func TestCensorText(t *testing.T) {
 		{"La verdad no quiero saber nada de estos mmgvos", "La verdad no quiero saber nada de estos ****"},
 		{"esto es un experimento de las groserías, marico pajuo pajuato mmgvo mmgvos maldito idiota mamaguevo hijo de perra chupa culo marginal maldito marico mamaguebaso teta hijo de puta tetas", "esto es un experimento de las groserías, **** **** **** **** **** **** **** **** **** **** **** **** **** **** **** **** ****"},
 		{"Ese becerro y sapo es un tremendo enchufado, tremenda totona", "Ese **** y **** es un tremendo ****, tremenda ****"},
+		{"Ese gilipollas es un tremendo jala bolas y coño e madre, que webón", "Ese **** es un tremendo **** y ****, que ****"},
 	}
 
 	for _, test := range tests {
