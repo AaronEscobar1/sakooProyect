@@ -17,6 +17,10 @@ func TestContainsProfanity(t *testing.T) {
 		{"¡Puta madre!", true},
 		{"hijo de puta", true},
 		{"Ese cabrón no sabe de economía", true},
+		{"Ese mmg no sabe nada", true},
+		{"¡csm todo esto!", true},
+		{"Que mariko eres de verdad", true},
+		{"El microcosmos de la economía", false}, // "csm" no debe coincidir dentro de "microcosmos"
 	}
 
 	for _, test := range tests {

@@ -78,6 +78,7 @@ var badWords = []string{
 	"verga", "mamaguevo", "mamagüevo", "mamaguebos", "mamaguevazo", "guevon", "güevón", "guevón", "guevones",
 	"güevones", "guevo", "güevo", "malparido", "malparida", "malparidos", "hijo de puta", "hijo de perra",
 	"hijodeputa", "chupalo", "chúpalo", "chupala", "chúpala", "singar", "maldito", "maldita", "malditos", "malditas",
+	"mmg", "mmvg", "mrico", "mariko", "csm", "cdsm", "mgvo", "mgv", "mmgbo", "hijueputa",
 }
 
 func cleanText(text string) string {
