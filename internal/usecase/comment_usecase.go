@@ -81,6 +81,9 @@ var badWords = []string{
 	"mmgvo", "mmgvos", "mmgva", "mmgvas", "mamaguevos", "mamagüevos",
 	"pajuo", "pajuos", "pajuato", "pajuatos", "idiota", "idiotas", "chupa culo", "chupaculo", "chupaculos",
 	"marginal", "marginales", "mamaguebaso", "mamagüebaso", "teta", "tetas",
+	"gafo", "gafos", "gafa", "gafas", "totona", "totonas", "becerro", "becerros", "sapo", "sapos",
+	"diablo", "diablos", "pupu", "pupus", "pipi", "pipis", "homosexual", "homosexuales",
+	"enchufado", "enchufados", "enchufao", "enchufaos", "gay", "gays",
 }
 
 func cleanText(text string) string {
