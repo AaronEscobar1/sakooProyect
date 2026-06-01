@@ -22,6 +22,7 @@ func TestCensorText(t *testing.T) {
 		{"Que mariko eres de verdad", "Que **** eres de verdad"},
 		{"El microcosmos de la economía", "El microcosmos de la economía"}, // "csm" no debe coincidir dentro de "microcosmos"
 		{"La verdad no quiero saber nada de estos mmgvos", "La verdad no quiero saber nada de estos ****"},
+		{"esto es un experimento de las groserías, marico pajuo pajuato mmgvo mmgvos maldito idiota mamaguevo hijo de perra chupa culo marginal maldito marico mamaguebaso teta hijo de puta tetas", "esto es un experimento de las groserías, **** **** **** **** **** **** **** **** **** **** **** **** **** **** **** **** ****"},
 	}
 
 	for _, test := range tests {
