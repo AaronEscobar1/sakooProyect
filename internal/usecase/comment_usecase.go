@@ -40,10 +40,9 @@ func (uc *commentUseCase) AddComment(ctx context.Context, userID, rateID int64, 
 		return nil, errors.New("El usuario ya ha comentado en esta tasa de cambio, solo se permite un comentario por tasa")
 	}
 
-	cleanedContent := content
-	if containsProfanity(content) {
-		slog.Warn("Se detectó contenido ofensivo en el comentario, censurando...", "user_id", userID, "rate_id", rateID)
-		cleanedContent = "****"
+	cleanedContent := censorText(content)
+	if cleanedContent != content {
+		slog.Warn("Se detectó y censuró contenido ofensivo en el comentario...", "user_id", userID, "rate_id", rateID)
 	}
 
 	comment := &domain.Comment{
@@ -79,6 +78,7 @@ var badWords = []string{
 	"güevones", "guevo", "güevo", "malparido", "malparida", "malparidos", "hijo de puta", "hijo de perra",
 	"hijodeputa", "chupalo", "chúpalo", "chupala", "chúpala", "singar", "maldito", "maldita", "malditos", "malditas",
 	"mmg", "mmvg", "mrico", "mariko", "csm", "cdsm", "mgvo", "mgv", "mmgbo", "hijueputa",
+	"mmgvo", "mmgvos", "mmgva", "mmgvas", "mamaguevos", "mamagüevos",
 }
 
 func cleanText(text string) string {
@@ -94,23 +94,65 @@ func cleanText(text string) string {
 	return replacer.Replace(text)
 }
 
-func containsProfanity(content string) bool {
-	cleanedContent := cleanText(content)
+func censorText(content string) string {
+	originalRunes := []rune(content)
+	cleaned := cleanText(content)
+	cleanedRunes := []rune(cleaned)
+
+	toCensor := make([]bool, len(originalRunes))
+
 	for _, badWord := range badWords {
-		cleanedBadWord := cleanText(badWord)
-		if strings.Contains(cleanedContent, cleanedBadWord) {
-			if strings.Contains(cleanedBadWord, " ") {
-				return true
+		cleanedBad := cleanText(badWord)
+		badRunes := []rune(cleanedBad)
+		lenBad := len(badRunes)
+		if lenBad == 0 {
+			continue
+		}
+
+		for i := 0; i <= len(cleanedRunes)-lenBad; i++ {
+			match := true
+			for j := 0; j < lenBad; j++ {
+				if cleanedRunes[i+j] != badRunes[j] {
+					match = false
+					break
+				}
 			}
-			words := strings.FieldsFunc(cleanedContent, func(r rune) bool {
-				return !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'))
-			})
-			for _, w := range words {
-				if w == cleanedBadWord {
-					return true
+
+			if match {
+				// Validar límites de palabra
+				if i > 0 {
+					prevRune := cleanedRunes[i-1]
+					if (prevRune >= 'a' && prevRune <= 'z') || (prevRune >= '0' && prevRune <= '9') {
+						continue
+					}
+				}
+				if i+lenBad < len(cleanedRunes) {
+					nextRune := cleanedRunes[i+lenBad]
+					if (nextRune >= 'a' && nextRune <= 'z') || (nextRune >= '0' && nextRune <= '9') {
+						continue
+					}
+				}
+
+				for j := 0; j < lenBad; j++ {
+					toCensor[i+j] = true
 				}
 			}
 		}
 	}
-	return false
+
+	var result strings.Builder
+	inBadWord := false
+	for i, r := range originalRunes {
+		if toCensor[i] {
+			if !inBadWord {
+				result.WriteString("****")
+				inBadWord = true
+			}
+		} else {
+			result.WriteRune(r)
+			inBadWord = false
+		}
+	}
+
+	return result.String()
 }

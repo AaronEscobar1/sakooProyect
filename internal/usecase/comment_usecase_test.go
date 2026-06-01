@@ -4,29 +4,30 @@ import (
 	"testing"
 )
 
-func TestContainsProfanity(t *testing.T) {
+func TestCensorText(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected bool
+		expected string
 	}{
-		{"Este comentario es normal y constructivo", false},
-		{"Este comentario es una mierda total", true},
-		{"¡Eres un malparido y un marico!", true},
-		{"Qué buena comunicación tenemos", false}, // "marica" no debe coincidir dentro de "comunicación"
-		{"El precio del dólar es una verga", true},
-		{"¡Puta madre!", true},
-		{"hijo de puta", true},
-		{"Ese cabrón no sabe de economía", true},
-		{"Ese mmg no sabe nada", true},
-		{"¡csm todo esto!", true},
-		{"Que mariko eres de verdad", true},
-		{"El microcosmos de la economía", false}, // "csm" no debe coincidir dentro de "microcosmos"
+		{"Este comentario es normal y constructivo", "Este comentario es normal y constructivo"},
+		{"Este comentario es una mierda total", "Este comentario es una **** total"},
+		{"¡Eres un malparido y un marico!", "¡Eres un **** y un ****!"},
+		{"Qué buena comunicación tenemos", "Qué buena comunicación tenemos"}, // "marica" no debe coincidir dentro de "comunicación"
+		{"El precio del dólar es una verga", "El precio del dólar es una ****"},
+		{"¡Puta madre!", "¡**** madre!"},
+		{"hijo de puta", "****"},
+		{"Ese cabrón no sabe de economía", "Ese **** no sabe de economía"},
+		{"Ese mmg no sabe nada", "Ese **** no sabe nada"},
+		{"¡csm todo esto!", "¡**** todo esto!"},
+		{"Que mariko eres de verdad", "Que **** eres de verdad"},
+		{"El microcosmos de la economía", "El microcosmos de la economía"}, // "csm" no debe coincidir dentro de "microcosmos"
+		{"La verdad no quiero saber nada de estos mmgvos", "La verdad no quiero saber nada de estos ****"},
 	}
 
 	for _, test := range tests {
-		result := containsProfanity(test.input)
+		result := censorText(test.input)
 		if result != test.expected {
-			t.Errorf("Para entrada %q: esperado %v, obtenido %v", test.input, test.expected, result)
+			t.Errorf("Para entrada %q: esperado %q, obtenido %q", test.input, test.expected, result)
 		}
 	}
 }
