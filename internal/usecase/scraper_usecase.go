@@ -83,7 +83,7 @@ func (uc *ScraperUseCase) ExecuteScraping(ctx context.Context) error {
 		if errLatest != nil {
 			// Si no hay tasas registradas previamente, se considera un cambio
 			rateChanged = true
-		} else if latestRate != nil && !latestRate.RateAverage.Equal(rate.RateAverage) {
+		} else if latestRate != nil && (!latestRate.RateTo.Equal(rate.RateTo) || !latestRate.ValueDate.Equal(rate.ValueDate)) {
 			rateChanged = true
 		}
 
@@ -119,10 +119,11 @@ func (uc *ScraperUseCase) ExecuteScraping(ctx context.Context) error {
 		if len(changedRates) == 1 {
 			// Solo cambió una tasa (ej: USD)
 			changed := changedRates[0]
+			rateStr := changed.RateTo.Truncate(2).StringFixed(2)
 			title = fmt.Sprintf("¡La tasa de %s ha cambiado! 🚀", changed.CurrencyCode)
-			body = fmt.Sprintf("La nueva tasa oficial es de %s Bs.", changed.RateAverage.String())
+			body = fmt.Sprintf("La nueva tasa oficial es de %s Bs.", rateStr)
 			payload["currency_code"] = changed.CurrencyCode
-			payload["rate"] = changed.RateAverage.String()
+			payload["rate"] = rateStr
 		} else {
 			// Cambiaron múltiples tasas del BCV
 			title = "¡Las tasas del BCV han cambiado! 🚀"

@@ -96,6 +96,53 @@ func (h *AuthHandler) HandlePublicKey(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// EncryptRequest representa los parámetros de entrada para cifrar un string.
+type EncryptRequest struct {
+	Text string `json:"text" example:"mi-contraseña-secreta"`
+}
+
+// EncryptResponse representa la respuesta del string cifrado en RSA.
+type EncryptResponse struct {
+	CipherText string `json:"ciphertext"`
+}
+
+// HandleEncryptString cifra un string de entrada utilizando la clave pública RSA en memoria (OAEP con SHA-256) codificado en Base64.
+// @Summary      Cifrar texto con RSA
+// @Description  Utilidad para cifrar una contraseña o string en texto plano usando la clave pública RSA en memoria. Útil para pruebas en Swagger/Bruno.
+// @Tags         Autenticación
+// @Accept       json
+// @Produce      json
+// @Param        body  body  EncryptRequest  true  "Texto a cifrar"
+// @Success      200  {object}  response.APIResponse[EncryptResponse]  "Texto cifrado exitosamente"
+// @Router       /api/auth/encrypt [post]
+func (h *AuthHandler) HandleEncryptString(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
+		return
+	}
+
+	var req EncryptRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
+		return
+	}
+
+	if req.Text == "" {
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "El campo 'text' no puede estar vacío")
+		return
+	}
+
+	cipher, err := security.EncryptPassword(req.Text)
+	if err != nil {
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al cifrar el texto con RSA")
+		return
+	}
+
+	response.Success(w, r.Context(), "SUCCESS", "Texto cifrado con éxito mediante RSA", EncryptResponse{
+		CipherText: cipher,
+	})
+}
+
 // HandleRequestOTP maneja la petición POST /api/v1/auth/otp/request para generar y enviar un OTP.
 // @Summary      Solicitar OTP
 // @Description  Genera y envía un código OTP por correo electrónico al usuario para registrarse, recuperar contraseña o eliminar cuenta.

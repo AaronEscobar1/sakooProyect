@@ -154,15 +154,18 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 	)
 
 	// Paso 4: Actualizar Tabla Principal (Upsert)
-	// Verificar si la tasa de Binance ha cambiado sustancialmente (redondeada a 2 decimales) antes de actualizar
-	var prevAvg decimal.Decimal
+	// Verificar si la tasa de Binance ha cambiado respecto a la última registrada en la base de datos antes de actualizar
+	var prevRateTo decimal.Decimal
+	var prevValueDate time.Time
 	hasPrev := false
 	checkQuery := `
-		SELECT rate_average 
+		SELECT rate_to, value_date 
 		FROM market.exchange_rates 
-		WHERE currency_id = $1 AND value_date = $2;
+		WHERE currency_id = $1 
+		ORDER BY value_date DESC, id DESC 
+		LIMIT 1;
 	`
-	errCheck := db.QueryRow(ctx, checkQuery, currencyID, valueDate).Scan(&prevAvg)
+	errCheck := db.QueryRow(ctx, checkQuery, currencyID).Scan(&prevRateTo, &prevValueDate)
 	if errCheck == nil {
 		hasPrev = true
 	}
@@ -170,12 +173,8 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 	rateChanged := false
 	if !hasPrev {
 		rateChanged = true
-	} else {
-		// Calcular la diferencia absoluta y verificar si varía como mínimo 0.10 Bs. (diez céntimos) para evitar spam de fluctuaciones mínimas
-		diff := avgGlobal.Sub(prevAvg).Abs()
-		if diff.GreaterThanOrEqual(decimal.NewFromFloat(0.10)) {
-			rateChanged = true
-		}
+	} else if !prevRateTo.Equal(avgSale) || !prevValueDate.Equal(valueDate) {
+		rateChanged = true
 	}
 
 	upsertMainQuery := `
@@ -196,17 +195,18 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 
 	// Si cambió la tasa de Binance, disparar la notificación push al Topic de forma asíncrona
 	if rateChanged {
-		slog.Info("Detectado cambio en la tasa de Binance P2P. Enviando notificación push...", "asset", targetAsset, "prev", prevAvg.String(), "new", avgGlobal.String())
+		rateStr := avgSale.Truncate(2).StringFixed(2)
+		slog.Info("Detectado cambio en la tasa de Binance P2P. Enviando notificación push...", "asset", targetAsset, "prev", prevRateTo.String(), "new", rateStr)
 		
 		// Instanciar el servicio de notificaciones al vuelo
 		pushSrv := notification.NewPushNotificationService()
 		title := fmt.Sprintf("¡La tasa de %s (Binance P2P) ha cambiado! 🚀", targetAsset)
-		body := fmt.Sprintf("La nueva tasa promedio de Binance P2P es de %s Bs.", avgGlobal.StringFixed(2))
+		body := fmt.Sprintf("La nueva tasa de Binance P2P es de %s Bs.", rateStr)
 		fcmData := map[string]string{
 			"type":          "rate_update",
 			"source":        "BINANCE",
 			"currency_code": targetAsset,
-			"rate":          avgGlobal.StringFixed(2),
+			"rate":          rateStr,
 		}
 
 		go func() {

@@ -72,7 +72,7 @@ func (uc *MercantilScraperUseCase) ExecuteScraping(ctx context.Context) error {
 	latestRate, errLatest := uc.repo.GetLatestRate(ctx, rate.CurrencyCode)
 	if errLatest != nil {
 		rateChanged = true
-	} else if latestRate != nil && !latestRate.RateAverage.Equal(rate.RateAverage) {
+	} else if latestRate != nil && (!latestRate.RateTo.Equal(rate.RateTo) || !latestRate.ValueDate.Equal(rate.ValueDate)) {
 		rateChanged = true
 	}
 
@@ -88,16 +88,17 @@ func (uc *MercantilScraperUseCase) ExecuteScraping(ctx context.Context) error {
 
 	// 4. Si cambió la tasa de Mercantil, disparar la notificación push al Topic
 	if rateChanged {
+		rateStr := rate.RateTo.Truncate(2).StringFixed(2)
 		title := "¡La tasa de Mercantil ha cambiado! 🚀"
-		body := fmt.Sprintf("La nueva tasa del Dólar Intervención es de %s Bs.", rate.RateAverage.String())
+		body := fmt.Sprintf("La nueva tasa del Dólar Intervención es de %s Bs.", rateStr)
 		payload := map[string]interface{}{
 			"type":          "rate_update",
 			"source":        "MERCANTIL",
 			"currency_code": rate.CurrencyCode,
-			"rate":          rate.RateAverage.String(),
+			"rate":          rateStr,
 		}
 
-		slog.Info("Disparando notificación push de Mercantil por Topic...", "rate", rate.RateAverage.String())
+		slog.Info("Disparando notificación push de Mercantil por Topic...", "rate", rateStr)
 		_ = uc.notificationUseCase.SendTopicNotification(ctx, "exchange_rates", title, body, payload)
 	}
 

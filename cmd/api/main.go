@@ -226,6 +226,7 @@ func main() {
 
 	// Rutas Públicas de Autenticación
 	mux.HandleFunc("GET /api/auth/public-key", authHandler.HandlePublicKey)
+	mux.HandleFunc("POST /api/auth/encrypt", authHandler.HandleEncryptString)
 	mux.HandleFunc("POST /api/auth/register", authHandler.HandleRegister)
 	mux.HandleFunc("POST /api/auth/login", authHandler.HandleLogin)
 

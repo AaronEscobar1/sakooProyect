@@ -105,3 +105,21 @@ func DecryptPassword(base64Ciphertext string) (string, error) {
 
 	return string(plaintext), nil
 }
+
+// EncryptPassword cifra una contraseña en texto plano usando la clave pública RSA en memoria (RSA-OAEP con SHA-256) codificada en Base64.
+func EncryptPassword(plaintext string) (string, error) {
+	if publicKey == nil {
+		if err := InitRSAKeys(); err != nil {
+			return "", err
+		}
+	}
+
+	rng := rand.Reader
+	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rng, publicKey, []byte(plaintext), nil)
+	if err != nil {
+		slog.Error("Fallo crítico al cifrar contraseña usando RSA", "error", err)
+		return "", fmt.Errorf("error de cifrado: %w", err)
+	}
+
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}

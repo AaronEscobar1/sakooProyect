@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
@@ -39,10 +40,16 @@ func (uc *commentUseCase) AddComment(ctx context.Context, userID, rateID int64, 
 		return nil, errors.New("El usuario ya ha comentado en esta tasa de cambio, solo se permite un comentario por tasa")
 	}
 
+	cleanedContent := content
+	if containsProfanity(content) {
+		slog.Warn("Se detectó contenido ofensivo en el comentario, censurando...", "user_id", userID, "rate_id", rateID)
+		cleanedContent = "****"
+	}
+
 	comment := &domain.Comment{
 		UserID:  userID,
 		RateID:  rateID,
-		Content: content,
+		Content: cleanedContent,
 	}
 
 	err = uc.repo.Create(ctx, comment)
@@ -63,4 +70,46 @@ func (uc *commentUseCase) GetCommentsByRate(ctx context.Context, rateID int64) (
 	// Obtener opiniones del día de hoy
 	today := time.Now()
 	return uc.repo.ListByRateIDAndDate(ctx, rateID, today)
+}
+
+var badWords = []string{
+	"mierda", "puta", "puto", "putas", "putos", "marico", "marica", "maricos", "maricas",
+	"cabron", "cabrón", "cabrones", "coño", "coñazo", "joder", "pendejo", "pendejos", "pendeja", "pendejas",
+	"verga", "mamaguevo", "mamagüevo", "mamaguebos", "mamaguevazo", "guevon", "güevón", "guevón", "guevones",
+	"güevones", "guevo", "güevo", "malparido", "malparida", "malparidos", "hijo de puta", "hijo de perra",
+	"hijodeputa", "chupalo", "chúpalo", "chupala", "chúpala", "singar", "maldito", "maldita", "malditos", "malditas",
+}
+
+func cleanText(text string) string {
+	text = strings.ToLower(text)
+	replacer := strings.NewReplacer(
+		"á", "a",
+		"é", "e",
+		"í", "i",
+		"ó", "o",
+		"ú", "u",
+		"ü", "u",
+	)
+	return replacer.Replace(text)
+}
+
+func containsProfanity(content string) bool {
+	cleanedContent := cleanText(content)
+	for _, badWord := range badWords {
+		cleanedBadWord := cleanText(badWord)
+		if strings.Contains(cleanedContent, cleanedBadWord) {
+			if strings.Contains(cleanedBadWord, " ") {
+				return true
+			}
+			words := strings.FieldsFunc(cleanedContent, func(r rune) bool {
+				return !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'))
+			})
+			for _, w := range words {
+				if w == cleanedBadWord {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
