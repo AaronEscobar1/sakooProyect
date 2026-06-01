@@ -170,11 +170,13 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 		hasPrev = true
 	}
 
-	rateChanged := false
+	// Las notificaciones de Binance se envían una sola vez al día (cuando cambia la fecha valor o no hay registro previo).
+	// Esto evita spam por fluctuaciones horarias constantes en el mercado P2P.
+	sendPush := false
 	if !hasPrev {
-		rateChanged = true
-	} else if !prevRateTo.Equal(avgSale) || !prevValueDate.Equal(valueDate) {
-		rateChanged = true
+		sendPush = true
+	} else if !prevValueDate.Equal(valueDate) {
+		sendPush = true
 	}
 
 	upsertMainQuery := `
@@ -193,10 +195,10 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 	}
 	slog.Info("Tabla principal de tasas de cambio actualizada con éxito", "asset", targetAsset)
 
-	// Si cambió la tasa de Binance, disparar la notificación push al Topic de forma asíncrona
-	if rateChanged {
+	// Si es el primer ciclo de Binance P2P del día, disparar la notificación push al Topic de forma asíncrona
+	if sendPush {
 		rateStr := avgSale.Truncate(2).StringFixed(2)
-		slog.Info("Detectado cambio en la tasa de Binance P2P. Enviando notificación push...", "asset", targetAsset, "prev", prevRateTo.String(), "new", rateStr)
+		slog.Info("Primer ciclo de Binance P2P del día. Enviando notificación push diaria...", "asset", targetAsset, "rate", rateStr)
 		
 		// Instanciar el servicio de notificaciones al vuelo
 		pushSrv := notification.NewPushNotificationService()
