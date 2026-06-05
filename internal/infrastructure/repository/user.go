@@ -402,3 +402,87 @@ func (r *userRepository) SearchUsers(ctx context.Context, query string, limit in
 	return results, nil
 }
 
+// CreateSession inserta una nueva sesión en security.user_sessions.
+func (r *userRepository) CreateSession(ctx context.Context, userID int64, token string, expiresAt time.Time) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Insertando nueva sesión de usuario en base de datos", "user_id", userID)
+
+	query := `
+		INSERT INTO user_sessions (user_id, token, expires_at)
+		VALUES ($1, $2, $3);
+	`
+	_, err := r.db.Exec(dbCtx, query, userID, token, expiresAt)
+	if err != nil {
+		slog.Error("Fallo al crear sesión de usuario en PostgreSQL", "error", err, "user_id", userID)
+		return fmt.Errorf("error al crear sesión: %w", err)
+	}
+
+	return nil
+}
+
+// ValidateSession comprueba si existe una sesión válida y vigente para el token dado.
+func (r *userRepository) ValidateSession(ctx context.Context, token string) (bool, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Validando sesión de usuario en base de datos")
+
+	query := `
+		SELECT EXISTS (
+			SELECT 1 
+			FROM user_sessions 
+			WHERE token = $1 AND expires_at > NOW()
+		);
+	`
+	var valid bool
+	err := r.db.QueryRow(dbCtx, query, token).Scan(&valid)
+	if err != nil {
+		slog.Error("Fallo al validar sesión en PostgreSQL", "error", err)
+		return false, fmt.Errorf("error al validar sesión: %w", err)
+	}
+
+	return valid, nil
+}
+
+// DeleteSession elimina una sesión de la base de datos (logout).
+func (r *userRepository) DeleteSession(ctx context.Context, token string) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Eliminando sesión de usuario de la base de datos (logout)")
+
+	query := `
+		DELETE FROM user_sessions 
+		WHERE token = $1;
+	`
+	_, err := r.db.Exec(dbCtx, query, token)
+	if err != nil {
+		slog.Error("Fallo al eliminar sesión en PostgreSQL", "error", err)
+		return fmt.Errorf("error al eliminar sesión: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteExpiredSessions elimina todas las sesiones expiradas en base de datos.
+func (r *userRepository) DeleteExpiredSessions(ctx context.Context) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Purgando sesiones expiradas de la base de datos")
+
+	query := `
+		DELETE FROM user_sessions 
+		WHERE expires_at < NOW();
+	`
+	_, err := r.db.Exec(dbCtx, query)
+	if err != nil {
+		slog.Error("Fallo al purgar sesiones expiradas en PostgreSQL", "error", err)
+		return fmt.Errorf("error al purgar sesiones expiradas: %w", err)
+	}
+
+	return nil
+}
+

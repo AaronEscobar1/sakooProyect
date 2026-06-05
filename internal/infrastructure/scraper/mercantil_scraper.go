@@ -38,63 +38,105 @@ func (s *MercantilScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRa
 	c.SetRequestTimeout(20 * time.Second)
 
 	var dateStr, compraStr, ventaStr string
-	var tableIndex int
+	var visitErr error
 
-	// Escuchar sobre las tablas de la página
-	c.OnHTML("table", func(e *colly.HTMLElement) {
-		tableIndex++
-		// Solo nos interesa la primera tabla que contiene la cotización del dólar de Mercantil
-		if tableIndex != 1 {
-			return
+	maxAttempts := 3
+	backoff := 2 * time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
 		}
 
-		e.ForEach("tbody tr", func(_ int, el *colly.HTMLElement) {
-			el.ForEach("td", func(i int, cell *colly.HTMLElement) {
-				text := strings.TrimSpace(cell.Text)
-				switch i {
-				case 0:
-					dateStr = text
-				case 1:
-					compraStr = text
-				case 2:
-					ventaStr = text
-				}
+		// Inicializar colector fresco en cada intento
+		c := colly.NewCollector(
+			colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
+		)
+		c.SetRequestTimeout(20 * time.Second)
+
+		var tableIndex int
+		dateStr = ""
+		compraStr = ""
+		ventaStr = ""
+		var attemptErr error
+
+		// Escuchar sobre las tablas de la página
+		c.OnHTML("table", func(e *colly.HTMLElement) {
+			tableIndex++
+			// Solo nos interesa la primera tabla que contiene la cotización del dólar de Mercantil
+			if tableIndex != 1 {
+				return
+			}
+
+			e.ForEach("tbody tr", func(_ int, el *colly.HTMLElement) {
+				el.ForEach("td", func(i int, cell *colly.HTMLElement) {
+					text := strings.TrimSpace(cell.Text)
+					switch i {
+					case 0:
+						dateStr = text
+					case 1:
+						compraStr = text
+					case 2:
+						ventaStr = text
+					}
+				})
 			})
 		})
-	})
 
-	var visitErr error
-	c.OnError(func(r *colly.Response, err error) {
-		visitErr = fmt.Errorf("error de conexión HTTP (Status %d) en Mercantil: %w", r.StatusCode, err)
-		slog.Error("Fallo en la petición HTTP del scraper", "status", r.StatusCode, "url", r.Request.URL.String(), "error", err)
-	})
+		c.OnError(func(r *colly.Response, err error) {
+			attemptErr = fmt.Errorf("error de conexión HTTP (Status %d) en Mercantil: %w", r.StatusCode, err)
+			slog.Error("Fallo en la petición HTTP del scraper Mercantil en intento", "intento", attempt, "status", r.StatusCode, "error", err)
+		})
 
-	c.OnRequest(func(r *colly.Request) {
-		slog.Debug("Enviando petición HTTP a Mercantil...", "url", r.URL.String())
-	})
+		c.OnRequest(func(r *colly.Request) {
+			slog.Debug("Enviando petición HTTP a Mercantil...", "intento", attempt, "url", r.URL.String())
+		})
 
-	// Ejecutar la visita en una goroutine para soportar cancelación del contexto
-	visitChan := make(chan error, 1)
-	go func() {
-		visitChan <- c.Visit(s.url)
-	}()
+		// Ejecutar la visita en una goroutine para soportar cancelación del contexto
+		visitChan := make(chan error, 1)
+		go func() {
+			visitChan <- c.Visit(s.url)
+		}()
 
-	select {
-	case <-ctx.Done():
-		slog.Warn("La operación de scraping fue cancelada por el contexto (timeout/cancel)")
-		return nil, ctx.Err()
-	case err := <-visitChan:
-		if err != nil {
-			return nil, fmt.Errorf("error de visita en la URL del scraper Mercantil: %w", err)
+		var err error
+		select {
+		case <-ctx.Done():
+			slog.Warn("La operación de scraping Mercantil fue cancelada por el contexto (timeout/cancel)")
+			return nil, ctx.Err()
+		case err = <-visitChan:
+		}
+
+		if err != nil || attemptErr != nil || ventaStr == "" || compraStr == "" {
+			visitErr = err
+			if attemptErr != nil {
+				visitErr = attemptErr
+			} else if ventaStr == "" || compraStr == "" {
+				visitErr = fmt.Errorf("no se encontró el valor de la tasa de compra o venta en el HTML de Mercantil")
+			}
+
+			slog.Warn("Fallo en intento de scraping de Mercantil, reintentando...",
+				"intento", attempt,
+				"max_intentos", maxAttempts,
+				"error", visitErr,
+			)
+
+			if attempt < maxAttempts {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(backoff):
+					backoff *= 2
+				}
+			}
+		} else {
+			// Éxito
+			visitErr = nil
+			break
 		}
 	}
 
 	if visitErr != nil {
-		return nil, visitErr
-	}
-
-	if ventaStr == "" || compraStr == "" {
-		return nil, fmt.Errorf("no se encontró el valor de la tasa de compra o venta (TC Compra / TC Venta Bs./USD)")
+		return nil, fmt.Errorf("fallaron todos los %d intentos de scraping de Mercantil: %w", maxAttempts, visitErr)
 	}
 
 	// 1. Parsear los valores de las tasas

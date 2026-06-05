@@ -67,68 +67,115 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 		"rublo": "RUB",
 	}
 
-	// Recolector de resultados y fecha valor durante el scraping
-	found := make(map[string]string) // currencyCode -> rateStr
+	var found map[string]string
 	var bcvDateText string
-
-	c.OnHTML("div.pull-right.dinpro.center", func(e *colly.HTMLElement) {
-		bcvDateText = strings.TrimSpace(e.Text)
-	})
-
-	// El BCV publica cada divisa en un bloque como:
-	//   <div id="dolar" class="...">
-	//     <div class="centrado">
-	//       <strong>36,4875</strong>
-	//     </div>
-	//   </div>
-	for divID, code := range divToCode {
-		capturedCode := code // capturar para el closure
-		selector := fmt.Sprintf("div#%s div.centrado strong", divID)
-		c.OnHTML(selector, func(e *colly.HTMLElement) {
-			raw := strings.TrimSpace(e.Text)
-			if raw == "" {
-				return
-			}
-			// El BCV usa coma como separador decimal (ej: "36,4875") → convertir a punto
-			normalized := strings.ReplaceAll(raw, ".", "")  // quitar separadores de miles
-			normalized = strings.ReplaceAll(normalized, ",", ".") // coma decimal → punto
-			slog.Debug("Tasa BCV raspada del HTML", "moneda", capturedCode, "raw", raw, "normalizado", normalized)
-			found[capturedCode] = normalized
-		})
-	}
-
 	var visitErr error
-	c.OnError(func(r *colly.Response, err error) {
-		visitErr = fmt.Errorf("error HTTP (Status %d) al raspar bcv.org.ve: %w", r.StatusCode, err)
-		slog.Error("Fallo en la petición HTTP al BCV", "status", r.StatusCode, "url", r.Request.URL.String(), "error", err)
-	})
 
-	c.OnRequest(func(r *colly.Request) {
-		slog.Debug("Enviando petición HTTP a bcv.org.ve...", "url", r.URL.String())
-	})
+	maxAttempts := 3
+	backoff := 2 * time.Second
 
-	// Ejecutar la visita en goroutine para respetar la cancelación del contexto
-	visitChan := make(chan error, 1)
-	go func() {
-		visitChan <- c.Visit(s.url)
-	}()
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 
-	select {
-	case <-ctx.Done():
-		slog.Warn("Scraping del BCV cancelado por el contexto (timeout/cancel)")
-		return nil, ctx.Err()
-	case err := <-visitChan:
-		if err != nil {
-			return nil, fmt.Errorf("error al visitar bcv.org.ve: %w", err)
+		// Inicializar el colector fresco para cada intento
+		c := colly.NewCollector(
+			colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+			colly.AllowedDomains("www.bcv.org.ve", "bcv.org.ve"),
+		)
+		c.SetRequestTimeout(25 * time.Second)
+
+		// Omitir la verificación de certificados TLS/SSL porque bcv.org.ve
+		// a menudo usa certificados no reconocidos por los CAs estándar de producción.
+		c.WithTransport(&http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		})
+
+		found = make(map[string]string)
+		bcvDateText = ""
+		var attemptErr error
+
+		c.OnHTML("div.pull-right.dinpro.center", func(e *colly.HTMLElement) {
+			bcvDateText = strings.TrimSpace(e.Text)
+		})
+
+		// El BCV publica cada divisa en un bloque como:
+		//   <div id="dolar" class="...">
+		//     <div class="centrado">
+		//       <strong>36,4875</strong>
+		//     </div>
+		//   </div>
+		for divID, code := range divToCode {
+			capturedCode := code // capturar para el closure
+			selector := fmt.Sprintf("div#%s div.centrado strong", divID)
+			c.OnHTML(selector, func(e *colly.HTMLElement) {
+				raw := strings.TrimSpace(e.Text)
+				if raw == "" {
+					return
+				}
+				// El BCV usa coma como separador decimal (ej: "36,4875") → convertir a punto
+				normalized := strings.ReplaceAll(raw, ".", "")  // quitar separadores de miles
+				normalized = strings.ReplaceAll(normalized, ",", ".") // coma decimal → punto
+				slog.Debug("Tasa BCV raspada del HTML", "moneda", capturedCode, "raw", raw, "normalizado", normalized)
+				found[capturedCode] = normalized
+			})
+		}
+
+		c.OnError(func(r *colly.Response, err error) {
+			attemptErr = fmt.Errorf("error HTTP (Status %d) al raspar bcv.org.ve: %w", r.StatusCode, err)
+			slog.Error("Fallo en la petición HTTP al BCV en intento", "intento", attempt, "status", r.StatusCode, "error", err)
+		})
+
+		c.OnRequest(func(r *colly.Request) {
+			slog.Debug("Enviando petición HTTP a bcv.org.ve...", "intento", attempt, "url", r.URL.String())
+		})
+
+		// Ejecutar la visita en goroutine para respetar la cancelación del contexto
+		visitChan := make(chan error, 1)
+		go func() {
+			visitChan <- c.Visit(s.url)
+		}()
+
+		var err error
+		select {
+		case <-ctx.Done():
+			slog.Warn("Scraping del BCV cancelado por el contexto (timeout/cancel)")
+			return nil, ctx.Err()
+		case err = <-visitChan:
+		}
+
+		if err != nil || attemptErr != nil || len(found) == 0 {
+			visitErr = err
+			if attemptErr != nil {
+				visitErr = attemptErr
+			} else if len(found) == 0 {
+				visitErr = fmt.Errorf("no se extrajo ninguna tasa de cambio del BCV en este intento")
+			}
+
+			slog.Warn("Fallo en intento de scraping del BCV, reintentando...",
+				"intento", attempt,
+				"max_intentos", maxAttempts,
+				"error", visitErr,
+			)
+
+			if attempt < maxAttempts {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(backoff):
+					backoff *= 2
+				}
+			}
+		} else {
+			// Éxito en este intento
+			visitErr = nil
+			break
 		}
 	}
 
 	if visitErr != nil {
-		return nil, visitErr
-	}
-
-	if len(found) == 0 {
-		return nil, fmt.Errorf("no se encontraron tasas del BCV en bcv.org.ve (el sitio puede haber cambiado su estructura HTML)")
+		return nil, fmt.Errorf("fallaron todos los %d intentos de scraping del BCV: %w", maxAttempts, visitErr)
 	}
 
 	// Fecha valor: se intenta extraer directamente de la web del BCV (div.pull-right.dinpro.center)

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 type authUseCase struct {
 	userRepo  domain.UserRepository
@@ -154,6 +158,20 @@ func determineCountry(ip string) string {
 
 // Register refactorizado: ahora consume y valida un OTP de REGISTER antes de la creación del usuario y devuelve el token de inicio de sesión.
 func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) (domain.AuthResponse, error) {
+	// Normalizar y sanitizar entradas del usuario
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	req.Username = strings.TrimSpace(req.Username)
+	req.FirstName = strings.TrimSpace(req.FirstName)
+	req.LastName = strings.TrimSpace(req.LastName)
+	if req.MiddleName != nil {
+		trimmed := strings.TrimSpace(*req.MiddleName)
+		req.MiddleName = &trimmed
+	}
+	if req.SecondLastName != nil {
+		trimmed := strings.TrimSpace(*req.SecondLastName)
+		req.SecondLastName = &trimmed
+	}
+
 	slog.Debug("Ejecutando caso de uso de Registro", "email", req.Email, "username", req.Username)
 
 	var res domain.AuthResponse
@@ -161,6 +179,21 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 	// Validaciones básicas de negocio
 	if req.Email == "" || req.Username == "" || req.Password == "" || req.FirstName == "" || req.LastName == "" || req.OTPCode == "" {
 		return res, errors.New("Los campos email, username, password, first_name, last_name y otp_code son requeridos")
+	}
+
+	// Validar la estructura del correo electrónico
+	if !emailRegex.MatchString(req.Email) {
+		return res, errors.New("el formato del correo electrónico es inválido")
+	}
+
+	// Validar el formato del nombre de usuario (solo se permiten letras, números, guiones y guiones bajos)
+	if !usernameRegex.MatchString(req.Username) {
+		return res, errors.New("el nombre de usuario contiene caracteres no permitidos (solo se permiten letras, números, guiones y guiones bajos)")
+	}
+
+	// Validar fortaleza y complejidad de la contraseña (exigida por políticas de seguridad)
+	if err := validatePasswordStrength(req.Password); err != nil {
+		return res, err
 	}
 
 	// 1. Validar y consumir OTP para el registro
@@ -222,6 +255,13 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
 	}
 
+	// Registrar la sesión activa en la base de datos
+	sessionExpiresAt := time.Now().Add(24 * time.Hour)
+	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
+		slog.Error("Fallo al registrar la sesión activa tras registro", "error", err, "user_id", user.ID)
+		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
+	}
+
 	slog.Info("Registro exitoso e inicio de sesión automático. Emisión de token JWT autorizada", "user_id", user.ID)
 
 	res.Token = tokenString
@@ -268,15 +308,25 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
 	}
 
+	// Registrar la sesión activa en la base de datos
+	sessionExpiresAt := time.Now().Add(24 * time.Hour)
+	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
+		slog.Error("Fallo al registrar la sesión activa tras login", "error", err, "user_id", user.ID)
+		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
+	}
+
 	slog.Info("Sesión iniciada con éxito. Emisión de token JWT autorizada", "user_id", user.ID)
 
 	res.Token = tokenString
 	return res, nil
 }
 
-// Logout maneja el cierre de sesión de un usuario (para auditoría o futuras implementaciones de blacklist).
-func (s *authUseCase) Logout(ctx context.Context, userID int64) error {
+// Logout maneja el cierre de sesión de un usuario y elimina la sesión activa de la base de datos.
+func (s *authUseCase) Logout(ctx context.Context, userID int64, token string) error {
 	slog.Info("Cierre de sesión solicitado y procesado en el caso de uso", "user_id", userID)
+	if token != "" {
+		return s.userRepo.DeleteSession(ctx, token)
+	}
 	return nil
 }
 
@@ -287,6 +337,11 @@ func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otp
 
 	if email == "" || newPassword == "" || otpCode == "" {
 		return errors.New("Los campos email, new_password y otp_code son requeridos")
+	}
+
+	// Validar fortaleza y complejidad de la contraseña
+	if err := validatePasswordStrength(newPassword); err != nil {
+		return err
 	}
 
 	// 1. Buscar al usuario activo por email para garantizar su existencia
@@ -408,5 +463,46 @@ func (s *authUseCase) SearchUsers(ctx context.Context, query string) ([]domain.U
 
 	// Consultar base de datos con un límite estricto de 10
 	return s.userRepo.SearchUsers(ctx, q, 10)
+}
+
+// validatePasswordStrength comprueba si una contraseña cumple con las políticas de complejidad requeridas:
+// - Mínimo 8 caracteres
+// - Al menos una letra mayúscula
+// - Al menos una letra minúscula
+// - Al menos un dígito numérico
+// - Al menos un carácter especial del conjunto !@#$%&*
+func validatePasswordStrength(password string) error {
+	if len(password) < 8 {
+		return errors.New("la contraseña debe tener al menos 8 caracteres de longitud")
+	}
+
+	var hasUpper, hasLower, hasDigit, hasSpecial bool
+	for _, r := range password {
+		switch {
+		case r >= 'A' && r <= 'Z':
+			hasUpper = true
+		case r >= 'a' && r <= 'z':
+			hasLower = true
+		case r >= '0' && r <= '9':
+			hasDigit = true
+		case strings.ContainsRune("!@#$%&*", r):
+			hasSpecial = true
+		}
+	}
+
+	if !hasUpper {
+		return errors.New("la contraseña debe contener al menos una letra mayúscula")
+	}
+	if !hasLower {
+		return errors.New("la contraseña debe contener al menos una letra minúscula")
+	}
+	if !hasDigit {
+		return errors.New("la contraseña debe contener al menos un número")
+	}
+	if !hasSpecial {
+		return errors.New("la contraseña debe contener al menos un carácter especial (!@#$%&*)")
+	}
+
+	return nil
 }
 

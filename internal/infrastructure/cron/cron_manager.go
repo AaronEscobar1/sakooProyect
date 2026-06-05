@@ -135,6 +135,15 @@ func (cm *CronManager) Start(ctx context.Context) {
 		} else {
 			slog.Info("Limpieza periódica de logs de auditoría completada con éxito", "filas_eliminadas", result.RowsAffected())
 		}
+
+		// Limpiar las sesiones expiradas para evitar el crecimiento innecesario de la tabla user_sessions
+		sessionQuery := `DELETE FROM user_sessions WHERE expires_at < NOW();`
+		sessResult, errSess := cm.db.Exec(cleanupCtx, sessionQuery)
+		if errSess != nil {
+			slog.Error("Fallo en la ejecución de la tarea automática de limpieza de sesiones expiradas", "error", errSess)
+		} else {
+			slog.Info("Limpieza periódica de sesiones expiradas completada con éxito", "filas_eliminadas", sessResult.RowsAffected())
+		}
 	})
 
 	if errCleanup != nil {

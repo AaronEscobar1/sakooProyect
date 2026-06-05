@@ -461,8 +461,11 @@ func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Invocar el caso de uso
-	if err := h.authUseCase.Logout(r.Context(), userID); err != nil {
+	// Extraer el token de sesión de forma segura
+	token, _ := GetTokenFromContext(r.Context())
+
+	// Invocar el caso de uso pasando el token a invalidar
+	if err := h.authUseCase.Logout(r.Context(), userID, token); err != nil {
 		slog.Error("Fallo al cerrar sesión del usuario", "error", err, "user_id", userID)
 		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al cerrar la sesión")
 		return

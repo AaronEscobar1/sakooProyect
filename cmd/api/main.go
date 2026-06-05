@@ -118,6 +118,7 @@ func main() {
 
 	// 6. Instanciar los repositorios core de la capa de infraestructura
 	userRepo := repository.NewUserRepository(pool)
+	api.SetUserRepository(userRepo)
 	exchangeRateRepo := repository.NewExchangeRateRepository(pool)
 	otpRepo := repository.NewOTPRepository(pool)
 	emailSrv := email.NewEmailService()
@@ -128,6 +129,7 @@ func main() {
 	bannerRepo := repository.NewBannerRepository(pool)
 	catalogRepo := repository.NewCatalogRepository(pool)
 	notificationRepo := repository.NewNotificationRepository(pool)
+	telemetryRepo := repository.NewTelemetryRepository(pool)
 
 	// Instanciar servicios de notificaciones push globales
 	pushService := notification.NewPushNotificationService()
@@ -155,6 +157,7 @@ func main() {
 	commentUseCase := usecase.NewCommentUseCase(commentRepo)
 	bannerUseCase := usecase.NewBannerUseCase(bannerRepo)
 	catalogUseCase := usecase.NewCatalogUseCase(catalogRepo)
+	telemetryUseCase := usecase.NewTelemetryUseCase(telemetryRepo)
 
 	// 8. Instanciar controladores HTTP de la capa API
 	authHandler := api.NewAuthHandler(authUseCase)
@@ -168,6 +171,7 @@ func main() {
 	bannerHandler := api.NewBannerHandler(bannerUseCase)
 	catalogHandler := api.NewCatalogHandler(catalogUseCase)
 	notificationHandler := api.NewNotificationHandler(notificationUseCase)
+	adminHandler := api.NewAdminHandler(telemetryUseCase)
 
 	slog.Info("Capa de persistencia, casos de uso y controladores HTTP instanciados de manera limpia.")
 
@@ -275,6 +279,8 @@ func main() {
 	mux.Handle("POST /api/admin/scrape-now", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeNow)))
 	mux.Handle("POST /api/admin/scrape-mercantil", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeMercantilNow)))
 	mux.Handle("POST /api/admin/scrape-binance", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeBinance)))
+	// Ruta de Consulta de Logs de Auditoría (Admin) - Protegida con API Key
+	mux.Handle("GET /api/admin/logs", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(adminHandler.HandleGetAuditLogs)))
 
 	// Ruta Protegida: Endpoint para obtener el perfil completo del usuario autenticado
 	mux.Handle("GET /api/v1/me", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleGetProfile)))

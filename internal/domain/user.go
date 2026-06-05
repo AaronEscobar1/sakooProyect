@@ -86,13 +86,17 @@ type UserRepository interface {
 	GetPasswordHistory(ctx context.Context, userID int64) ([]string, error)
 	AddPasswordHistory(ctx context.Context, userID int64, passwordHash string) error
 	SearchUsers(ctx context.Context, query string, limit int) ([]UserSearchResult, error)
+	CreateSession(ctx context.Context, userID int64, token string, expiresAt time.Time) error
+	ValidateSession(ctx context.Context, token string) (bool, error)
+	DeleteSession(ctx context.Context, token string) error
+	DeleteExpiredSessions(ctx context.Context) error
 }
 
 // AuthUseCase define la lógica de negocio para el módulo de autenticación.
 type AuthUseCase interface {
 	Register(ctx context.Context, req RegisterRequest) (AuthResponse, error)
 	Login(ctx context.Context, req LoginRequest) (AuthResponse, error)
-	Logout(ctx context.Context, userID int64) error
+	Logout(ctx context.Context, userID int64, token string) error
 	RequestOTP(ctx context.Context, email, action string) (string, error)
 	ValidateOTP(ctx context.Context, email, code, action string) error
 	ResetPassword(ctx context.Context, email, newPassword, otpCode string) error

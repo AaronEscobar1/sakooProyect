@@ -10,14 +10,24 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Clave de contexto privada para evitar colisiones con otras bibliotecas
 type contextKey struct{}
+type tokenContextKey struct{}
 
 var userContextKey = contextKey{}
+var TokenContextKey = tokenContextKey{}
+
+var globalUserRepo domain.UserRepository
+
+// SetUserRepository configura el repositorio de usuarios de forma global en el paquete API para validación de sesiones
+func SetUserRepository(repo domain.UserRepository) {
+	globalUserRepo = repo
+}
 
 // generateTrackCode genera un identificador corto y único de 16 caracteres alfanuméricos
 func generateTrackCode() string {
@@ -185,11 +195,22 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 
 			userID := int64(userIDFloat)
 
+			// 2. Validar que la sesión exista en la base de datos y no haya sido revocada/eliminada por logout
+			if globalUserRepo != nil {
+				active, err := globalUserRepo.ValidateSession(r.Context(), tokenString)
+				if err != nil || !active {
+					slog.Warn("Sesión inactiva o cerrada detectada en middleware", "user_id", userID, "error", err)
+					response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: sesión expirada o cerrada")
+					return
+				}
+			}
+
 			// Propagar el ID del usuario en una cabecera interna temporal para que el middleware de trazabilidad la capture
 			w.Header().Set("X-Authenticated-User-ID", fmt.Sprintf("%d", userID))
 
-			// Inyectar el user_id en el contexto de manera segura
+			// Inyectar el user_id y tokenString en el contexto de manera segura
 			ctx := context.WithValue(r.Context(), userContextKey, userID)
+			ctx = context.WithValue(ctx, TokenContextKey, tokenString)
 
 			// Continuar con el siguiente controlador
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -201,6 +222,12 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 func GetUserIDFromContext(ctx context.Context) (int64, bool) {
 	userID, ok := ctx.Value(userContextKey).(int64)
 	return userID, ok
+}
+
+// GetTokenFromContext recupera el token de sesión JWT desde el contexto del HTTP request.
+func GetTokenFromContext(ctx context.Context) (string, bool) {
+	token, ok := ctx.Value(TokenContextKey).(string)
+	return token, ok
 }
 
 // AdminApiKeyMiddleware intercepta las peticiones de administración y valida que coincida la API Key secreta.
