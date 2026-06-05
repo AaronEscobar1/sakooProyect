@@ -6,17 +6,11 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-# Copiar archivos de dependencias go.mod y go.sum primero para optimizar la caché de Docker
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copiar la totalidad del código fuente
+# Copiar la totalidad del código fuente (incluyendo la carpeta vendor/)
 COPY . .
 
-# Compilar un binario estático y minimalista
-# CGO_ENABLED=0 elimina dependencias de librerías dinámicas de C, garantizando máxima portabilidad.
-# -ldflags="-w -s" elimina información de depuración y símbolos, reduciendo el tamaño del binario en ~40%.
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/api
+# Compilar utilizando la carpeta vendor local
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-w -s" -o main ./cmd/api
 
 # --- Stage 2: Runtime (Entorno de Ejecución Seguro y Minimalista) ---
 FROM alpine:3.19
