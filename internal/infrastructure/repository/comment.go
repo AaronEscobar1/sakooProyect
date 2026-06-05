@@ -73,22 +73,22 @@ func (r *commentRepository) HasCommentedOnRate(ctx context.Context, userID, rate
 	return exists, nil
 }
 
-func (r *commentRepository) ListByRateIDAndDate(ctx context.Context, rateID int64, date time.Time) ([]domain.Comment, error) {
+func (r *commentRepository) ListByRateID(ctx context.Context, rateID int64) ([]domain.Comment, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Listando opiniones del día para la tasa", "rate_id", rateID, "date", date)
+	slog.Debug("Listando opiniones para la tasa", "rate_id", rateID)
 
-	// Listar comentarios para un rate_id específico creados en un día específico.
+	// Listar todos los comentarios para un rate_id específico.
 	// Hacemos un JOIN con la tabla de usuarios para recuperar su username oficial con fallback al nombre completo para pintar en el front.
 	query := `
 		SELECT c.id, c.user_id, COALESCE(u.username, u.first_name || ' ' || u.last_name, 'Usuario Anónimo') AS username, c.rate_id, c.content, c.created_at
 		FROM comments c
 		LEFT JOIN users u ON c.user_id = u.id
-		WHERE c.rate_id = $1 AND c.created_at::date = $2::date
+		WHERE c.rate_id = $1
 		ORDER BY c.created_at DESC;
 	`
-	rows, err := r.db.Query(dbCtx, query, rateID, date)
+	rows, err := r.db.Query(dbCtx, query, rateID)
 	if err != nil {
 		slog.Error("Fallo al listar comentarios en PostgreSQL", "error", err, "rate_id", rateID)
 		return nil, fmt.Errorf("error al listar comentarios: %w", err)

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
@@ -64,11 +63,9 @@ func (uc *commentUseCase) GetCommentsByRate(ctx context.Context, rateID int64) (
 		return nil, errors.New("El ID de tasa 'rate_id' no es válido")
 	}
 
-	slog.Info("Procesando listado de opiniones del día para tasa", "rate_id", rateID)
+	slog.Info("Procesando listado de opiniones para tasa", "rate_id", rateID)
 
-	// Obtener opiniones del día de hoy
-	today := time.Now()
-	return uc.repo.ListByRateIDAndDate(ctx, rateID, today)
+	return uc.repo.ListByRateID(ctx, rateID)
 }
 
 var badWords = []string{

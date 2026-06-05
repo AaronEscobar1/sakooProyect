@@ -19,7 +19,7 @@ type Comment struct {
 type CommentRepository interface {
 	Create(ctx context.Context, comment *Comment) error
 	HasCommentedOnRate(ctx context.Context, userID, rateID int64) (bool, error)
-	ListByRateIDAndDate(ctx context.Context, rateID int64, date time.Time) ([]Comment, error)
+	ListByRateID(ctx context.Context, rateID int64) ([]Comment, error)
 }
 
 // CommentUseCase define la lógica de negocio para comentarios.
