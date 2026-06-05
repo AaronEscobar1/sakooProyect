@@ -175,7 +175,7 @@ func RunBinanceWorker(ctx context.Context, db *pgxpool.Pool, targetAsset string)
 	sendPush := false
 	if !hasPrev {
 		sendPush = true
-	} else if !prevValueDate.Equal(valueDate) {
+	} else if prevValueDate.UTC().Format("2006-01-02") != valueDate.UTC().Format("2006-01-02") {
 		sendPush = true
 	}
 

@@ -2,12 +2,14 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -338,6 +340,9 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 		&rate.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
 		return nil, fmt.Errorf("error al obtener la última tasa de cambio: %w", err)
 	}
 
@@ -375,6 +380,9 @@ func (r *exchangeRateRepository) GetPreviousRate(ctx context.Context, currencyCo
 		&rate.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
 		return nil, fmt.Errorf("error al obtener la tasa de cambio previa: %w", err)
 	}
 
@@ -412,6 +420,9 @@ func (r *exchangeRateRepository) GetRateByDate(ctx context.Context, currencyCode
 		&rate.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
 		return nil, fmt.Errorf("error al obtener la tasa de cambio por fecha: %w", err)
 	}
 
@@ -499,6 +510,9 @@ func (r *exchangeRateRepository) GetLatestRateBeforeOrAt(ctx context.Context, cu
 		&rate.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
 		return nil, fmt.Errorf("error al obtener la tasa de cambio en o antes de fecha: %w", err)
 	}
 

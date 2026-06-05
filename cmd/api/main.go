@@ -103,11 +103,17 @@ func main() {
 		slog.Info("Pool de conexiones cerrado con éxito")
 	}()
 
-	// 5. Leer clave secreta para firmar tokens JWT
+	// 5. Leer clave secreta para firmar tokens JWT y la API Key administrativa
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "super-secret-key-change-in-production-12345!"
 		slog.Warn("La variable de entorno JWT_SECRET no está definida. Utilizando clave de desarrollo por defecto.")
+	}
+
+	adminApiKey := os.Getenv("ADMIN_API_KEY")
+	if adminApiKey == "" {
+		adminApiKey = "admin-secret-api-key-12345!"
+		slog.Warn("La variable de entorno ADMIN_API_KEY no está definida. Utilizando API Key de desarrollo por defecto.")
 	}
 
 	// 6. Instanciar los repositorios core de la capa de infraestructura
@@ -255,6 +261,7 @@ func main() {
 	// Rutas de Comentarios de Tasas
 	mux.Handle("POST /api/v1/rates/comments", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(commentHandler.HandleAddComment)))
 	mux.HandleFunc("GET /api/v1/rates/{rate_id}/comments", commentHandler.HandleGetRateComments)
+	mux.HandleFunc("GET /api/v1/rates/comments", commentHandler.HandleGetRateComments)
 
 	// Ruta de Banners (Pública)
 	mux.HandleFunc("GET /api/v1/banners", bannerHandler.HandleGetBanners)
@@ -264,10 +271,10 @@ func main() {
 	mux.HandleFunc("GET /api/v1/catalogs/currencies", catalogHandler.HandleGetCurrencies)
 	mux.HandleFunc("GET /api/v1/catalogs/banks", catalogHandler.HandleGetBanks)
 
-	// Ruta de Scraping Manual (Pruebas en caliente)
-	mux.HandleFunc("POST /api/admin/scrape-now", scraperHandler.HandleScrapeNow)
-	mux.HandleFunc("POST /api/admin/scrape-mercantil", scraperHandler.HandleScrapeMercantilNow)
-	mux.HandleFunc("POST /api/admin/scrape-binance", scraperHandler.HandleScrapeBinance)
+	// Ruta de Scraping Manual (Pruebas en caliente) - Protegidas con API Key
+	mux.Handle("POST /api/admin/scrape-now", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeNow)))
+	mux.Handle("POST /api/admin/scrape-mercantil", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeMercantilNow)))
+	mux.Handle("POST /api/admin/scrape-binance", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeBinance)))
 
 	// Ruta Protegida: Endpoint para obtener el perfil completo del usuario autenticado
 	mux.Handle("GET /api/v1/me", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleGetProfile)))
@@ -298,9 +305,9 @@ func main() {
 	mux.Handle("GET /api/v1/notifications", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleGetNotifications)))
 	mux.Handle("PUT /api/v1/notifications/{id}/read", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleMarkAsRead)))
 
-	// Ruta de Administración de Notificaciones (BackOffice)
-	mux.HandleFunc("POST /api/admin/notifications/send", notificationHandler.HandleSendAdminNotification)
-	mux.HandleFunc("POST /api/admin/notifications/test", notificationHandler.HandleTestPushNotification)
+	// Ruta de Administración de Notificaciones (BackOffice) - Protegidas con API Key
+	mux.Handle("POST /api/admin/notifications/send", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleSendAdminNotification)))
+	mux.Handle("POST /api/admin/notifications/test", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleTestPushNotification)))
 
 	// 10. Aplicar el Middleware de Trazabilidad y Logs asíncronos de forma global
 	globalHandler := api.TraceAndLogMiddleware(pool)(mux)

@@ -6,19 +6,18 @@ import (
 	"log/slog"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/aaron/sakoo-backend/internal/infrastructure/scraper"
 )
 
 // ScraperUseCase orquesta el proceso de raspado de tasas de cambio del BCV e inserción resiliente en BD.
 type ScraperUseCase struct {
-	scraperService      scraper.ScraperService
+	scraperService      domain.ScraperService
 	repo                domain.ExchangeRateRepository
 	notificationUseCase domain.NotificationUseCase
 }
 
 // NewScraperUseCase crea una nueva instancia del caso de uso de Scraping.
 func NewScraperUseCase(
-	scraperService scraper.ScraperService,
+	scraperService domain.ScraperService,
 	repo domain.ExchangeRateRepository,
 	notificationUseCase domain.NotificationUseCase,
 ) *ScraperUseCase {

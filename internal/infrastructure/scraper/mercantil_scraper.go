@@ -18,7 +18,7 @@ type MercantilScraper struct {
 }
 
 // NewMercantilScraper crea e inicializa una nueva instancia de MercantilScraper.
-func NewMercantilScraper() ScraperService {
+func NewMercantilScraper() domain.ScraperService {
 	return &MercantilScraper{
 		url: "https://www.mercantilbanco.com/informacion/tasas,-tarifas-y-comisiones/tasa-mesa-de-cambio",
 	}

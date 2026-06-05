@@ -75,9 +75,10 @@ func (u *paymentCommitmentUseCase) GetSegmentedCommitments(ctx context.Context, 
 		"cumplidos":  {},
 	}
 
-	now := time.Now()
-	// Obtener la fecha actual a las 00:00:00 para comparación justa basada únicamente en días
-	todayMidnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// Obtener la fecha actual de Venezuela (UTC-4) para la comparación
+	loc := time.FixedZone("America/Caracas", -4*60*60)
+	nowVET := time.Now().In(loc)
+	todayMidnight := time.Date(nowVET.Year(), nowVET.Month(), nowVET.Day(), 0, 0, 0, 0, time.UTC)
 
 	for _, pc := range commitments {
 		statusUpper := strings.ToUpper(pc.Status)
@@ -88,8 +89,8 @@ func (u *paymentCommitmentUseCase) GetSegmentedCommitments(ctx context.Context, 
 			continue
 		}
 
-		// 2. Si no está cumplido, comparar fecha límite vs hoy a medianoche
-		dueMidnight := time.Date(pc.DueDate.Year(), pc.DueDate.Month(), pc.DueDate.Day(), 0, 0, 0, 0, pc.DueDate.Location())
+		// 2. Si no está cumplido, comparar fecha límite vs hoy a medianoche en UTC
+		dueMidnight := time.Date(pc.DueDate.Year(), pc.DueDate.Month(), pc.DueDate.Day(), 0, 0, 0, 0, time.UTC)
 
 		if dueMidnight.Before(todayMidnight) {
 			segmented["vencidos"] = append(segmented["vencidos"], pc)

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/aaron/sakoo-backend/internal/infrastructure/email"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,7 +20,7 @@ import (
 type authUseCase struct {
 	userRepo  domain.UserRepository
 	otpRepo   domain.OTPRepository
-	emailSrv  email.EmailService
+	emailSrv  domain.EmailService
 	jwtSecret string
 }
 
@@ -29,7 +28,7 @@ type authUseCase struct {
 func NewAuthUseCase(
 	userRepo domain.UserRepository,
 	otpRepo domain.OTPRepository,
-	emailSrv email.EmailService,
+	emailSrv domain.EmailService,
 	jwtSecret string,
 ) domain.AuthUseCase {
 	return &authUseCase{

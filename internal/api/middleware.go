@@ -202,3 +202,29 @@ func GetUserIDFromContext(ctx context.Context) (int64, bool) {
 	userID, ok := ctx.Value(userContextKey).(int64)
 	return userID, ok
 }
+
+// AdminApiKeyMiddleware intercepta las peticiones de administración y valida que coincida la API Key secreta.
+func AdminApiKeyMiddleware(adminApiKey string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if adminApiKey == "" {
+				slog.Error("Acceso administrativo denegado: ADMIN_API_KEY no está configurada en las variables de entorno")
+				response.Error(w, r.Context(), http.StatusInternalServerError, "CONFIG_ERROR", "configuración del servidor incompleta (API Key administrativa no definida)")
+				return
+			}
+
+			key := r.Header.Get("X-Admin-Api-Key")
+			if key == "" {
+				key = r.URL.Query().Get("admin_api_key")
+			}
+
+			if key != adminApiKey {
+				slog.Warn("Intento de acceso administrativo no autorizado detectado", "ip", r.RemoteAddr, "path", r.URL.Path)
+				response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "acceso denegado: API Key de administración inválida o ausente")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}

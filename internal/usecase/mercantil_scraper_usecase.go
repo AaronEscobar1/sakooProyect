@@ -6,19 +6,18 @@ import (
 	"log/slog"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/aaron/sakoo-backend/internal/infrastructure/scraper"
 )
 
 // MercantilScraperUseCase orquesta el proceso de raspado de la tasa "Dólar Intervención" (UDI) del Mercantil.
 type MercantilScraperUseCase struct {
-	scraperService      scraper.ScraperService
+	scraperService      domain.ScraperService
 	repo                domain.ExchangeRateRepository
 	notificationUseCase domain.NotificationUseCase
 }
 
 // NewMercantilScraperUseCase crea una nueva instancia del caso de uso de Scraping para el Mercantil Banco.
 func NewMercantilScraperUseCase(
-	scraperService scraper.ScraperService,
+	scraperService domain.ScraperService,
 	repo domain.ExchangeRateRepository,
 	notificationUseCase domain.NotificationUseCase,
 ) *MercantilScraperUseCase {

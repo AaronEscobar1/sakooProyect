@@ -15,19 +15,14 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// ScraperService define el contrato para el servicio de raspado de tasas de cambio.
-type ScraperService interface {
-	ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, error)
-}
-
-// BCVScraper implementa ScraperService raspando directamente el sitio oficial del BCV (bcv.org.ve).
+// BCVScraper implementa domain.ScraperService raspando directamente el sitio oficial del BCV (bcv.org.ve).
 // El BCV publica sus tasas en la página principal dentro de bloques con IDs #dolar, #euro, etc.
 type BCVScraper struct {
 	url string
 }
 
 // NewBCVScraper crea e inicializa una nueva instancia de BCVScraper apuntando al sitio oficial del BCV.
-func NewBCVScraper() ScraperService {
+func NewBCVScraper() domain.ScraperService {
 	return &BCVScraper{
 		url: "https://www.bcv.org.ve/",
 	}

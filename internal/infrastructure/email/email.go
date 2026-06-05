@@ -6,17 +6,14 @@ import (
 	"log/slog"
 	"net/smtp"
 	"os"
-)
 
-// EmailService define la interfaz para enviar correos electrónicos (ej: OTPs).
-type EmailService interface {
-	SendOTP(ctx context.Context, email, code string) error
-}
+	"github.com/aaron/sakoo-backend/internal/domain"
+)
 
 type mockEmailService struct{}
 
 // NewMockEmailService crea un servicio de email simulado para desarrollo.
-func NewMockEmailService() EmailService {
+func NewMockEmailService() domain.EmailService {
 	return &mockEmailService{}
 }
 
@@ -40,7 +37,7 @@ type smtpEmailService struct {
 
 // NewEmailService evalúa las variables de entorno para SMTP y retorna un
 // servicio de email de producción o un Mock resiliente en su defecto.
-func NewEmailService() EmailService {
+func NewEmailService() domain.EmailService {
 	host := os.Getenv("SMTP_HOST")
 	port := os.Getenv("SMTP_PORT")
 	user := os.Getenv("SMTP_USER")

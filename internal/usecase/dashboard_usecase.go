@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 )
 
@@ -57,18 +56,12 @@ func (uc *dashboardUseCase) GetDashboardSummary(ctx context.Context, currencyCod
 	previousRate, err := uc.repo.GetPreviousRate(ctx, currencyCode, latestRate.ValueDate)
 	var variationPercent decimal.Decimal
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || (err.Error() != "" && errors.Is(errors.Unwrap(err), pgx.ErrNoRows)) {
-			slog.Warn("No se encontró tasa para el día hábil anterior (registro único). Se asume variación 0.00", "currency_code", currencyCode, "error", err)
+		if errors.Is(err, domain.ErrNotFound) {
+			slog.Warn("No se encontró tasa para el día hábil anterior (registro único). Se asume variación 0.00", "currency_code", currencyCode)
 			variationPercent = decimal.Zero
 		} else {
-			// Intentar verificar si el error contiene 'no rows in result set' de forma robusta
-			if errors.Is(err, pgx.ErrNoRows) || (err != nil && (errors.Is(err, pgx.ErrNoRows) || errors.Is(errors.Unwrap(err), pgx.ErrNoRows) || err.Error() == "no rows in result set" || (len(err.Error()) > 20 && err.Error()[len(err.Error())-22:] == "no rows in result set"))) {
-				slog.Warn("No se encontró tasa para el día hábil anterior. Se asume variación 0.00", "currency_code", currencyCode)
-				variationPercent = decimal.Zero
-			} else {
-				slog.Warn("Error al obtener tasa anterior, se asume variación 0.00", "currency_code", currencyCode, "error", err)
-				variationPercent = decimal.Zero
-			}
+			slog.Warn("Error al obtener tasa anterior, se asume variación 0.00", "currency_code", currencyCode, "error", err)
+			variationPercent = decimal.Zero
 		}
 	} else if previousRate == nil || previousRate.RateAverage.IsZero() {
 		slog.Warn("La tasa anterior es nil o su promedio es cero, se asume variación 0.00", "currency_code", currencyCode)
