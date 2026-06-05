@@ -1,13 +1,14 @@
 package api
 
 import (
+	"github.com/AaronEscobar1/common/middleware"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
 
@@ -39,7 +40,7 @@ func (h *NotificationHandler) HandleRegisterDevice(w http.ResponseWriter, r *htt
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return
@@ -76,7 +77,7 @@ func (h *NotificationHandler) HandleUnregisterDevice(w http.ResponseWriter, r *h
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return
@@ -111,7 +112,7 @@ func (h *NotificationHandler) HandleGetNotifications(w http.ResponseWriter, r *h
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return
@@ -142,7 +143,7 @@ func (h *NotificationHandler) HandleMarkAsRead(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: usuario no autenticado")
 		return

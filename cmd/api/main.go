@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/api"
-	"github.com/aaron/sakoo-backend/internal/api/middleware"
+	"github.com/AaronEscobar1/common/middleware"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/cron"
-	"github.com/aaron/sakoo-backend/internal/infrastructure/database"
+	"github.com/AaronEscobar1/common/database"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/email"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/notification"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/repository"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/scraper"
-	"github.com/aaron/sakoo-backend/internal/infrastructure/security"
+	"github.com/AaronEscobar1/common/security"
 	"github.com/aaron/sakoo-backend/internal/usecase"
 	"github.com/joho/godotenv"
 
@@ -85,7 +85,24 @@ func main() {
 	}
 
 	// 4. Conectar a PostgreSQL y ejecutar las migraciones automáticamente
-	pool, err := database.ConnectAndMigrate(dbURL)
+	searchPaths := []string{"security", "market", "finance", "notifications", "catalogs", "telemetry", "public"}
+	pool, err := database.ConnectAndMigrate(dbURL, searchPaths, "file://migrations")
+	if (err == nil) {
+		// Paso Autocurativo: Aplicar visibilidad de monedas al front
+		ctxAuto, cancelAuto := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancelAuto()
+		setupQueries := []string{
+			`ALTER TABLE catalogs.currency ADD COLUMN IF NOT EXISTS "show" BOOLEAN DEFAULT TRUE;`,
+			`UPDATE catalogs.currency SET "show" = FALSE WHERE code NOT IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
+			`UPDATE catalogs.currency SET "show" = TRUE WHERE code IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
+			`INSERT INTO telemetry.configurations (key, payload) VALUES ('visible_currencies', '["USD", "EUR", "USDT", "USDC", "UDI"]'::jsonb) ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload;`,
+		}
+		for _, q := range setupQueries {
+			if _, err := pool.Exec(ctxAuto, q); err != nil {
+				slog.Warn("No se pudo ejecutar query autocurativo de visibilidad en base de datos", "query", q, "error", err)
+			}
+		}
+	}
 	if err != nil {
 		// Imprimir en texto plano con alta visibilidad para los logs de Railway
 		os.Stderr.WriteString("\n==================================================\n")
@@ -118,7 +135,7 @@ func main() {
 
 	// 6. Instanciar los repositorios core de la capa de infraestructura
 	userRepo := repository.NewUserRepository(pool)
-	api.SetUserRepository(userRepo)
+	middleware.SetSessionValidator(userRepo)
 	exchangeRateRepo := repository.NewExchangeRateRepository(pool)
 	otpRepo := repository.NewOTPRepository(pool)
 	emailSrv := email.NewEmailService()
@@ -245,8 +262,8 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/otp/validate", authHandler.HandleValidateOTP)
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.HandleRegister)
 	mux.HandleFunc("POST /api/v1/auth/password/reset", authHandler.HandleResetPassword)
-	mux.Handle("DELETE /api/v1/account", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleDeleteAccountV1)))
-	mux.Handle("POST /api/v1/auth/logout", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleLogout)))
+	mux.Handle("DELETE /api/v1/account", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleDeleteAccountV1)))
+	mux.Handle("POST /api/v1/auth/logout", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleLogout)))
 
 	// Ruta Pública de Tasas de Cambio
 	mux.HandleFunc("POST /api/rates", exchangeRateHandler.HandleGetLatestRates)
@@ -258,12 +275,12 @@ func main() {
 	mux.HandleFunc("GET /api/v1/rates/calendar-dates", ratesHandler.HandleGetCalendarDates)
 
 	// Rutas de Mensajería Interna (Protegidas)
-	mux.Handle("POST /api/v1/messages/send", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(messageHandler.HandleSendMessage)))
-	mux.Handle("GET /api/v1/messages", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(messageHandler.HandleGetMessages)))
-	mux.Handle("GET /api/v1/messages/unread-count", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(messageHandler.HandleGetUnreadCount)))
+	mux.Handle("POST /api/v1/messages/send", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(messageHandler.HandleSendMessage)))
+	mux.Handle("GET /api/v1/messages", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(messageHandler.HandleGetMessages)))
+	mux.Handle("GET /api/v1/messages/unread-count", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(messageHandler.HandleGetUnreadCount)))
 
 	// Rutas de Comentarios de Tasas
-	mux.Handle("POST /api/v1/rates/comments", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(commentHandler.HandleAddComment)))
+	mux.Handle("POST /api/v1/rates/comments", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(commentHandler.HandleAddComment)))
 	mux.HandleFunc("GET /api/v1/rates/{rate_id}/comments", commentHandler.HandleGetRateComments)
 	mux.HandleFunc("GET /api/v1/rates/comments", commentHandler.HandleGetRateComments)
 
@@ -276,47 +293,47 @@ func main() {
 	mux.HandleFunc("GET /api/v1/catalogs/banks", catalogHandler.HandleGetBanks)
 
 	// Ruta de Scraping Manual (Pruebas en caliente) - Protegidas con API Key
-	mux.Handle("POST /api/admin/scrape-now", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeNow)))
-	mux.Handle("POST /api/admin/scrape-mercantil", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeMercantilNow)))
-	mux.Handle("POST /api/admin/scrape-binance", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeBinance)))
+	mux.Handle("POST /api/admin/scrape-now", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeNow)))
+	mux.Handle("POST /api/admin/scrape-mercantil", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeMercantilNow)))
+	mux.Handle("POST /api/admin/scrape-binance", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeBinance)))
 	// Ruta de Consulta de Logs de Auditoría (Admin) - Protegida con API Key
-	mux.Handle("GET /api/admin/logs", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(adminHandler.HandleGetAuditLogs)))
+	mux.Handle("GET /api/admin/logs", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(adminHandler.HandleGetAuditLogs)))
 
 	// Ruta Protegida: Endpoint para obtener el perfil completo del usuario autenticado
-	mux.Handle("GET /api/v1/me", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleGetProfile)))
+	mux.Handle("GET /api/v1/me", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleGetProfile)))
 	// Ruta Protegida: Buscar otros usuarios en la plataforma de manera liviana
-	mux.Handle("GET /api/v1/users/search", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleSearchUsers)))
+	mux.Handle("GET /api/v1/users/search", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleSearchUsers)))
 
 	// Rutas Protegidas de Cuentas Bancarias (Propias)
-	mux.Handle("POST /api/v1/accounts/own", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccounts)))
-	mux.Handle("GET /api/v1/accounts/own", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccounts)))
-	mux.Handle("PUT /api/v1/accounts/own/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccountDetail)))
-	mux.Handle("DELETE /api/v1/accounts/own/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccountDetail)))
+	mux.Handle("POST /api/v1/accounts/own", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccounts)))
+	mux.Handle("GET /api/v1/accounts/own", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccounts)))
+	mux.Handle("PUT /api/v1/accounts/own/{id}", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccountDetail)))
+	mux.Handle("DELETE /api/v1/accounts/own/{id}", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleOwnAccountDetail)))
 
 	// Rutas Protegidas de Cuentas Bancarias (Terceros)
-	mux.Handle("POST /api/v1/accounts/third-party", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccounts)))
-	mux.Handle("GET /api/v1/accounts/third-party", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccounts)))
-	mux.Handle("PUT /api/v1/accounts/third-party/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccountDetail)))
-	mux.Handle("DELETE /api/v1/accounts/third-party/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccountDetail)))
+	mux.Handle("POST /api/v1/accounts/third-party", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccounts)))
+	mux.Handle("GET /api/v1/accounts/third-party", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccounts)))
+	mux.Handle("PUT /api/v1/accounts/third-party/{id}", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccountDetail)))
+	mux.Handle("DELETE /api/v1/accounts/third-party/{id}", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(bankAccountHandler.HandleThirdPartyAccountDetail)))
 
 	// Rutas Protegidas de Compromisos de Pago
-	mux.Handle("POST /api/v1/payments/commitments", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitments)))
-	mux.Handle("GET /api/v1/payments/commitments", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitments)))
-	mux.Handle("PUT /api/v1/payments/commitments/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitmentDetail)))
-	mux.Handle("DELETE /api/v1/payments/commitments/{id}", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitmentDetail)))
+	mux.Handle("POST /api/v1/payments/commitments", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitments)))
+	mux.Handle("GET /api/v1/payments/commitments", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitments)))
+	mux.Handle("PUT /api/v1/payments/commitments/{id}", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitmentDetail)))
+	mux.Handle("DELETE /api/v1/payments/commitments/{id}", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(paymentCommitmentHandler.HandleCommitmentDetail)))
 
 	// Rutas Protegidas de Notificaciones Push (Dispositivos e Inbox)
-	mux.Handle("POST /api/v1/devices/register", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleRegisterDevice)))
-	mux.Handle("POST /api/v1/devices/unregister", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleUnregisterDevice)))
-	mux.Handle("GET /api/v1/notifications", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleGetNotifications)))
-	mux.Handle("PUT /api/v1/notifications/{id}/read", api.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleMarkAsRead)))
+	mux.Handle("POST /api/v1/devices/register", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleRegisterDevice)))
+	mux.Handle("POST /api/v1/devices/unregister", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleUnregisterDevice)))
+	mux.Handle("GET /api/v1/notifications", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleGetNotifications)))
+	mux.Handle("PUT /api/v1/notifications/{id}/read", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(notificationHandler.HandleMarkAsRead)))
 
 	// Ruta de Administración de Notificaciones (BackOffice) - Protegidas con API Key
-	mux.Handle("POST /api/admin/notifications/send", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleSendAdminNotification)))
-	mux.Handle("POST /api/admin/notifications/test", api.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleTestPushNotification)))
+	mux.Handle("POST /api/admin/notifications/send", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleSendAdminNotification)))
+	mux.Handle("POST /api/admin/notifications/test", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleTestPushNotification)))
 
 	// 10. Aplicar el Middleware de Trazabilidad y Logs asíncronos de forma global
-	globalHandler := api.TraceAndLogMiddleware(pool)(mux)
+	globalHandler := middleware.TraceAndLogMiddleware(pool)(mux)
 
 	// Habilitar CORS para depuración local (Flutter Web, Swagger, etc.)
 	corsHandler := middleware.CORS()(globalHandler)

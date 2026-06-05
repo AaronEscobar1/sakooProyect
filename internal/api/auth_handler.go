@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/AaronEscobar1/common/middleware"
 	"encoding/json"
 	"log/slog"
 	"net"
@@ -8,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/aaron/sakoo-backend/internal/infrastructure/security"
+	"github.com/AaronEscobar1/common/security"
 )
 
 // PublicKeyResponse representa la clave pública RSA devuelta.
@@ -362,7 +363,7 @@ func (h *AuthHandler) HandleDeleteAccountV1(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
@@ -406,7 +407,7 @@ func (h *AuthHandler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extraer el userID del contexto (inyectado por AuthMiddleware)
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
@@ -455,14 +456,14 @@ func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extraer el userID del contexto (inyectado por AuthMiddleware)
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
 	}
 
 	// Extraer el token de sesión de forma segura
-	token, _ := GetTokenFromContext(r.Context())
+	token, _ := middleware.GetTokenFromContext(r.Context())
 
 	// Invocar el caso de uso pasando el token a invalidar
 	if err := h.authUseCase.Logout(r.Context(), userID, token); err != nil {

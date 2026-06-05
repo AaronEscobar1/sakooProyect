@@ -1,13 +1,14 @@
 package api
 
 import (
+	"github.com/AaronEscobar1/common/middleware"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/shopspring/decimal"
 )
@@ -63,7 +64,7 @@ func NewPaymentCommitmentHandler(useCase domain.PaymentCommitmentUseCase) *Payme
 // @Router       /api/v1/payments/commitments [post]
 // @Router       /api/v1/payments/commitments [get]
 func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
@@ -184,7 +185,7 @@ func (h *PaymentCommitmentHandler) HandleCommitments(w http.ResponseWriter, r *h
 // @Router       /api/v1/payments/commitments/{id} [put]
 // @Router       /api/v1/payments/commitments/{id} [delete]
 func (h *PaymentCommitmentHandler) HandleCommitmentDetail(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return

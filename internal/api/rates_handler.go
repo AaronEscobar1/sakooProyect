@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/usecase"
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"

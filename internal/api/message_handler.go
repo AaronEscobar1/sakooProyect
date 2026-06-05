@@ -1,10 +1,11 @@
 package api
 
 import (
+	"github.com/AaronEscobar1/common/middleware"
 	"encoding/json"
 	"net/http"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
 
@@ -42,7 +43,7 @@ func (h *MessageHandler) HandleSendMessage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	senderID, ok := GetUserIDFromContext(r.Context())
+	senderID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return
@@ -88,7 +89,7 @@ func (h *MessageHandler) HandleGetMessages(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return
@@ -118,7 +119,7 @@ func (h *MessageHandler) HandleGetUnreadCount(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return

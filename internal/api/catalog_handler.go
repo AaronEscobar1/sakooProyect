@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
 

@@ -1,12 +1,13 @@
 package api
 
 import (
+	"github.com/AaronEscobar1/common/middleware"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
 
@@ -53,7 +54,7 @@ func NewBankAccountHandler(useCase domain.BankAccountUseCase) *BankAccountHandle
 // @Router       /api/v1/accounts/own [get]
 func (h *BankAccountHandler) HandleOwnAccounts(w http.ResponseWriter, r *http.Request) {
 	// Extraer el userID del contexto (inyectado por AuthMiddleware)
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
@@ -106,7 +107,7 @@ func (h *BankAccountHandler) HandleOwnAccounts(w http.ResponseWriter, r *http.Re
 // @Router       /api/v1/accounts/own/{id} [put]
 // @Router       /api/v1/accounts/own/{id} [delete]
 func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
@@ -168,7 +169,7 @@ func (h *BankAccountHandler) HandleOwnAccountDetail(w http.ResponseWriter, r *ht
 // @Router       /api/v1/accounts/third-party [post]
 // @Router       /api/v1/accounts/third-party [get]
 func (h *BankAccountHandler) HandleThirdPartyAccounts(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return
@@ -221,7 +222,7 @@ func (h *BankAccountHandler) HandleThirdPartyAccounts(w http.ResponseWriter, r *
 // @Router       /api/v1/accounts/third-party/{id} [put]
 // @Router       /api/v1/accounts/third-party/{id} [delete]
 func (h *BankAccountHandler) HandleThirdPartyAccountDetail(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
 		return

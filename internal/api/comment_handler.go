@@ -1,11 +1,12 @@
 package api
 
 import (
+	"github.com/AaronEscobar1/common/middleware"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/aaron/sakoo-backend/internal/api/response"
+	"github.com/AaronEscobar1/common/response"
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
 
@@ -43,7 +44,7 @@ func (h *CommentHandler) HandleAddComment(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userID, ok := GetUserIDFromContext(r.Context())
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
 		response.Error(w, r.Context(), http.StatusOK, "UNAUTHORIZED", "Usuario no autenticado")
 		return
