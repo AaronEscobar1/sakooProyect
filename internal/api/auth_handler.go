@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/aaron/sakoo-backend/internal/api/response"
@@ -178,10 +179,11 @@ func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseData := map[string]string{
-		"otp": otpCode,
+	responseData := make(map[string]string)
+	if os.Getenv("GO_ENV") != "production" {
+		responseData["otp"] = otpCode
+		slog.Info("Retornando OTP al frontend en el payload de datos (entorno no-producción)", "email", req.Email)
 	}
-	slog.Info("Retornando OTP al frontend en el payload de datos", "email", req.Email)
 
 	response.Success(w, r.Context(), "SUCCESS", "Código de seguridad OTP generado y enviado exitosamente", responseData)
 }

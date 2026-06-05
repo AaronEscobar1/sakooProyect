@@ -117,3 +117,27 @@ func (r *otpRepository) ValidateOTPOnly(ctx context.Context, email, code, action
 	return nil
 }
 
+func (r *otpRepository) HasRecentOTP(ctx context.Context, email, action string, seconds int) (bool, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Verificando si se solicitó un OTP recientemente", "email", email, "action", action, "seconds", seconds)
+
+	query := `
+		SELECT EXISTS (
+			SELECT 1 
+			FROM user_otps 
+			WHERE email = $1 AND action = $2 AND created_at > NOW() - ($3 || ' seconds')::interval
+		);
+	`
+
+	var exists bool
+	err := r.db.QueryRow(dbCtx, query, email, action, seconds).Scan(&exists)
+	if err != nil {
+		slog.Error("Fallo al comprobar OTP reciente en PostgreSQL", "error", err, "email", email)
+		return false, fmt.Errorf("error al verificar OTP reciente: %w", err)
+	}
+
+	return exists, nil
+}
+

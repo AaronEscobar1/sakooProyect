@@ -53,7 +53,7 @@ func generateNumericOTP() (string, error) {
 	return code, nil
 }
 
-// RequestOTP genera un OTP, lo persiste con 15 minutos de vigencia, y lo envía por email.
+// RequestOTP genera un OTP, lo persiste con 5 minutos de vigencia, y lo envía por email.
 // Devuelve el código OTP generado para flujos que lo requieran (ej: testing o flujos internos).
 func (s *authUseCase) RequestOTP(ctx context.Context, email string, action string) (string, error) {
 	slog.Info("Procesando solicitud de OTP", "email", email, "action", action)
@@ -66,6 +66,16 @@ func (s *authUseCase) RequestOTP(ctx context.Context, email string, action strin
 		return "", fmt.Errorf("Acción de OTP inválida: %s", action)
 	}
 
+	// Verificar si ya se ha solicitado un OTP recientemente en los últimos 60 segundos
+	recent, err := s.otpRepo.HasRecentOTP(ctx, email, action, 60)
+	if err != nil {
+		slog.Error("Error al verificar OTP reciente", "error", err, "email", email)
+		return "", err
+	}
+	if recent {
+		return "", errors.New("Por favor, espera 60 segundos antes de solicitar otro código de verificación")
+	}
+
 	// 1. Generar código OTP
 	code, err := generateNumericOTP()
 	if err != nil {
@@ -73,12 +83,12 @@ func (s *authUseCase) RequestOTP(ctx context.Context, email string, action strin
 		return "", fmt.Errorf("error al generar código de seguridad: %w", err)
 	}
 
-	// 2. Persistir en la base de datos
+	// 2. Persistir en la base de datos (tiempo de vida de 5 minutos)
 	otp := &domain.UserOTP{
 		Email:     email,
 		OTPCode:   code,
 		Action:    action,
-		ExpiresAt: time.Now().UTC().Add(15 * time.Minute),
+		ExpiresAt: time.Now().UTC().Add(5 * time.Minute),
 		Used:      false,
 	}
 
