@@ -478,6 +478,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/backoffice/rates/history": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna una lista completa de tasas registradas en los últimos 7 días para auditoría y aprobación.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BackOffice"
+                ],
+                "summary": "Obtener tasas de los últimos 7 días (BackOffice)",
+                "responses": {
+                    "200": {
+                        "description": "Tasas obtenidas exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-array_internal_api_RateResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno al obtener tasas",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/rates": {
             "post": {
                 "description": "Retorna las últimas tasas de cambio obtenidas para todas las monedas registradas.",
@@ -2510,6 +2553,14 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "rate_to": {
+                    "type": "string"
+                },
+                "source": {
+                    "description": "Origen (SCRAPING / MANUAL) para el BO",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Estado (REGISTERED / APPROVED) para el BO",
                     "type": "string"
                 },
                 "updated_at": {

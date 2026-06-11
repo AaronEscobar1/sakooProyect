@@ -649,3 +649,54 @@ func (r *exchangeRateRepository) UpdateRateApproval(
 	return nil
 }
 
+// GetLast7DaysRates obtiene todas las tasas de cambio de los últimos 7 días.
+func (r *exchangeRateRepository) GetLast7DaysRates(ctx context.Context) ([]domain.ExchangeRate, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Consultando tasas de cambio de los últimos 7 días en base de datos")
+
+	query := `
+		SELECT er.id, er.currency_id, c.code, er.rate_from, er.rate_to, er.rate_average, er.value_date, er.status, er.source, er.updated_at
+		FROM exchange_rates er
+		JOIN catalogs.currency c ON er.currency_id = c.id
+		WHERE er.value_date >= CURRENT_DATE - INTERVAL '7 days' AND c."show" = TRUE
+		ORDER BY er.value_date DESC, c.code ASC;
+	`
+
+	rows, err := r.db.Query(dbCtx, query)
+	if err != nil {
+		slog.Error("Fallo al consultar tasas de los últimos 7 días en PostgreSQL", "error", err)
+		return nil, fmt.Errorf("error al consultar tasas de los últimos 7 días: %w", err)
+	}
+	defer rows.Close()
+
+	var rates []domain.ExchangeRate
+	for rows.Next() {
+		var rate domain.ExchangeRate
+		if err := rows.Scan(
+			&rate.ID,
+			&rate.CurrencyID,
+			&rate.CurrencyCode,
+			&rate.RateFrom,
+			&rate.RateTo,
+			&rate.RateAverage,
+			&rate.ValueDate,
+			&rate.Status,
+			&rate.Source,
+			&rate.UpdatedAt,
+		); err != nil {
+			slog.Error("Fallo al escanear fila de exchange_rates para los últimos 7 días", "error", err)
+			return nil, fmt.Errorf("error al escanear tasa de cambio: %w", err)
+		}
+		rates = append(rates, rate)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error en iteración de tasas de cambio de los últimos 7 días: %w", err)
+	}
+
+	slog.Info("Tasas de cambio de los últimos 7 días obtenidas exitosamente", "count", len(rates))
+	return rates, nil
+}
+

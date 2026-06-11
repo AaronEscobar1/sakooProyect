@@ -119,3 +119,8 @@ func (uc *ExchangeRateUseCase) ApproveRate(ctx context.Context, req domain.Appro
 	return nil
 }
 
+// GetLast7DaysRates obtiene las tasas de los últimos 7 días delegando en el repositorio.
+func (uc *ExchangeRateUseCase) GetLast7DaysRates(ctx context.Context) ([]domain.ExchangeRate, error) {
+	return uc.repo.GetLast7DaysRates(ctx)
+}
+

@@ -358,6 +358,15 @@ func main() {
 		),
 	)
 
+	// Endpoint para obtener tasas de los últimos 7 días (protegido: AuthMiddleware → AdminOnly)
+	mux.Handle("GET /api/backoffice/rates/history",
+		middleware.AuthMiddleware(jwtSecret)(
+			adminMiddleware.AdminOnly(jwtSecret, userRepo)(
+				http.HandlerFunc(exchangeRateHandler.HandleGetLast7DaysRates),
+			),
+		),
+	)
+
 	globalHandler := middleware.TraceAndLogMiddleware(pool)(mux)
 
 	// Habilitar CORS para depuración local (Flutter Web, Swagger, etc.)

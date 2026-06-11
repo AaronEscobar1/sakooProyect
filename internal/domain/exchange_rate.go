@@ -45,6 +45,7 @@ type ExchangeRateRepository interface {
 	GetRatesHistoryBeforeOrAt(ctx context.Context, currencyCode string, date time.Time, limit int) ([]ExchangeRate, error)
 	GetCalendarDates(ctx context.Context) ([]string, error)
 	UpdateRateApproval(ctx context.Context, rateID int64, rateFrom, rateTo, rateAverage decimal.Decimal, source string) error
+	GetLast7DaysRates(ctx context.Context) ([]ExchangeRate, error)
 }
 
 // ExchangeRateUseCase define la lógica de negocio para interactuar con las tasas de cambio.
@@ -53,5 +54,6 @@ type ExchangeRateUseCase interface {
 	GetRatesHistory(ctx context.Context, page, limit int, currencyCode, startDateStr, endDateStr string) ([]ExchangeRate, int, error)
 	GetCalendarDates(ctx context.Context) ([]string, error)
 	ApproveRate(ctx context.Context, req ApproveExchangeRateRequest, adminUserID int64) error
+	GetLast7DaysRates(ctx context.Context) ([]ExchangeRate, error)
 }
 

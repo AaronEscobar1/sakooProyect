@@ -14,6 +14,7 @@ import (
 type mockExchangeRateRepository struct {
 	domain.ExchangeRateRepository // Embed to avoid implementing all methods
 	updateRateApprovalFunc       func(ctx context.Context, rateID int64, rateFrom, rateTo, rateAverage decimal.Decimal, source string) error
+	getLast7DaysRatesFunc        func(ctx context.Context) ([]domain.ExchangeRate, error)
 }
 
 func (m *mockExchangeRateRepository) UpdateRateApproval(
@@ -26,6 +27,13 @@ func (m *mockExchangeRateRepository) UpdateRateApproval(
 		return m.updateRateApprovalFunc(ctx, rateID, rateFrom, rateTo, rateAverage, source)
 	}
 	return nil
+}
+
+func (m *mockExchangeRateRepository) GetLast7DaysRates(ctx context.Context) ([]domain.ExchangeRate, error) {
+	if m.getLast7DaysRatesFunc != nil {
+		return m.getLast7DaysRatesFunc(ctx)
+	}
+	return nil, nil
 }
 
 func TestApproveRate(t *testing.T) {
@@ -167,4 +175,49 @@ func TestApproveRate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetLast7DaysRates(t *testing.T) {
+	t.Run("Success fetching rates", func(t *testing.T) {
+		repo := &mockExchangeRateRepository{
+			getLast7DaysRatesFunc: func(ctx context.Context) ([]domain.ExchangeRate, error) {
+				return []domain.ExchangeRate{
+					{ID: 1, CurrencyCode: "USD", Status: "APPROVED"},
+					{ID: 2, CurrencyCode: "EUR", Status: "REGISTERED"},
+				}, nil
+			},
+		}
+
+		uc := usecase.NewExchangeRateUseCase(repo)
+		rates, err := uc.GetLast7DaysRates(context.Background())
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if len(rates) != 2 {
+			t.Errorf("expected 2 rates, got %d", len(rates))
+		}
+
+		if rates[0].ID != 1 || rates[1].ID != 2 {
+			t.Errorf("unexpected rates content")
+		}
+	})
+
+	t.Run("Failure propagates error", func(t *testing.T) {
+		expectedErr := errors.New("db disconnect")
+		repo := &mockExchangeRateRepository{
+			getLast7DaysRatesFunc: func(ctx context.Context) ([]domain.ExchangeRate, error) {
+				return nil, expectedErr
+			},
+		}
+
+		uc := usecase.NewExchangeRateUseCase(repo)
+		_, err := uc.GetLast7DaysRates(context.Background())
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, expectedErr) {
+			t.Errorf("expected error %v, got %v", expectedErr, err)
+		}
+	})
 }

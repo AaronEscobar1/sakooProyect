@@ -20,6 +20,8 @@ type RateResponse struct {
 	RateAverage  string `json:"rate_average"`
 	ValueDate    string `json:"value_date"`
 	UpdatedAt    string `json:"updated_at"`
+	Status       string `json:"status,omitempty"` // Estado (REGISTERED / APPROVED) para el BO
+	Source       string `json:"source,omitempty"` // Origen (SCRAPING / MANUAL) para el BO
 }
 
 // HistoryRequest define los parámetros de consulta para el historial de tasas.
@@ -212,4 +214,50 @@ func (h *ExchangeRateHandler) HandleApproveRate(w http.ResponseWriter, r *http.R
 	}
 
 	response.Success(w, r.Context(), "SUCCESS", "Tasa de cambio aprobada exitosamente", nil)
+}
+
+// HandleGetLast7DaysRates obtiene las tasas de cambio de los últimos 7 días (BackOffice).
+// @Summary      Obtener tasas de los últimos 7 días (BackOffice)
+// @Description  Retorna una lista completa de tasas registradas en los últimos 7 días para auditoría y aprobación.
+// @Security     ApiKeyAuth
+// @Tags         BackOffice
+// @Produce      json
+// @Success      200  {object}  response.APIResponse[[]RateResponse]  "Tasas obtenidas exitosamente"
+// @Failure      401  {object}  response.APIResponse[any]            "No autorizado"
+// @Failure      403  {object}  response.APIResponse[any]            "Acceso denegado"
+// @Failure      500  {object}  response.APIResponse[any]            "Error interno al obtener tasas"
+// @Router       /api/backoffice/rates/history [get]
+func (h *ExchangeRateHandler) HandleGetLast7DaysRates(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere GET)")
+		return
+	}
+
+	rates, err := h.useCase.GetLast7DaysRates(r.Context())
+	if err != nil {
+		slog.Error("Fallo al obtener las tasas de cambio de los últimos 7 días para el BackOffice", "error", err)
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al obtener el historial de tasas de cambio")
+		return
+	}
+
+	var data []RateResponse
+	for _, rate := range rates {
+		data = append(data, RateResponse{
+			RateID:       rate.ID,
+			CurrencyCode: rate.CurrencyCode,
+			RateFrom:     rate.RateFrom.String(),
+			RateTo:       rate.RateTo.String(),
+			RateAverage:  rate.RateAverage.String(),
+			ValueDate:    rate.ValueDate.Format("2006-01-02"),
+			UpdatedAt:    rate.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			Status:       rate.Status,
+			Source:       rate.Source,
+		})
+	}
+
+	if data == nil {
+		data = []RateResponse{}
+	}
+
+	response.Success(w, r.Context(), "SUCCESS", "Tasas de cambio de los últimos 7 días obtenidas exitosamente", data)
 }

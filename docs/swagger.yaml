@@ -445,6 +445,12 @@ definitions:
         type: integer
       rate_to:
         type: string
+      source:
+        description: Origen (SCRAPING / MANUAL) para el BO
+        type: string
+      status:
+        description: Estado (REGISTERED / APPROVED) para el BO
+        type: string
       updated_at:
         type: string
       value_date:
@@ -1123,6 +1129,34 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Aprobar/Modificar tasa de cambio (BackOffice)
+      tags:
+      - BackOffice
+  /api/backoffice/rates/history:
+    get:
+      description: Retorna una lista completa de tasas registradas en los últimos
+        7 días para auditoría y aprobación.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tasas obtenidas exitosamente
+          schema:
+            $ref: '#/definitions/response.APIResponse-array_internal_api_RateResponse'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/response.APIResponse-any'
+        "403":
+          description: Acceso denegado
+          schema:
+            $ref: '#/definitions/response.APIResponse-any'
+        "500":
+          description: Error interno al obtener tasas
+          schema:
+            $ref: '#/definitions/response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Obtener tasas de los últimos 7 días (BackOffice)
       tags:
       - BackOffice
   /api/rates:
