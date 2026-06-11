@@ -24,6 +24,45 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/logs": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna un listado paginado y ordenado de los logs de auditoría registrados para operaciones mutables de la API.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Obtener logs de auditoría",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número de página (por defecto 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de registros por página (por defecto 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Error de validación o no autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/notifications/send": {
             "post": {
                 "security": [
@@ -57,7 +96,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Notificación procesada y enviada",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -86,19 +125,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Notificación de prueba enviada con éxito",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "400": {
                         "description": "Moneda inválida o no soportada",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "500": {
                         "description": "Error al enviar la notificación de prueba",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -131,19 +170,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Raspado y actualización de Binance P2P completados con éxito",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "400": {
                         "description": "Activo inválido",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "500": {
                         "description": "Error interno al realizar el scraping",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -168,13 +207,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Raspado y actualización de Mercantil ejecutados con éxito",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "500": {
                         "description": "Error interno al realizar el scraping",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -199,13 +238,47 @@ const docTemplate = `{
                     "200": {
                         "description": "Raspado y actualización del BCV ejecutados con éxito",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "500": {
                         "description": "Error interno al realizar el scraping",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/encrypt": {
+            "post": {
+                "description": "Utilidad para cifrar una contraseña o string en texto plano usando la clave pública RSA en memoria. Útil para pruebas en Swagger/Bruno.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Cifrar texto con RSA",
+                "parameters": [
+                    {
+                        "description": "Texto a cifrar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.EncryptRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Texto cifrado exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-internal_api_EncryptResponse"
                         }
                     }
                 }
@@ -239,13 +312,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Sesión iniciada correctamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse"
+                            "$ref": "#/definitions/response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse"
                         }
                     },
                     "401": {
                         "description": "Credenciales incorrectas",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -265,7 +338,104 @@ const docTemplate = `{
                     "200": {
                         "description": "Clave pública obtenida correctamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse"
+                            "$ref": "#/definitions/response.APIResponse-internal_api_PublicKeyResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/backoffice/auth/login": {
+            "post": {
+                "description": "Autentica a un usuario administrativo mediante email y contraseña cifrada. Solo usuarios con rol ADMIN pueden obtener un token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BackOffice"
+                ],
+                "summary": "Iniciar sesión de administrador (BackOffice)",
+                "parameters": [
+                    {
+                        "description": "Credenciales de acceso",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sesión administrativa iniciada correctamente",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciales incorrectas",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/backoffice/rates/approve": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Actualiza las columnas rate_from, rate_to, rate_average, cambia el status a 'APPROVED' y asienta el source en market.exchange_rates.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BackOffice"
+                ],
+                "summary": "Aprobar/Modificar tasa de cambio (BackOffice)",
+                "parameters": [
+                    {
+                        "description": "Datos de aprobación de tasa",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.ApproveExchangeRateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tasa de cambio aprobada exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Datos de entrada inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado (no es ADMIN)",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -285,13 +455,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Tasas obtenidas exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse"
+                            "$ref": "#/definitions/response.APIResponse-array_internal_api_RateResponse"
                         }
                     },
                     "500": {
                         "description": "Error interno al obtener tasas",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -325,13 +495,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Historial obtenido exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PaginatedRatesResponse"
+                            "$ref": "#/definitions/response.APIResponse-internal_api_PaginatedRatesResponse"
                         }
                     },
                     "400": {
                         "description": "Datos de entrada inválidos",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -370,19 +540,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Cuenta eliminada lógicamente de manera exitosa",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "400": {
                         "description": "Código OTP inválido o error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "401": {
                         "description": "No autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -420,7 +590,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error de autenticación o datos incorrectos",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -456,7 +626,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error de autenticación o datos incorrectos",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -502,7 +672,7 @@ const docTemplate = `{
                     "200": {
                         "description": "ID inválido, no autorizado o error de negocio",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -546,7 +716,7 @@ const docTemplate = `{
                     "200": {
                         "description": "ID inválido, no autorizado o error de negocio",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -584,7 +754,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error al procesar la solicitud",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -620,7 +790,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error al procesar la solicitud",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -666,7 +836,7 @@ const docTemplate = `{
                     "200": {
                         "description": "ID inválido, no autorizado o error de negocio",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -710,7 +880,7 @@ const docTemplate = `{
                     "200": {
                         "description": "ID inválido, no autorizado o error de negocio",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -735,13 +905,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Sesión cerrada exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "401": {
                         "description": "No autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -775,13 +945,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Código OTP generado y enviado exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "400": {
                         "description": "Solicitud incorrecta o error de negocio",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -815,13 +985,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Código OTP válido y vigente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "400": {
                         "description": "Solicitud incorrecta o OTP inválido",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -855,13 +1025,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Contraseña restablecida correctamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "400": {
                         "description": "Código OTP inválido o credenciales inválidas",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -895,13 +1065,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Usuario registrado exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse"
+                            "$ref": "#/definitions/response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Error al registrar usuario o datos duplicados",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -921,7 +1091,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error interno del servidor",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -941,7 +1111,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error interno del servidor",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -961,7 +1131,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error interno del servidor",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -981,7 +1151,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error interno del servidor",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1020,13 +1190,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Dispositivo registrado con éxito",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "401": {
                         "description": "No autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1065,13 +1235,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Dispositivo dado de baja con éxito",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "401": {
                         "description": "No autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1096,13 +1266,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Perfil del usuario recuperado exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ProfileResponse"
+                            "$ref": "#/definitions/response.APIResponse-internal_api_ProfileResponse"
                         }
                     },
                     "401": {
                         "description": "No autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1127,7 +1297,7 @@ const docTemplate = `{
                     "200": {
                         "description": "No autorizado o error interno",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1166,7 +1336,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Destinatario inválido, contenido vacío o no autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1191,7 +1361,7 @@ const docTemplate = `{
                     "200": {
                         "description": "No autorizado o error interno",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1216,13 +1386,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Historial de notificaciones",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification"
+                            "$ref": "#/definitions/response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification"
                         }
                     },
                     "401": {
                         "description": "No autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1256,13 +1426,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Notificación marcada como leída",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     },
                     "401": {
                         "description": "No autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1300,7 +1470,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error al procesar la solicitud",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1336,7 +1506,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error al procesar la solicitud",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1382,7 +1552,7 @@ const docTemplate = `{
                     "200": {
                         "description": "ID inválido, no autorizado o error de negocio",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1426,7 +1596,7 @@ const docTemplate = `{
                     "200": {
                         "description": "ID inválido, no autorizado o error de negocio",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1460,7 +1630,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Moneda no encontrada o monto negativo",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1480,7 +1650,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error interno",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1519,7 +1689,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Error de validación o no autorizado",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1554,7 +1724,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Moneda no encontrada o error interno",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1584,7 +1754,7 @@ const docTemplate = `{
                     "200": {
                         "description": "ID de tasa inválido o error interno",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1616,13 +1786,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Búsqueda procesada correctamente",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_UserSearchResult"
+                            "$ref": "#/definitions/response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_UserSearchResult"
                         }
                     },
                     "400": {
                         "description": "Error al buscar usuarios",
                         "schema": {
-                            "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any"
+                            "$ref": "#/definitions/response.APIResponse-any"
                         }
                     }
                 }
@@ -1630,421 +1800,58 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-any": {
+        "github_com_aaron_sakoo-backend_internal_domain.APILog": {
             "type": "object",
             "properties": {
-                "code": {
+                "created_at": {
+                    "type": "string"
+                },
+                "http_status": {
                     "type": "integer"
                 },
-                "data": {},
-                "message": {
+                "id": {
+                    "type": "integer"
+                },
+                "latency_ms": {
+                    "type": "integer"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "response_code": {
                     "type": "string"
                 },
                 "track_code": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "description": "Campo auxiliar del JOIN de usuarios",
                     "type": "string"
                 }
             }
         },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Bank": {
+        "github_com_aaron_sakoo-backend_internal_domain.ApproveExchangeRateRequest": {
             "type": "object",
             "properties": {
-                "code": {
+                "rate_average": {
+                    "type": "number"
+                },
+                "rate_from": {
+                    "type": "number"
+                },
+                "rate_id": {
                     "type": "integer"
                 },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Bank"
-                    }
+                "rate_to": {
+                    "type": "number"
                 },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Banner": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Banner"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Comment": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Currency": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Currency"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_DocumentType": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.DocumentType"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Message": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Notification"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_UserSearchResult": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.UserSearchResult"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_internal_api_RateResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_api.RateResponse"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-array_string": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.AuthResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_BankAccount": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.BankAccount"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Comment": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Message": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-int": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "integer"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_CommitmentResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/internal_api.CommitmentResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ConversionResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/internal_api.ConversionResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_DashboardResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/internal_api.DashboardResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PaginatedRatesResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/internal_api.PaginatedRatesResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_ProfileResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/internal_api.ProfileResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_PublicKeyResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/internal_api.PublicKeyResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_aaron_sakoo-backend_internal_api_response.APIResponse-internal_api_SegmentedCommitmentResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/internal_api.SegmentedCommitmentResponse"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "track_code": {
+                "source": {
                     "type": "string"
                 }
             }
@@ -2463,6 +2270,9 @@ const docTemplate = `{
                 "rate_from": {
                     "type": "string"
                 },
+                "rate_id": {
+                    "type": "integer"
+                },
                 "rate_to": {
                     "type": "string"
                 },
@@ -2489,6 +2299,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "otp_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.EncryptRequest": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "example": "mi-contraseña-secreta"
+                }
+            }
+        },
+        "internal_api.EncryptResponse": {
+            "type": "object",
+            "properties": {
+                "ciphertext": {
                     "type": "string"
                 }
             }
@@ -2529,6 +2356,29 @@ const docTemplate = `{
                 },
                 "holder_name": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_api.PaginatedLogsResponse": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.APILog"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "total_items": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         },
@@ -2618,6 +2468,9 @@ const docTemplate = `{
                 },
                 "rate_from": {
                     "type": "string"
+                },
+                "rate_id": {
+                    "type": "integer"
                 },
                 "rate_to": {
                     "type": "string"
@@ -2727,6 +2580,459 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "otp_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-any": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Bank": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Bank"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Banner": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Banner"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Comment": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Currency": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Currency"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_DocumentType": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.DocumentType"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Message": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_Notification": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Notification"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_github_com_aaron_sakoo-backend_internal_domain_UserSearchResult": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.UserSearchResult"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_internal_api_RateResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_api.RateResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-array_string": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_AuthResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.AuthResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_BankAccount": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.BankAccount"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Comment": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Comment"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-github_com_aaron_sakoo-backend_internal_domain_Message": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_aaron_sakoo-backend_internal_domain.Message"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-int": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_CommitmentResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.CommitmentResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_ConversionResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.ConversionResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_DashboardResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.DashboardResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_EncryptResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.EncryptResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_PaginatedLogsResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.PaginatedLogsResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_PaginatedRatesResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.PaginatedRatesResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_ProfileResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.ProfileResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_PublicKeyResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.PublicKeyResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse-internal_api_SegmentedCommitmentResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_api.SegmentedCommitmentResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "track_code": {
                     "type": "string"
                 }
             }
