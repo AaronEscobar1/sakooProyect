@@ -40,6 +40,14 @@ func (m *mockUserRepository) GetUserTypeCode(ctx context.Context, userTypeID int
 	return "", errors.New("not implemented")
 }
 
+func (m *mockUserRepository) DeleteUserSessions(ctx context.Context, userID int64) error {
+	return nil
+}
+
+func (m *mockUserRepository) ExtendSession(ctx context.Context, token string, newExpiresAt time.Time) error {
+	return nil
+}
+
 // mockOTPRepository implements domain.OTPRepository
 type mockOTPRepository struct {
 	domain.OTPRepository

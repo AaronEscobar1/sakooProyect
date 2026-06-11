@@ -343,7 +343,7 @@ func main() {
 	// Logout BackOffice (protegido: AuthMiddleware → AdminOnly)
 	mux.Handle("POST /api/backoffice/auth/logout",
 		middleware.AuthMiddleware(jwtSecret)(
-			adminMiddleware.AdminOnly(jwtSecret)(
+			adminMiddleware.AdminOnly(jwtSecret, userRepo)(
 				http.HandlerFunc(authHandler.HandleLogoutAdmin),
 			),
 		),
@@ -352,7 +352,7 @@ func main() {
 	// Endpoint de Aprobación/Modificación de Tasas (protegido: AuthMiddleware → AdminOnly)
 	mux.Handle("PUT /api/backoffice/rates/approve",
 		middleware.AuthMiddleware(jwtSecret)(
-			adminMiddleware.AdminOnly(jwtSecret)(
+			adminMiddleware.AdminOnly(jwtSecret, userRepo)(
 				http.HandlerFunc(exchangeRateHandler.HandleApproveRate),
 			),
 		),

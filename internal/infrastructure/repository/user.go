@@ -509,3 +509,45 @@ func (r *userRepository) GetUserTypeCode(ctx context.Context, userTypeID int64) 
 	return code, nil
 }
 
+// DeleteUserSessions elimina todas las sesiones activas asociadas a un ID de usuario.
+func (r *userRepository) DeleteUserSessions(ctx context.Context, userID int64) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Info("Eliminando todas las sesiones del usuario", "user_id", userID)
+
+	query := `
+		DELETE FROM user_sessions 
+		WHERE user_id = $1;
+	`
+	_, err := r.db.Exec(dbCtx, query, userID)
+	if err != nil {
+		slog.Error("Fallo al eliminar sesiones de usuario en PostgreSQL", "error", err, "user_id", userID)
+		return fmt.Errorf("error al eliminar sesiones del usuario: %w", err)
+	}
+
+	return nil
+}
+
+// ExtendSession actualiza la fecha de expiración de una sesión específica (expiración deslizante).
+func (r *userRepository) ExtendSession(ctx context.Context, token string, newExpiresAt time.Time) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Extendiendo expiración de sesión activa")
+
+	query := `
+		UPDATE user_sessions 
+		SET expires_at = $1 
+		WHERE token = $2;
+	`
+	_, err := r.db.Exec(dbCtx, query, newExpiresAt, token)
+	if err != nil {
+		slog.Error("Fallo al extender expiración de sesión en PostgreSQL", "error", err)
+		return fmt.Errorf("error al extender sesión: %w", err)
+	}
+
+	return nil
+}
+
+

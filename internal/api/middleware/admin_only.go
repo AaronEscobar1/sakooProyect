@@ -5,8 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/AaronEscobar1/common/response"
+	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -19,7 +21,7 @@ import (
 //
 // Si el token no contiene el claim 'user_type' o el valor no es 'ADMIN',
 // responde con HTTP 403 Forbidden estandarizado.
-func AdminOnly(jwtSecret string) func(http.Handler) http.Handler {
+func AdminOnly(jwtSecret string, userRepo domain.UserRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 1. Extraer el token JWT del header Authorization
@@ -70,7 +72,12 @@ func AdminOnly(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// 4. Autorización concedida: continuar con el handler siguiente
+			// 4. Refrescar de forma deslizante la expiración de la sesión en base de datos otros 10 minutos
+			if err := userRepo.ExtendSession(r.Context(), tokenString, time.Now().Add(10*time.Minute)); err != nil {
+				slog.Error("AdminOnly: no se pudo extender la expiración de la sesión en PostgreSQL", "error", err)
+			}
+
+			// 5. Autorización concedida: continuar con el handler siguiente
 			next.ServeHTTP(w, r)
 		})
 	}

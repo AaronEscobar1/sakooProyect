@@ -99,6 +99,8 @@ type UserRepository interface {
 	DeleteSession(ctx context.Context, token string) error
 	DeleteExpiredSessions(ctx context.Context) error
 	GetUserTypeCode(ctx context.Context, userTypeID int64) (string, error)
+	DeleteUserSessions(ctx context.Context, userID int64) error
+	ExtendSession(ctx context.Context, token string, newExpiresAt time.Time) error
 }
 
 // AuthUseCase define la lógica de negocio para el módulo de autenticación.

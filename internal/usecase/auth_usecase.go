@@ -239,10 +239,16 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 		return res, fmt.Errorf("error al registrar en historial de contraseñas: %w", err)
 	}
 
-	// 6. Crear token JWT con claims estándar inyectando user_id como int64
+	// 5.5 Limpiar sesiones previas del usuario antes de crear la nueva para forzar login único
+	if err := s.userRepo.DeleteUserSessions(ctx, user.ID); err != nil {
+		slog.Error("Fallo al limpiar sesiones previas tras registro", "error", err, "user_id", user.ID)
+		return res, fmt.Errorf("error al procesar sesiones de usuario: %w", err)
+	}
+
+	// 6. Crear token JWT con claims estándar (duración de 10 años para app móvil/CUSTOMER)
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(), // Duración estándar de 24 horas
+		"exp":     time.Now().AddDate(10, 0, 0).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
@@ -255,8 +261,8 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
 	}
 
-	// Registrar la sesión activa en la base de datos
-	sessionExpiresAt := time.Now().Add(24 * time.Hour)
+	// Registrar la sesión activa en la base de datos (duración de 10 años para app móvil/CUSTOMER)
+	sessionExpiresAt := time.Now().AddDate(10, 0, 0)
 	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
 		slog.Error("Fallo al registrar la sesión activa tras registro", "error", err, "user_id", user.ID)
 		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
@@ -292,10 +298,16 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 		return res, errors.New("Credenciales incorrectas")
 	}
 
-	// 3. Crear token JWT con claims estándar inyectando user_id como int64
+	// 2.5 Limpiar sesiones previas del usuario antes de crear la nueva para forzar login único
+	if err := s.userRepo.DeleteUserSessions(ctx, user.ID); err != nil {
+		slog.Error("Fallo al limpiar sesiones previas tras login", "error", err, "user_id", user.ID)
+		return res, fmt.Errorf("error al procesar sesiones de usuario: %w", err)
+	}
+
+	// 3. Crear token JWT con claims estándar (duración de 10 años para app móvil/CUSTOMER)
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(), // Duración estándar de 24 horas
+		"exp":     time.Now().AddDate(10, 0, 0).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
@@ -308,8 +320,8 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
 	}
 
-	// Registrar la sesión activa en la base de datos
-	sessionExpiresAt := time.Now().Add(24 * time.Hour)
+	// Registrar la sesión activa en la base de datos (duración de 10 años para app móvil/CUSTOMER)
+	sessionExpiresAt := time.Now().AddDate(10, 0, 0)
 	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
 		slog.Error("Fallo al registrar la sesión activa tras login", "error", err, "user_id", user.ID)
 		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
@@ -386,8 +398,8 @@ func (s *authUseCase) LoginAdmin(ctx context.Context, req domain.LoginAdminReque
 		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
 	}
 
-	// 5. Registrar la sesión activa en la base de datos
-	sessionExpiresAt := time.Now().Add(24 * time.Hour)
+	// 5. Registrar la sesión activa en la base de datos (duración inicial de 10 minutos)
+	sessionExpiresAt := time.Now().Add(10 * time.Minute)
 	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
 		slog.Error("Fallo al registrar la sesión activa tras login BackOffice", "error", err, "user_id", user.ID)
 		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)

@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,8 +9,21 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/api/middleware"
+	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+type mockUserRepository struct {
+	domain.UserRepository
+	extendSessionFunc func(ctx context.Context, token string, expiresAt time.Time) error
+}
+
+func (m *mockUserRepository) ExtendSession(ctx context.Context, token string, expiresAt time.Time) error {
+	if m.extendSessionFunc != nil {
+		return m.extendSessionFunc(ctx, token, expiresAt)
+	}
+	return nil
+}
 
 func TestAdminOnly(t *testing.T) {
 	jwtSecret := "test-secret-key"
@@ -88,7 +102,8 @@ func TestAdminOnly(t *testing.T) {
 			})
 
 			// Instantiate middleware
-			mw := middleware.AdminOnly(jwtSecret)(nextHandler)
+			repo := &mockUserRepository{}
+			mw := middleware.AdminOnly(jwtSecret, repo)(nextHandler)
 
 			// Create test request
 			req := httptest.NewRequest(http.MethodPut, "/api/backoffice/rates/approve", nil)
