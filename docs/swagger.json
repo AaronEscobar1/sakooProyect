@@ -378,6 +378,43 @@
                 }
             }
         },
+        "/api/backoffice/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Invalida el token JWT de la sesión activa del administrador en el servidor.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BackOffice"
+                ],
+                "summary": "Cerrar sesión de administrador (BackOffice)",
+                "responses": {
+                    "200": {
+                        "description": "Sesión administrativa cerrada exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado (no es ADMIN)",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse-any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/backoffice/rates/approve": {
             "put": {
                 "security": [

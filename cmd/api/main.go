@@ -340,6 +340,15 @@ func main() {
 	// Login BackOffice (público, sin JWT previo — la validación de rol ocurre internamente)
 	mux.HandleFunc("POST /api/backoffice/auth/login", authHandler.HandleLoginAdmin)
 
+	// Logout BackOffice (protegido: AuthMiddleware → AdminOnly)
+	mux.Handle("POST /api/backoffice/auth/logout",
+		middleware.AuthMiddleware(jwtSecret)(
+			adminMiddleware.AdminOnly(jwtSecret)(
+				http.HandlerFunc(authHandler.HandleLogoutAdmin),
+			),
+		),
+	)
+
 	// Endpoint de Aprobación/Modificación de Tasas (protegido: AuthMiddleware → AdminOnly)
 	mux.Handle("PUT /api/backoffice/rates/approve",
 		middleware.AuthMiddleware(jwtSecret)(

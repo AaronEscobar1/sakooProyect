@@ -1064,6 +1064,30 @@ paths:
       summary: Iniciar sesión de administrador (BackOffice)
       tags:
       - BackOffice
+  /api/backoffice/auth/logout:
+    post:
+      description: Invalida el token JWT de la sesión activa del administrador en
+        el servidor.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sesión administrativa cerrada exitosamente
+          schema:
+            $ref: '#/definitions/response.APIResponse-any'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/response.APIResponse-any'
+        "403":
+          description: Acceso denegado (no es ADMIN)
+          schema:
+            $ref: '#/definitions/response.APIResponse-any'
+      security:
+      - ApiKeyAuth: []
+      summary: Cerrar sesión de administrador (BackOffice)
+      tags:
+      - BackOffice
   /api/backoffice/rates/approve:
     put:
       consumes:

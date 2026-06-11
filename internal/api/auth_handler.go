@@ -343,6 +343,45 @@ func (h *AuthHandler) HandleLoginAdmin(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, r.Context(), "SUCCESS", "sesión administrativa iniciada correctamente", res)
 }
 
+// HandleLogoutAdmin maneja la petición POST /api/backoffice/auth/logout para cerrar la sesión de un administrador.
+// @Summary      Cerrar sesión de administrador (BackOffice)
+// @Description  Invalida el token JWT de la sesión activa del administrador en el servidor.
+// @Security     ApiKeyAuth
+// @Tags         BackOffice
+// @Produce      json
+// @Success      200   {object}  response.APIResponse[any]  "Sesión administrativa cerrada exitosamente"
+// @Failure      401   {object}  response.APIResponse[any]  "No autorizado"
+// @Failure      403   {object}  response.APIResponse[any]  "Acceso denegado (no es ADMIN)"
+// @Router       /api/backoffice/auth/logout [post]
+func (h *AuthHandler) HandleLogoutAdmin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
+		return
+	}
+
+	// 1. Extraer el ID del administrador autenticado del contexto (inyectado por AuthMiddleware)
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
+		return
+	}
+
+	// 2. Extraer el token de sesión de forma segura
+	token, _ := middleware.GetTokenFromContext(r.Context())
+
+	// 3. Invocar el caso de uso pasando el token a invalidar
+	if err := h.authUseCase.Logout(r.Context(), userID, token); err != nil {
+		slog.Error("Fallo al cerrar sesión del administrador", "error", err, "user_id", userID)
+		response.Error(w, r.Context(), http.StatusInternalServerError, "INTERNAL_ERROR", "Error al cerrar la sesión")
+		return
+	}
+
+	w.Header().Set("X-Response-Code", "LOGOUT")
+
+	response.Success(w, r.Context(), "SUCCESS", "sesión administrativa cerrada exitosamente", nil)
+}
+
+
 // HandleResetPassword maneja la petición POST /api/v1/auth/password/reset para restablecer contraseña exigiendo OTP.
 // @Summary      Restablecer contraseña
 // @Description  Restablece la contraseña de un usuario validando el código OTP enviado a su correo.
