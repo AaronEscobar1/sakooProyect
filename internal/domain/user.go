@@ -64,6 +64,14 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+// LoginAdminRequest extiende LoginRequest para el flujo de autenticación del BackOffice.
+// RequiresAdmin se inyecta internamente por el handler; nunca proviene del cliente (json:"-").
+type LoginAdminRequest struct {
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	RequiresAdmin bool   `json:"-"`
+}
+
 type AuthResponse struct {
 	Token string `json:"token"`
 }
@@ -90,12 +98,14 @@ type UserRepository interface {
 	ValidateSession(ctx context.Context, token string) (bool, error)
 	DeleteSession(ctx context.Context, token string) error
 	DeleteExpiredSessions(ctx context.Context) error
+	GetUserTypeCode(ctx context.Context, userTypeID int64) (string, error)
 }
 
 // AuthUseCase define la lógica de negocio para el módulo de autenticación.
 type AuthUseCase interface {
 	Register(ctx context.Context, req RegisterRequest) (AuthResponse, error)
 	Login(ctx context.Context, req LoginRequest) (AuthResponse, error)
+	LoginAdmin(ctx context.Context, req LoginAdminRequest) (AuthResponse, error)
 	Logout(ctx context.Context, userID int64, token string) error
 	RequestOTP(ctx context.Context, email, action string) (string, error)
 	ValidateOTP(ctx context.Context, email, code, action string) error

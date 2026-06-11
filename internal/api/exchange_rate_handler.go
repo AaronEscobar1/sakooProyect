@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
+	"github.com/AaronEscobar1/common/middleware"
 	"github.com/AaronEscobar1/common/response"
+	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/aaron/sakoo-backend/internal/usecase"
 )
 
@@ -164,4 +167,49 @@ func (h *ExchangeRateHandler) HandleGetRatesHistory(w http.ResponseWriter, r *ht
 	}
 
 	response.Success(w, r.Context(), "SUCCESS", "Historial de tasas de cambio obtenido exitosamente", res)
+}
+
+// HandleApproveRate maneja la petición PUT /api/backoffice/rates/approve para aprobar y/o modificar una tasa de cambio.
+// @Summary      Aprobar/Modificar tasa de cambio (BackOffice)
+// @Description  Actualiza las columnas rate_from, rate_to, rate_average, cambia el status a 'APPROVED' y asienta el source en market.exchange_rates.
+// @Security     ApiKeyAuth
+// @Tags         BackOffice
+// @Accept       json
+// @Produce      json
+// @Param        body  body  domain.ApproveExchangeRateRequest  true  "Datos de aprobación de tasa"
+// @Success      200   {object}  response.APIResponse[any]  "Tasa de cambio aprobada exitosamente"
+// @Failure      400   {object}  response.APIResponse[any]  "Datos de entrada inválidos"
+// @Failure      401   {object}  response.APIResponse[any]  "No autorizado"
+// @Failure      403   {object}  response.APIResponse[any]  "Acceso denegado (no es ADMIN)"
+// @Router       /api/backoffice/rates/approve [put]
+func (h *ExchangeRateHandler) HandleApproveRate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere PUT)")
+		return
+	}
+
+	// 1. Extraer el ID del administrador autenticado del contexto (inyectado por AuthMiddleware)
+	adminUserID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Autorización denegada: no se pudo recuperar el ID del usuario")
+		return
+	}
+
+	// 2. Decodificar el cuerpo JSON con los datos de aprobación
+	var req domain.ApproveExchangeRateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
+		return
+	}
+
+	// 3. Ejecutar el caso de uso de aprobación
+	if err := h.useCase.ApproveRate(r.Context(), req, adminUserID); err != nil {
+		slog.Error("Fallo al aprobar tasa de cambio desde el BackOffice",
+			"error", err, "rate_id", req.RateID, "admin_user_id", adminUserID,
+		)
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	response.Success(w, r.Context(), "SUCCESS", "Tasa de cambio aprobada exitosamente", nil)
 }

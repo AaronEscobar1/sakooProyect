@@ -11,6 +11,7 @@ import (
 	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 )
 
 // exchangeRateRepository implementa la interfaz domain.ExchangeRateRepository para PostgreSQL.
@@ -603,3 +604,48 @@ func (r *exchangeRateRepository) GetCalendarDates(ctx context.Context) ([]string
 	}
 	return dates, nil
 }
+
+// UpdateRateApproval actualiza una tasa de cambio con las tasas manuales, marca el status como 'APPROVED' y registra el source.
+func (r *exchangeRateRepository) UpdateRateApproval(
+	ctx context.Context,
+	rateID int64,
+	rateFrom, rateTo, rateAverage decimal.Decimal,
+	source string,
+) error {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Info("Ejecutando aprobación de tasa de cambio en base de datos",
+		"rate_id", rateID,
+		"rate_from", rateFrom.String(),
+		"rate_to", rateTo.String(),
+		"rate_average", rateAverage.String(),
+		"source", source,
+	)
+
+	query := `
+		UPDATE exchange_rates 
+		SET rate_from = $1,
+		    rate_to = $2,
+		    rate_average = $3,
+		    status = 'APPROVED',
+		    source = $4,
+		    updated_at = NOW()
+		WHERE id = $5;
+	`
+
+	res, err := r.db.Exec(dbCtx, query, rateFrom, rateTo, rateAverage, source, rateID)
+	if err != nil {
+		slog.Error("Fallo al aprobar tasa de cambio en PostgreSQL", "error", err, "rate_id", rateID)
+		return fmt.Errorf("error al aprobar tasa de cambio: %w", err)
+	}
+
+	if res.RowsAffected() == 0 {
+		slog.Warn("Tasa de cambio no encontrada para aprobación", "rate_id", rateID)
+		return fmt.Errorf("tasa de cambio con ID %d no encontrada", rateID)
+	}
+
+	slog.Info("Tasa de cambio aprobada exitosamente en base de datos", "rate_id", rateID)
+	return nil
+}
+

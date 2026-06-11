@@ -22,6 +22,15 @@ type ExchangeRate struct {
 	UpdatedAt   time.Time
 }
 
+// ApproveExchangeRateRequest define el DTO de entrada para aprobar/modificar una tasa desde el BackOffice.
+type ApproveExchangeRateRequest struct {
+	RateID      int64           `json:"rate_id"`
+	RateFrom    decimal.Decimal `json:"rate_from"`
+	RateTo      decimal.Decimal `json:"rate_to"`
+	RateAverage decimal.Decimal `json:"rate_average"`
+	Source      string          `json:"source"`
+}
+
 // ExchangeRateRepository define las operaciones de persistencia de tasas de cambio.
 type ExchangeRateRepository interface {
 	Upsert(ctx context.Context, rate *ExchangeRate) error
@@ -35,4 +44,14 @@ type ExchangeRateRepository interface {
 	GetRatesHistory(ctx context.Context, currencyCode string, limit int) ([]ExchangeRate, error)
 	GetRatesHistoryBeforeOrAt(ctx context.Context, currencyCode string, date time.Time, limit int) ([]ExchangeRate, error)
 	GetCalendarDates(ctx context.Context) ([]string, error)
+	UpdateRateApproval(ctx context.Context, rateID int64, rateFrom, rateTo, rateAverage decimal.Decimal, source string) error
 }
+
+// ExchangeRateUseCase define la lógica de negocio para interactuar con las tasas de cambio.
+type ExchangeRateUseCase interface {
+	GetLatestRates(ctx context.Context) ([]ExchangeRate, error)
+	GetRatesHistory(ctx context.Context, page, limit int, currencyCode, startDateStr, endDateStr string) ([]ExchangeRate, int, error)
+	GetCalendarDates(ctx context.Context) ([]string, error)
+	ApproveRate(ctx context.Context, req ApproveExchangeRateRequest, adminUserID int64) error
+}
+

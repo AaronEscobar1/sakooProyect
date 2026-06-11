@@ -2,10 +2,13 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
+	"github.com/shopspring/decimal"
 )
 
 // ExchangeRateUseCase define la lógica de negocio para interactuar con las tasas de cambio.
@@ -68,5 +71,51 @@ func (uc *ExchangeRateUseCase) GetRatesHistory(
 // GetCalendarDates obtiene la lista de fechas únicas formateadas.
 func (uc *ExchangeRateUseCase) GetCalendarDates(ctx context.Context) ([]string, error) {
 	return uc.repo.GetCalendarDates(ctx)
+}
+
+// ApproveRate valida y ejecuta la aprobación manual de una tasa de cambio desde el BackOffice.
+// Actualiza rate_from, rate_to, rate_average, cambia el status a 'APPROVED' y asienta el source.
+func (uc *ExchangeRateUseCase) ApproveRate(ctx context.Context, req domain.ApproveExchangeRateRequest, adminUserID int64) error {
+	slog.Info("Ejecutando caso de uso de aprobación de tasa de cambio (BackOffice)",
+		"rate_id", req.RateID, "admin_user_id", adminUserID,
+	)
+
+	// 1. Validaciones defensivas de entrada
+	if req.RateID <= 0 {
+		return errors.New("el ID de la tasa de cambio es requerido y debe ser un número positivo")
+	}
+
+	zero := decimal.NewFromInt(0)
+	if req.RateFrom.LessThanOrEqual(zero) {
+		return errors.New("el campo rate_from debe ser un valor positivo mayor a cero")
+	}
+	if req.RateTo.LessThanOrEqual(zero) {
+		return errors.New("el campo rate_to debe ser un valor positivo mayor a cero")
+	}
+	if req.RateAverage.LessThanOrEqual(zero) {
+		return errors.New("el campo rate_average debe ser un valor positivo mayor a cero")
+	}
+
+	if req.Source == "" {
+		return errors.New("el campo source es requerido (ej: 'MANUAL', 'SCRAPING')")
+	}
+
+	// 2. Ejecutar la aprobación en el repositorio
+	if err := uc.repo.UpdateRateApproval(ctx, req.RateID, req.RateFrom, req.RateTo, req.RateAverage, req.Source); err != nil {
+		slog.Error("Fallo al aprobar tasa de cambio en el caso de uso",
+			"error", err, "rate_id", req.RateID, "admin_user_id", adminUserID,
+		)
+		return err
+	}
+
+	slog.Info("Tasa de cambio aprobada exitosamente desde el BackOffice",
+		"rate_id", req.RateID, "admin_user_id", adminUserID,
+		"rate_from", req.RateFrom.String(),
+		"rate_to", req.RateTo.String(),
+		"rate_average", req.RateAverage.String(),
+		"source", req.Source,
+	)
+
+	return nil
 }
 

@@ -321,6 +321,84 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 	return res, nil
 }
 
+// LoginAdmin autentica un usuario para el BackOffice y genera un token JWT con el claim 'user_type'.
+// SEGURIDAD CRÍTICA: Si el usuario es CUSTOMER, retorna exactamente el mismo error genérico
+// que una contraseña incorrecta para mitigar ataques de enumeración de usuarios.
+func (s *authUseCase) LoginAdmin(ctx context.Context, req domain.LoginAdminRequest) (domain.AuthResponse, error) {
+	slog.Debug("Ejecutando caso de uso de Login Administrativo (BackOffice)", "email", req.Email)
+
+	var res domain.AuthResponse
+
+	if req.Email == "" || req.Password == "" {
+		return res, errors.New("El correo electrónico y la contraseña son requeridos")
+	}
+
+	// 1. Buscar el usuario registrado por email
+	user, err := s.userRepo.FindByEmail(ctx, req.Email)
+	if err != nil {
+		slog.Warn("Login BackOffice denegado: usuario no encontrado en base de datos", "email", req.Email)
+		// SEGURIDAD: Mismo mensaje genérico que contraseña incorrecta
+		return res, errors.New("Credenciales incorrectas")
+	}
+
+	// 2. Comparar el hash bcrypt con la contraseña recibida
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
+	if err != nil {
+		slog.Warn("Login BackOffice denegado: contraseña incorrecta", "email", req.Email, "user_id", user.ID)
+		return res, errors.New("Credenciales incorrectas")
+	}
+
+	// 3. VALIDACIÓN DE ROL: Si RequiresAdmin, verificar que el usuario sea ADMIN.
+	//    Si es CUSTOMER u otro rol, abortar con el MISMO error genérico para evitar enumeración.
+	if req.RequiresAdmin {
+		userTypeCode, err := s.userRepo.GetUserTypeCode(ctx, user.UserTypeID)
+		if err != nil {
+			slog.Warn("Login BackOffice denegado: no se pudo verificar el tipo de usuario",
+				"email", req.Email, "user_id", user.ID, "user_type_id", user.UserTypeID, "error", err,
+			)
+			// SEGURIDAD: Mismo mensaje genérico — no revelamos detalles del error interno
+			return res, errors.New("Credenciales incorrectas")
+		}
+
+		if userTypeCode != "ADMIN" {
+			slog.Warn("Login BackOffice denegado: rol insuficiente (usuario no es ADMIN)",
+				"email", req.Email, "user_id", user.ID, "user_type_code", userTypeCode,
+			)
+			// SEGURIDAD CRÍTICA: NO generamos token ni sesión. Retornamos el MISMO error
+			// genérico para impedir que un atacante descubra que el usuario existe con otro rol.
+			return res, errors.New("Credenciales incorrectas")
+		}
+	}
+
+	// 4. Crear token JWT con claims extendidos incluyendo user_type para validación posterior
+	claims := jwt.MapClaims{
+		"user_id":   user.ID,
+		"user_type": "ADMIN",
+		"exp":       time.Now().Add(24 * time.Hour).Unix(),
+		"iat":       time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString([]byte(s.jwtSecret))
+	if err != nil {
+		slog.Error("Fallo crítico al firmar el token JWT administrativo", "error", err, "user_id", user.ID)
+		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
+	}
+
+	// 5. Registrar la sesión activa en la base de datos
+	sessionExpiresAt := time.Now().Add(24 * time.Hour)
+	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
+		slog.Error("Fallo al registrar la sesión activa tras login BackOffice", "error", err, "user_id", user.ID)
+		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
+	}
+
+	slog.Info("Sesión administrativa iniciada con éxito. Emisión de token JWT con user_type=ADMIN autorizada", "user_id", user.ID)
+
+	res.Token = tokenString
+	return res, nil
+}
+
 // Logout maneja el cierre de sesión de un usuario y elimina la sesión activa de la base de datos.
 func (s *authUseCase) Logout(ctx context.Context, userID int64, token string) error {
 	slog.Info("Cierre de sesión solicitado y procesado en el caso de uso", "user_id", userID)

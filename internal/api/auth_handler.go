@@ -297,6 +297,52 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, r.Context(), "SUCCESS", "sesión iniciada correctamente", res)
 }
 
+// HandleLoginAdmin maneja la petición POST /api/backoffice/auth/login para autenticar usuarios administrativos del BackOffice.
+// SEGURIDAD: Si un CUSTOMER intenta acceder, retorna el mismo error genérico que credenciales incorrectas.
+// @Summary      Iniciar sesión de administrador (BackOffice)
+// @Description  Autentica a un usuario administrativo mediante email y contraseña cifrada. Solo usuarios con rol ADMIN pueden obtener un token.
+// @Tags         BackOffice
+// @Accept       json
+// @Produce      json
+// @Param        body  body  domain.LoginRequest  true  "Credenciales de acceso"
+// @Success      200   {object}  response.APIResponse[domain.AuthResponse]  "Sesión administrativa iniciada correctamente"
+// @Failure      401   {object}  response.APIResponse[any]                 "Credenciales incorrectas"
+// @Router       /api/backoffice/auth/login [post]
+func (h *AuthHandler) HandleLoginAdmin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.Error(w, r.Context(), http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método no permitido (se requiere POST)")
+		return
+	}
+
+	var req domain.LoginAdminRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r.Context(), http.StatusBadRequest, "INVALID_JSON", "Formato de cuerpo JSON inválido")
+		return
+	}
+
+	// 1. Descifrar la contraseña cifrada en RSA que viene en formato Base64 desde el cliente
+	decryptedPassword, err := security.DecryptPassword(req.Password)
+	if err != nil {
+		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", "Las credenciales enviadas no tienen el formato de seguridad esperado")
+		return
+	}
+	req.Password = decryptedPassword
+
+	// 2. Inyectar la bandera RequiresAdmin (nunca viene del cliente por json:"-")
+	req.RequiresAdmin = true
+
+	// 3. Autenticar con validación de rol
+	res, err := h.authUseCase.LoginAdmin(r.Context(), req)
+	if err != nil {
+		// SEGURIDAD: Siempre retornamos el mismo mensaje genérico HTTP 401
+		// sin importar si el error fue por usuario inexistente, password incorrecto o rol inválido.
+		response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "Correo electrónico o contraseña incorrectos")
+		return
+	}
+
+	response.Success(w, r.Context(), "SUCCESS", "sesión administrativa iniciada correctamente", res)
+}
+
 // HandleResetPassword maneja la petición POST /api/v1/auth/password/reset para restablecer contraseña exigiendo OTP.
 // @Summary      Restablecer contraseña
 // @Description  Restablece la contraseña de un usuario validando el código OTP enviado a su correo.

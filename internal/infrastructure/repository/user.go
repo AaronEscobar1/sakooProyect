@@ -486,3 +486,26 @@ func (r *userRepository) DeleteExpiredSessions(ctx context.Context) error {
 	return nil
 }
 
+// GetUserTypeCode obtiene el código del tipo de usuario (ej: 'ADMIN', 'CUSTOMER') desde catalogs.user_type.
+func (r *userRepository) GetUserTypeCode(ctx context.Context, userTypeID int64) (string, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Consultando tipo de usuario por ID", "user_type_id", userTypeID)
+
+	query := `SELECT code FROM catalogs.user_type WHERE id = $1;`
+
+	var code string
+	err := r.db.QueryRow(dbCtx, query, userTypeID).Scan(&code)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			slog.Warn("Tipo de usuario no encontrado en catálogo", "user_type_id", userTypeID)
+			return "", fmt.Errorf("tipo de usuario no encontrado: %w", pgx.ErrNoRows)
+		}
+		slog.Error("Error al consultar tipo de usuario en PostgreSQL", "error", err, "user_type_id", userTypeID)
+		return "", fmt.Errorf("error al consultar tipo de usuario: %w", err)
+	}
+
+	return code, nil
+}
+

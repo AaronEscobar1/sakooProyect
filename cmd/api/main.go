@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/internal/api"
+	adminMiddleware "github.com/aaron/sakoo-backend/internal/api/middleware"
 	"github.com/AaronEscobar1/common/middleware"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/cron"
 	"github.com/AaronEscobar1/common/database"
@@ -332,7 +333,22 @@ func main() {
 	mux.Handle("POST /api/admin/notifications/send", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleSendAdminNotification)))
 	mux.Handle("POST /api/admin/notifications/test", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(notificationHandler.HandleTestPushNotification)))
 
-	// 10. Aplicar el Middleware de Trazabilidad y Logs asíncronos de forma global
+	// ============================================================================
+	// RUTAS DEL BACKOFFICE WEB (Autenticación Administrativa + Endpoints Protegidos)
+	// ============================================================================
+
+	// Login BackOffice (público, sin JWT previo — la validación de rol ocurre internamente)
+	mux.HandleFunc("POST /api/backoffice/auth/login", authHandler.HandleLoginAdmin)
+
+	// Endpoint de Aprobación/Modificación de Tasas (protegido: AuthMiddleware → AdminOnly)
+	mux.Handle("PUT /api/backoffice/rates/approve",
+		middleware.AuthMiddleware(jwtSecret)(
+			adminMiddleware.AdminOnly(jwtSecret)(
+				http.HandlerFunc(exchangeRateHandler.HandleApproveRate),
+			),
+		),
+	)
+
 	globalHandler := middleware.TraceAndLogMiddleware(pool)(mux)
 
 	// Habilitar CORS para depuración local (Flutter Web, Swagger, etc.)
