@@ -10,10 +10,18 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 	"sync"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+// isProductionEnv indica si el backend corre en un entorno productivo según GO_ENV.
+func isProductionEnv() bool {
+	env := strings.ToLower(strings.TrimSpace(os.Getenv("GO_ENV")))
+	return env == "production" || env == "prod"
+}
 
 var (
 	privateKey *rsa.PrivateKey
@@ -78,7 +86,13 @@ func DecryptPassword(base64Ciphertext string) (string, error) {
 	}
 
 	if len(base64Ciphertext) < 300 {
-		slog.Debug("Contraseña recibida en texto plano. Omitiendo descifrado RSA (Compatible con Bruno/Postman/Dev).", "length", len(base64Ciphertext))
+		// SEGURIDAD: el "passthrough" de texto plano solo se permite fuera de producción
+		// (Bruno/Postman/dev). En producción las credenciales DEBEN venir cifradas con RSA.
+		if isProductionEnv() {
+			slog.Warn("Credencial recibida sin cifrar en producción: rechazada por política de seguridad", "length", len(base64Ciphertext))
+			return "", errors.New("Las credenciales deben enviarse cifradas (RSA) en este entorno")
+		}
+		slog.Debug("Contraseña recibida en texto plano. Omitiendo descifrado RSA (solo entornos de desarrollo).", "length", len(base64Ciphertext))
 		return base64Ciphertext, nil
 	}
 

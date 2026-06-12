@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -20,9 +21,16 @@ type tokenContextKey struct{}
 var userContextKey = contextKey{}
 var TokenContextKey = tokenContextKey{}
 
-// SessionValidator define el contrato para verificar si un token de sesión sigue siendo válido en la base de datos.
+// SessionSlidingWindow es la ventana de inactividad de la sesión de usuario.
+// Mientras el usuario haga peticiones autenticadas dentro de esta ventana, la sesión
+// se renueva automáticamente (expiración deslizante). Si supera este tiempo sin actividad,
+// la sesión caduca en BD y deberá volver a iniciar sesión. NO afecta al token del cliente.
+const SessionSlidingWindow = 7 * 24 * time.Hour
+
+// SessionValidator define el contrato para verificar y renovar la sesión en la base de datos.
 type SessionValidator interface {
 	ValidateSession(ctx context.Context, token string) (bool, error)
+	ExtendSession(ctx context.Context, token string, newExpiresAt time.Time) error
 }
 
 var globalSessionValidator SessionValidator
@@ -192,6 +200,13 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 					response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "autorización denegada: sesión expirada o cerrada")
 					return
 				}
+
+				// Expiración deslizante: renovar la sesión en cada request autenticado.
+				// Así el dispositivo permanece "vinculado" mientras se use la app dentro de
+				// la ventana, y un token filtrado caduca tras SessionSlidingWindow de inactividad.
+				if err := globalSessionValidator.ExtendSession(r.Context(), tokenString, time.Now().Add(SessionSlidingWindow)); err != nil {
+					slog.Error("No se pudo renovar la expiración deslizante de la sesión", "user_id", userID, "error", err)
+				}
 			}
 
 			w.Header().Set("X-Authenticated-User-ID", fmt.Sprintf("%d", userID))
@@ -226,12 +241,11 @@ func AdminApiKeyMiddleware(adminApiKey string) func(http.Handler) http.Handler {
 				return
 			}
 
+			// SEGURIDAD: la API Key solo se acepta por cabecera. No se admite por query string
+			// para evitar que quede registrada en logs de acceso, proxies o el historial del navegador.
 			key := r.Header.Get("X-Admin-Api-Key")
-			if key == "" {
-				key = r.URL.Query().Get("admin_api_key")
-			}
 
-			if key != adminApiKey {
+			if subtle.ConstantTimeCompare([]byte(key), []byte(adminApiKey)) != 1 {
 				slog.Warn("Intento de acceso administrativo no autorizado detectado", "ip", r.RemoteAddr, "path", r.URL.Path)
 				response.Error(w, r.Context(), http.StatusUnauthorized, "UNAUTHORIZED", "acceso denegado: API Key de administración inválida o ausente")
 				return

@@ -52,7 +52,7 @@ func (r *otpRepository) CreateOTP(ctx context.Context, otp *domain.UserOTP) erro
 
 	if err != nil {
 		slog.Error("Fallo al guardar OTP en PostgreSQL", "error", err, "email", otp.Email)
-		return fmt.Errorf("error al guardar OTP en base de datos: %w", err)
+		return fmt.Errorf("error al guardar OTP en base de datos")
 	}
 
 	slog.Info("OTP registrado exitosamente", "id", otp.ID, "email", otp.Email, "action", otp.Action)
@@ -81,7 +81,7 @@ func (r *otpRepository) ValidateAndConsumeOTP(ctx context.Context, email, code, 
 			return errors.New("Código OTP inválido, expirado o ya consumido")
 		}
 		slog.Error("Error al consumir OTP en PostgreSQL", "error", err, "email", email)
-		return fmt.Errorf("Error al verificar el código OTP: %w", err)
+		return fmt.Errorf("Error al verificar el código OTP")
 	}
 
 	slog.Info("OTP validado y consumido correctamente", "id", id, "email", email, "action", action)
@@ -110,7 +110,7 @@ func (r *otpRepository) ValidateOTPOnly(ctx context.Context, email, code, action
 			return errors.New("Código OTP inválido, expirado o ya consumido")
 		}
 		slog.Error("Error al validar OTP en PostgreSQL", "error", err, "email", email)
-		return fmt.Errorf("Error al verificar el código OTP: %w", err)
+		return fmt.Errorf("Error al verificar el código OTP")
 	}
 
 	slog.Info("OTP validado correctamente (sin consumir)", "id", id, "email", email, "action", action)
@@ -135,7 +135,7 @@ func (r *otpRepository) HasRecentOTP(ctx context.Context, email, action string, 
 	err := r.db.QueryRow(dbCtx, query, email, action, seconds).Scan(&exists)
 	if err != nil {
 		slog.Error("Fallo al comprobar OTP reciente en PostgreSQL", "error", err, "email", email)
-		return false, fmt.Errorf("error al verificar OTP reciente: %w", err)
+		return false, fmt.Errorf("error al verificar OTP reciente")
 	}
 
 	return exists, nil

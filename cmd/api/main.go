@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -47,9 +48,14 @@ import (
 // @name                       Authorization
 // @description                Coloque el token JWT de la siguiente manera: "Bearer <token>"
 func main() {
-	// 1. Inicializar logger estructurado slog en formato JSON para trazabilidad avanzada
+	// 1. Inicializar logger estructurado slog en formato JSON para trazabilidad avanzada.
+	// En producción se usa nivel Info para no exponer datos sensibles ni ruido de depuración.
+	logLevel := slog.LevelDebug
+	if env := strings.ToLower(strings.TrimSpace(os.Getenv("GO_ENV"))); env == "production" || env == "prod" {
+		logLevel = slog.LevelInfo
+	}
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug, // Permite visualizar logs detallados en desarrollo
+		Level: logLevel,
 	})
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
@@ -80,9 +86,14 @@ func main() {
 	if dbURL == "" {
 		// Fallback amigable para pruebas rápidas de desarrollo local
 		dbURL = "postgres://postgres:postgres@localhost:5432/sakoo?sslmode=disable"
-		slog.Warn("La variable de entorno DATABASE_URL no está definida. Utilizando dirección de desarrollo por defecto", 
+		slog.Warn("La variable de entorno DATABASE_URL no está definida. Utilizando dirección de desarrollo por defecto",
 			"fallback_url", "postgres://postgres:xxxxx@localhost:5432/sakoo?sslmode=disable",
 		)
+	}
+
+	// SEGURIDAD: advertir si en producción la conexión a PostgreSQL viaja sin cifrar (sslmode=disable).
+	if env := strings.ToLower(strings.TrimSpace(os.Getenv("GO_ENV"))); (env == "production" || env == "prod") && strings.Contains(dbURL, "sslmode=disable") {
+		slog.Warn("DATABASE_URL usa sslmode=disable en producción: el tráfico con PostgreSQL NO está cifrado. Usa sslmode=require (o verify-full).")
 	}
 
 	// 4. Conectar a PostgreSQL y ejecutar las migraciones automáticamente
@@ -121,17 +132,21 @@ func main() {
 		slog.Info("Pool de conexiones cerrado con éxito")
 	}()
 
-	// 5. Leer clave secreta para firmar tokens JWT y la API Key administrativa
+	// 5. Leer clave secreta para firmar tokens JWT y la API Key administrativa.
+	// SEGURIDAD: son OBLIGATORIAS. No se permite ninguna clave por defecto: si faltan, el servidor aborta.
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		jwtSecret = "super-secret-key-change-in-production-12345!"
-		slog.Warn("La variable de entorno JWT_SECRET no está definida. Utilizando clave de desarrollo por defecto.")
+		slog.Error("Fallo crítico: la variable de entorno JWT_SECRET no está definida. Configúrala con un secreto aleatorio (≥32 bytes). El servidor no arrancará con una clave por defecto.")
+		os.Exit(1)
+	}
+	if len(jwtSecret) < 32 {
+		slog.Warn("JWT_SECRET es más corta de lo recomendado (<32 caracteres). Usa un secreto aleatorio de al menos 32 bytes.")
 	}
 
 	adminApiKey := os.Getenv("ADMIN_API_KEY")
 	if adminApiKey == "" {
-		adminApiKey = "admin-secret-api-key-12345!"
-		slog.Warn("La variable de entorno ADMIN_API_KEY no está definida. Utilizando API Key de desarrollo por defecto.")
+		slog.Error("Fallo crítico: la variable de entorno ADMIN_API_KEY no está definida. Configúrala con un valor secreto aleatorio. El servidor no arrancará con una clave por defecto.")
+		os.Exit(1)
 	}
 
 	// 6. Instanciar los repositorios core de la capa de infraestructura
@@ -243,8 +258,10 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := pool.Ping(ctx); err != nil {
+			// SEGURIDAD: el detalle del error se registra en el log, no se expone al cliente.
+			slog.Error("Healthcheck: fallo de conexión con la base de datos", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"status":"DOWN","database":"DISCONNECTED","error":"` + err.Error() + `"}`))
+			_, _ = w.Write([]byte(`{"status":"DOWN","database":"DISCONNECTED"}`))
 			return
 		}
 
@@ -252,17 +269,27 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"UP","database":"CONNECTED"}`))
 	})
 
+	// Rate limiting anti fuerza bruta: máximo 5 intentos por IP cada 10 minutos en endpoints sensibles.
+	const rlMax = 5
+	const rlWindow = 10 * time.Minute
+	loginRL := middleware.RateLimit(rlMax, rlWindow)
+	registerRL := middleware.RateLimit(rlMax, rlWindow)
+	otpRequestRL := middleware.RateLimit(rlMax, rlWindow)
+	otpValidateRL := middleware.RateLimit(rlMax, rlWindow)
+	resetRL := middleware.RateLimit(rlMax, rlWindow)
+	adminLoginRL := middleware.RateLimit(rlMax, rlWindow)
+
 	// Rutas Públicas de Autenticación
 	mux.HandleFunc("GET /api/auth/public-key", authHandler.HandlePublicKey)
 	mux.HandleFunc("POST /api/auth/encrypt", authHandler.HandleEncryptString)
-	mux.HandleFunc("POST /api/auth/register", authHandler.HandleRegister)
-	mux.HandleFunc("POST /api/auth/login", authHandler.HandleLogin)
+	mux.Handle("POST /api/auth/register", registerRL(http.HandlerFunc(authHandler.HandleRegister)))
+	mux.Handle("POST /api/auth/login", loginRL(http.HandlerFunc(authHandler.HandleLogin)))
 
 	// Rutas de Autenticación v1 (OTP centralizado)
-	mux.HandleFunc("POST /api/v1/auth/otp/request", authHandler.HandleRequestOTP)
-	mux.HandleFunc("POST /api/v1/auth/otp/validate", authHandler.HandleValidateOTP)
-	mux.HandleFunc("POST /api/v1/auth/register", authHandler.HandleRegister)
-	mux.HandleFunc("POST /api/v1/auth/password/reset", authHandler.HandleResetPassword)
+	mux.Handle("POST /api/v1/auth/otp/request", otpRequestRL(http.HandlerFunc(authHandler.HandleRequestOTP)))
+	mux.Handle("POST /api/v1/auth/otp/validate", otpValidateRL(http.HandlerFunc(authHandler.HandleValidateOTP)))
+	mux.Handle("POST /api/v1/auth/register", registerRL(http.HandlerFunc(authHandler.HandleRegister)))
+	mux.Handle("POST /api/v1/auth/password/reset", resetRL(http.HandlerFunc(authHandler.HandleResetPassword)))
 	mux.Handle("DELETE /api/v1/account", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleDeleteAccountV1)))
 	mux.Handle("POST /api/v1/auth/logout", middleware.AuthMiddleware(jwtSecret)(http.HandlerFunc(authHandler.HandleLogout)))
 
@@ -338,7 +365,7 @@ func main() {
 	// ============================================================================
 
 	// Login BackOffice (público, sin JWT previo — la validación de rol ocurre internamente)
-	mux.HandleFunc("POST /api/backoffice/auth/login", authHandler.HandleLoginAdmin)
+	mux.Handle("POST /api/backoffice/auth/login", adminLoginRL(http.HandlerFunc(authHandler.HandleLoginAdmin)))
 
 	// Logout BackOffice (protegido: AuthMiddleware → AdminOnly)
 	mux.Handle("POST /api/backoffice/auth/logout",

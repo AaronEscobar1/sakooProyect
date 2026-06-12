@@ -34,5 +34,10 @@ EXPOSE 8080
 ENV PORT=8080 \
     GO_ENV=production
 
+# SEGURIDAD: crear y usar un usuario sin privilegios (no-root) para ejecutar el binario.
+RUN addgroup -S sakoo && adduser -S sakoo -G sakoo \
+    && chown -R sakoo:sakoo /app
+USER sakoo
+
 # Ejecutar el binario del backend
 ENTRYPOINT ["./main"]

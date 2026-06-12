@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/AaronEscobar1/common/middleware"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -181,9 +182,12 @@ func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseData := make(map[string]string)
-	if os.Getenv("GO_ENV") != "production" {
+	// SEGURIDAD: solo se expone el OTP en la respuesta en entornos de desarrollo EXPLÍCITOS.
+	// Antes se usaba "!= production", lo que filtraba el OTP si GO_ENV quedaba vacío/mal configurado.
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("GO_ENV"))) {
+	case "local", "qa", "dev", "development":
 		responseData["otp"] = otpCode
-		slog.Info("Retornando OTP al frontend en el payload de datos (entorno no-producción)", "email", req.Email)
+		slog.Info("Retornando OTP al frontend en el payload de datos (entorno de desarrollo)", "email", req.Email)
 	}
 
 	response.Success(w, r.Context(), "SUCCESS", "Código de seguridad OTP generado y enviado exitosamente", responseData)
@@ -242,12 +246,12 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	authRes, err := h.authUseCase.Register(r.Context(), req)
 	if err != nil {
 		slog.Error("Fallo al registrar usuario con OTP", "error", err, "email", req.Email)
-		if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "users_email_key") || strings.Contains(err.Error(), "users_username_key") {
-			if strings.Contains(err.Error(), "users_username_key") {
-				response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El nombre de usuario ingresado ya se encuentra registrado")
-				return
-			}
-			response.Error(w, r.Context(), http.StatusOK, "USER_ALREADY_EXISTS", "El correo electrónico ingresado ya se encuentra registrado")
+		if errors.Is(err, domain.ErrUsernameTaken) {
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", domain.ErrUsernameTaken.Error())
+			return
+		}
+		if errors.Is(err, domain.ErrEmailTaken) {
+			response.Error(w, r.Context(), http.StatusOK, "USER_ALREADY_EXISTS", domain.ErrEmailTaken.Error())
 			return
 		}
 		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", err.Error())

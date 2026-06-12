@@ -53,6 +53,8 @@ func GetResponseCodeInt(code string) int {
 		return 1005
 	case "METHOD_NOT_ALLOWED":
 		return 1006
+	case "TOO_MANY_REQUESTS":
+		return 1007
 	default:
 		return 9999 // Error genérico/desconocido
 	}

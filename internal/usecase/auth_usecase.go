@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	commonMiddleware "github.com/AaronEscobar1/common/middleware"
 	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -20,6 +22,10 @@ import (
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
+// defaultCountry es el valor del campo país del perfil cuando no se puede geolocalizar la IP
+// (IP local/privada en dev, IP inválida o servicio GeoIP no disponible). NO restringe el acceso.
+const defaultCountry = "Desconocido"
 
 type authUseCase struct {
 	userRepo  domain.UserRepository
@@ -83,7 +89,7 @@ func (s *authUseCase) RequestOTP(ctx context.Context, email string, action strin
 	code, err := generateNumericOTP()
 	if err != nil {
 		slog.Error("Error al generar código OTP seguro", "error", err, "email", email)
-		return "", fmt.Errorf("error al generar código de seguridad: %w", err)
+		return "", fmt.Errorf("error al generar código de seguridad")
 	}
 
 	// 2. Persistir en la base de datos (tiempo de vida de 5 minutos)
@@ -120,7 +126,14 @@ func determineCountry(ip string) string {
 		strings.HasPrefix(ip, "172.19.") ||
 		strings.HasPrefix(ip, "172.2") ||
 		strings.HasPrefix(ip, "172.3") {
-		return "Venezuela"
+		return defaultCountry
+	}
+
+	// SEGURIDAD: la IP proviene de cabeceras controlables por el cliente (X-Forwarded-For/X-Real-IP).
+	// Validar que sea una IP real antes de concatenarla a la URL saliente evita inyección de URL / SSRF.
+	if net.ParseIP(ip) == nil {
+		slog.Warn("IP de origen inválida para GeoIP (usando fallback 'Desconocido')", "ip", ip)
+		return defaultCountry
 	}
 
 	client := &http.Client{
@@ -129,14 +142,14 @@ func determineCountry(ip string) string {
 
 	resp, err := client.Get("http://ip-api.com/json/" + ip)
 	if err != nil {
-		slog.Warn("GeoIP lookup falló (usando fallback Venezuela)", "ip", ip, "error", err)
-		return "Venezuela"
+		slog.Warn("GeoIP lookup falló (usando fallback 'Desconocido')", "ip", ip, "error", err)
+		return defaultCountry
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		slog.Warn("GeoIP lookup retornó status no exitoso (usando fallback Venezuela)", "ip", ip, "status", resp.Status)
-		return "Venezuela"
+		slog.Warn("GeoIP lookup retornó status no exitoso (usando fallback 'Desconocido')", "ip", ip, "status", resp.Status)
+		return defaultCountry
 	}
 
 	var result struct {
@@ -145,15 +158,15 @@ func determineCountry(ip string) string {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		slog.Warn("Error al decodificar respuesta de GeoIP (usando fallback Venezuela)", "ip", ip, "error", err)
-		return "Venezuela"
+		slog.Warn("Error al decodificar respuesta de GeoIP (usando fallback 'Desconocido')", "ip", ip, "error", err)
+		return defaultCountry
 	}
 
 	if result.Status == "success" && result.Country != "" {
 		return result.Country
 	}
 
-	return "Venezuela"
+	return defaultCountry
 }
 
 // Register refactorizado: ahora consume y valida un OTP de REGISTER antes de la creación del usuario y devuelve el token de inicio de sesión.
@@ -205,7 +218,7 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
 		slog.Error("Error al encriptar contraseña con bcrypt", "error", err)
-		return res, fmt.Errorf("error al procesar credenciales: %w", err)
+		return res, fmt.Errorf("error al procesar credenciales")
 	}
 
 	// 3. Determinar país de forma automática por GeoIP a partir de la IP de registro
@@ -236,13 +249,13 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 	// Registrar la contraseña inicial en el historial de contraseñas
 	if err := s.userRepo.AddPasswordHistory(ctx, user.ID, user.PasswordHash); err != nil {
 		slog.Error("Fallo al registrar contraseña inicial en historial", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al registrar en historial de contraseñas: %w", err)
+		return res, fmt.Errorf("error al registrar en historial de contraseñas")
 	}
 
 	// 5.5 Limpiar sesiones previas del usuario antes de crear la nueva para forzar login único
 	if err := s.userRepo.DeleteUserSessions(ctx, user.ID); err != nil {
 		slog.Error("Fallo al limpiar sesiones previas tras registro", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al procesar sesiones de usuario: %w", err)
+		return res, fmt.Errorf("error al procesar sesiones de usuario")
 	}
 
 	// 6. Crear token JWT con claims estándar (duración de 10 años para app móvil/CUSTOMER)
@@ -258,14 +271,17 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
 		slog.Error("Fallo crítico al firmar el token JWT de usuario tras registro", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
+		return res, fmt.Errorf("error al emitir el token de sesión")
 	}
 
-	// Registrar la sesión activa en la base de datos (duración de 10 años para app móvil/CUSTOMER)
-	sessionExpiresAt := time.Now().AddDate(10, 0, 0)
+	// Registrar la sesión activa en la base de datos con expiración DESLIZANTE (sliding window).
+	// El token del cliente no cambia (sigue siendo de larga vida), pero la sesión en BD caduca
+	// tras SessionSlidingWindow de inactividad y se renueva en cada request autenticado.
+	// Esto mantiene el dispositivo "vinculado" mientras se use, y acota un token filtrado.
+	sessionExpiresAt := time.Now().Add(commonMiddleware.SessionSlidingWindow)
 	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
 		slog.Error("Fallo al registrar la sesión activa tras registro", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
+		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión)")
 	}
 
 	slog.Info("Registro exitoso e inicio de sesión automático. Emisión de token JWT autorizada", "user_id", user.ID)
@@ -301,7 +317,7 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 	// 2.5 Limpiar sesiones previas del usuario antes de crear la nueva para forzar login único
 	if err := s.userRepo.DeleteUserSessions(ctx, user.ID); err != nil {
 		slog.Error("Fallo al limpiar sesiones previas tras login", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al procesar sesiones de usuario: %w", err)
+		return res, fmt.Errorf("error al procesar sesiones de usuario")
 	}
 
 	// 3. Crear token JWT con claims estándar (duración de 10 años para app móvil/CUSTOMER)
@@ -317,14 +333,17 @@ func (s *authUseCase) Login(ctx context.Context, req domain.LoginRequest) (domai
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
 		slog.Error("Fallo crítico al firmar el token JWT de usuario", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
+		return res, fmt.Errorf("error al emitir el token de sesión")
 	}
 
-	// Registrar la sesión activa en la base de datos (duración de 10 años para app móvil/CUSTOMER)
-	sessionExpiresAt := time.Now().AddDate(10, 0, 0)
+	// Registrar la sesión activa en la base de datos con expiración DESLIZANTE (sliding window).
+	// El token del cliente no cambia (sigue siendo de larga vida), pero la sesión en BD caduca
+	// tras SessionSlidingWindow de inactividad y se renueva en cada request autenticado.
+	// Esto mantiene el dispositivo "vinculado" mientras se use, y acota un token filtrado.
+	sessionExpiresAt := time.Now().Add(commonMiddleware.SessionSlidingWindow)
 	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
 		slog.Error("Fallo al registrar la sesión activa tras login", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
+		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión)")
 	}
 
 	slog.Info("Sesión iniciada con éxito. Emisión de token JWT autorizada", "user_id", user.ID)
@@ -395,14 +414,14 @@ func (s *authUseCase) LoginAdmin(ctx context.Context, req domain.LoginAdminReque
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
 		slog.Error("Fallo crítico al firmar el token JWT administrativo", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al emitir el token de sesión: %w", err)
+		return res, fmt.Errorf("error al emitir el token de sesión")
 	}
 
 	// 5. Registrar la sesión activa en la base de datos (duración inicial de 10 minutos)
 	sessionExpiresAt := time.Now().Add(10 * time.Minute)
 	if err := s.userRepo.CreateSession(ctx, user.ID, tokenString, sessionExpiresAt); err != nil {
 		slog.Error("Fallo al registrar la sesión activa tras login BackOffice", "error", err, "user_id", user.ID)
-		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión): %w", err)
+		return res, fmt.Errorf("error al iniciar sesión (fallo de registro de sesión)")
 	}
 
 	slog.Info("Sesión administrativa iniciada con éxito. Emisión de token JWT con user_type=ADMIN autorizada", "user_id", user.ID)
@@ -438,14 +457,15 @@ func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otp
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		slog.Warn("Usuario no encontrado para restablecimiento de contraseña", "email", email)
-		return errors.New("El correo electrónico ingresado no corresponde a ningún usuario activo")
+		// SEGURIDAD: mismo mensaje genérico que un OTP inválido para no revelar si el correo existe (anti-enumeración).
+		return errors.New("Código OTP inválido, expirado o ya consumido")
 	}
 
 	// 2. Obtener los últimos 5 hashes del historial del usuario
 	history, err := s.userRepo.GetPasswordHistory(ctx, user.ID)
 	if err != nil {
 		slog.Error("Fallo al obtener historial de contraseñas", "error", err, "user_id", user.ID)
-		return fmt.Errorf("Error al verificar el historial de contraseñas: %w", err)
+		return fmt.Errorf("Error al verificar el historial de contraseñas")
 	}
 
 	// 3. Comparar la nueva contraseña con la contraseña actual
@@ -469,7 +489,7 @@ func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otp
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
 	if err != nil {
 		slog.Error("Fallo al hashear la nueva contraseña", "error", err)
-		return fmt.Errorf("Error al procesar credenciales: %w", err)
+		return fmt.Errorf("Error al procesar credenciales")
 	}
 
 	// 7. Actualizar en la base de datos
@@ -480,7 +500,7 @@ func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otp
 	// Registrar el nuevo hash en el historial de contraseñas del usuario
 	if err := s.userRepo.AddPasswordHistory(ctx, user.ID, string(hashedPassword)); err != nil {
 		slog.Error("Fallo al agregar la nueva contraseña al historial", "error", err, "user_id", user.ID)
-		return fmt.Errorf("Error al registrar en el historial de contraseñas: %w", err)
+		return fmt.Errorf("Error al registrar en el historial de contraseñas")
 	}
 
 	slog.Info("Contraseña restablecida de manera exitosa", "user_id", user.ID, "email", email)
