@@ -205,6 +205,7 @@ func main() {
 	catalogHandler := api.NewCatalogHandler(catalogUseCase)
 	notificationHandler := api.NewNotificationHandler(notificationUseCase)
 	adminHandler := api.NewAdminHandler(telemetryUseCase)
+	legalHandler := api.NewLegalHandler()
 
 	slog.Info("Capa de persistencia, casos de uso y controladores HTTP instanciados de manera limpia.")
 
@@ -243,6 +244,12 @@ func main() {
 		// Servir la UI de Swagger con la config ya actualizada
 		httpSwagger.WrapHandler(w, r)
 	}))
+
+	// Páginas legales públicas (sin autenticación). Google Play Store exige una URL
+	// pública a la política de privacidad; aquí se sirve como HTML embebido en el binario.
+	// Disponible en /privacy y su alias en español /privacidad.
+	mux.HandleFunc("GET /privacy", legalHandler.HandlePrivacyPolicy)
+	mux.HandleFunc("GET /privacidad", legalHandler.HandlePrivacyPolicy)
 
 	// Endpoint de Salud (Healthcheck) para Monitoreo de Railway
 	// @Summary      Verificar el estado de salud del backend
