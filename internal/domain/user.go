@@ -88,6 +88,9 @@ type UserSearchResult struct {
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
+	ExistsByEmail(ctx context.Context, email string) (bool, error)
+	ExistsByUsername(ctx context.Context, username string) (bool, error)
+	ExistsByDocument(ctx context.Context, documentNumber string) (bool, error)
 	FindByID(ctx context.Context, id int64) (*User, error)
 	SoftDelete(ctx context.Context, userID int64) error
 	UpdatePassword(ctx context.Context, userID int64, passwordHash string) error
@@ -109,7 +112,7 @@ type AuthUseCase interface {
 	Login(ctx context.Context, req LoginRequest) (AuthResponse, error)
 	LoginAdmin(ctx context.Context, req LoginAdminRequest) (AuthResponse, error)
 	Logout(ctx context.Context, userID int64, token string) error
-	RequestOTP(ctx context.Context, email, action string) error
+	RequestOTP(ctx context.Context, email, action, username, documentNumber string) error
 	ValidateOTP(ctx context.Context, email, code, action string) error
 	ResetPassword(ctx context.Context, email, newPassword, otpCode string) error
 	DeleteAccount(ctx context.Context, userID int64, otpCode string) error

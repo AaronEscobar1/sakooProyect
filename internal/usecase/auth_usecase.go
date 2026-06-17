@@ -65,7 +65,7 @@ func generateNumericOTP() (string, error) {
 // RequestOTP genera un OTP, lo persiste con 5 minutos de vigencia, y lo envía por email.
 // SEGURIDAD: el código nunca se retorna ni se expone fuera del envío de correo; el único
 // canal de entrega al usuario es el email (Resend/SMTP).
-func (s *authUseCase) RequestOTP(ctx context.Context, email string, action string) error {
+func (s *authUseCase) RequestOTP(ctx context.Context, email, action, username, documentNumber string) error {
 	slog.Info("Procesando solicitud de OTP", "email", email, "action", action)
 
 	if email == "" || action == "" {
@@ -74,6 +74,40 @@ func (s *authUseCase) RequestOTP(ctx context.Context, email string, action strin
 
 	if action != "REGISTER" && action != "RECOVER" && action != "DELETE" {
 		return fmt.Errorf("Acción de OTP inválida: %s", action)
+	}
+
+	// Pre-validación de unicidad para REGISTER: si el correo, usuario o cédula ya existen,
+	// se rechaza ANTES de generar/enviar el OTP. Así no se desperdicia un código ni se activa
+	// el throttle de 60s, y el cliente puede devolver al usuario al campo a corregir.
+	if action == "REGISTER" {
+		normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+		emailExists, err := s.userRepo.ExistsByEmail(ctx, normalizedEmail)
+		if err != nil {
+			return err
+		}
+		if emailExists {
+			return domain.ErrEmailTaken
+		}
+
+		if u := strings.TrimSpace(username); u != "" {
+			usernameExists, err := s.userRepo.ExistsByUsername(ctx, u)
+			if err != nil {
+				return err
+			}
+			if usernameExists {
+				return domain.ErrUsernameTaken
+			}
+		}
+
+		if d := strings.TrimSpace(documentNumber); d != "" {
+			docExists, err := s.userRepo.ExistsByDocument(ctx, d)
+			if err != nil {
+				return err
+			}
+			if docExists {
+				return domain.ErrDocumentTaken
+			}
+		}
 	}
 
 	// Verificar si ya se ha solicitado un OTP recientemente en los últimos 60 segundos

@@ -37,9 +37,13 @@ type ProfileResponse struct {
 }
 
 // RequestOTPRequest representa el cuerpo para solicitar un OTP.
+// Para la acción REGISTER, username y document_number son opcionales pero permiten
+// pre-validar la unicidad (correo/usuario/cédula) antes de generar y enviar el OTP.
 type RequestOTPRequest struct {
-	Email  string `json:"email"`
-	Action string `json:"action"` // 'REGISTER', 'RECOVER', 'DELETE'
+	Email          string `json:"email"`
+	Action         string `json:"action"` // 'REGISTER', 'RECOVER', 'DELETE'
+	Username       string `json:"username,omitempty"`
+	DocumentNumber string `json:"document_number,omitempty"`
 }
 
 // ValidateOTPRequest representa el cuerpo para verificar un OTP sin consumirlo.
@@ -173,8 +177,22 @@ func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.authUseCase.RequestOTP(r.Context(), req.Email, req.Action); err != nil {
+	if err := h.authUseCase.RequestOTP(r.Context(), req.Email, req.Action, req.Username, req.DocumentNumber); err != nil {
 		slog.Error("Fallo al procesar solicitud de OTP", "error", err, "email", req.Email, "action", req.Action)
+		// Errores de unicidad: se devuelve el mensaje de dominio para que el cliente identifique
+		// el campo a corregir (correo, usuario o cédula) y devuelva al usuario al paso adecuado.
+		if errors.Is(err, domain.ErrEmailTaken) {
+			response.Error(w, r.Context(), http.StatusOK, "USER_ALREADY_EXISTS", domain.ErrEmailTaken.Error())
+			return
+		}
+		if errors.Is(err, domain.ErrUsernameTaken) {
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", domain.ErrUsernameTaken.Error())
+			return
+		}
+		if errors.Is(err, domain.ErrDocumentTaken) {
+			response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", domain.ErrDocumentTaken.Error())
+			return
+		}
 		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", err.Error())
 		return
 	}

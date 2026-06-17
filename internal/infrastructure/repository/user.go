@@ -101,6 +101,39 @@ func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
+// existsBy ejecuta un SELECT EXISTS parametrizado contra la tabla de usuarios.
+// No filtra deleted_at: las restricciones UNIQUE de email/username aplican a TODAS las filas
+// (incluidas las borradas lógicamente), por lo que la pre-validación debe reflejar ese alcance
+// para no dar falsos negativos que luego fallarían en el INSERT.
+func (r *userRepository) existsBy(ctx context.Context, column, value string) (bool, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM users WHERE %s = $1)", column)
+
+	var exists bool
+	if err := r.db.QueryRow(dbCtx, query, value).Scan(&exists); err != nil {
+		slog.Error("Fallo al verificar existencia de usuario", "error", err, "column", column)
+		return false, fmt.Errorf("error al verificar disponibilidad de datos")
+	}
+	return exists, nil
+}
+
+// ExistsByEmail indica si ya existe un usuario con ese correo (normalizado en minúsculas por el caso de uso).
+func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	return r.existsBy(ctx, "email", email)
+}
+
+// ExistsByUsername indica si ya existe un usuario con ese nombre de usuario.
+func (r *userRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
+	return r.existsBy(ctx, "username", username)
+}
+
+// ExistsByDocument indica si ya existe un usuario con ese número de documento (cédula).
+func (r *userRepository) ExistsByDocument(ctx context.Context, documentNumber string) (bool, error) {
+	return r.existsBy(ctx, "document_number", documentNumber)
+}
+
 // FindByEmail busca un usuario activo en base de datos por su correo electrónico.
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
