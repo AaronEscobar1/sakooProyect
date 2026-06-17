@@ -125,9 +125,9 @@ func (r *otpRepository) HasRecentOTP(ctx context.Context, email, action string, 
 
 	query := `
 		SELECT EXISTS (
-			SELECT 1 
-			FROM user_otps 
-			WHERE email = $1 AND action = $2 AND created_at > NOW() - ($3 || ' seconds')::interval
+			SELECT 1
+			FROM user_otps
+			WHERE email = $1 AND action = $2 AND created_at > NOW() - ($3 * INTERVAL '1 second')
 		);
 	`
 
