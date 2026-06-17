@@ -63,33 +63,34 @@ func generateNumericOTP() (string, error) {
 }
 
 // RequestOTP genera un OTP, lo persiste con 5 minutos de vigencia, y lo envía por email.
-// Devuelve el código OTP generado para flujos que lo requieran (ej: testing o flujos internos).
-func (s *authUseCase) RequestOTP(ctx context.Context, email string, action string) (string, error) {
+// SEGURIDAD: el código nunca se retorna ni se expone fuera del envío de correo; el único
+// canal de entrega al usuario es el email (Resend/SMTP).
+func (s *authUseCase) RequestOTP(ctx context.Context, email string, action string) error {
 	slog.Info("Procesando solicitud de OTP", "email", email, "action", action)
 
 	if email == "" || action == "" {
-		return "", errors.New("El correo electrónico y la acción son requeridos")
+		return errors.New("El correo electrónico y la acción son requeridos")
 	}
 
 	if action != "REGISTER" && action != "RECOVER" && action != "DELETE" {
-		return "", fmt.Errorf("Acción de OTP inválida: %s", action)
+		return fmt.Errorf("Acción de OTP inválida: %s", action)
 	}
 
 	// Verificar si ya se ha solicitado un OTP recientemente en los últimos 60 segundos
 	recent, err := s.otpRepo.HasRecentOTP(ctx, email, action, 60)
 	if err != nil {
 		slog.Error("Error al verificar OTP reciente", "error", err, "email", email)
-		return "", err
+		return err
 	}
 	if recent {
-		return "", errors.New("Por favor, espera 60 segundos antes de solicitar otro código de verificación")
+		return errors.New("Por favor, espera 60 segundos antes de solicitar otro código de verificación")
 	}
 
 	// 1. Generar código OTP
 	code, err := generateNumericOTP()
 	if err != nil {
 		slog.Error("Error al generar código OTP seguro", "error", err, "email", email)
-		return "", fmt.Errorf("error al generar código de seguridad")
+		return fmt.Errorf("error al generar código de seguridad")
 	}
 
 	// 2. Persistir en la base de datos (tiempo de vida de 5 minutos)
@@ -102,15 +103,15 @@ func (s *authUseCase) RequestOTP(ctx context.Context, email string, action strin
 	}
 
 	if err := s.otpRepo.CreateOTP(ctx, otp); err != nil {
-		return "", err
+		return err
 	}
 
-	// 3. Invocar al servicio de email
+	// 3. Invocar al servicio de email (único canal de entrega del código al usuario)
 	if err := s.emailSrv.SendOTP(ctx, email, code); err != nil {
-		return "", err
+		return err
 	}
 
-	return code, nil
+	return nil
 }
 
 // determineCountry consulta de manera resiliente un servicio de GeoIP para obtener el país de origen de una IP.

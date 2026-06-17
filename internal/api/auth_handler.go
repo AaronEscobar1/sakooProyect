@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/AaronEscobar1/common/response"
@@ -174,23 +173,15 @@ func (h *AuthHandler) HandleRequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	otpCode, err := h.authUseCase.RequestOTP(r.Context(), req.Email, req.Action)
-	if err != nil {
+	if err := h.authUseCase.RequestOTP(r.Context(), req.Email, req.Action); err != nil {
 		slog.Error("Fallo al procesar solicitud de OTP", "error", err, "email", req.Email, "action", req.Action)
 		response.Error(w, r.Context(), http.StatusBadRequest, "BAD_REQUEST", err.Error())
 		return
 	}
 
-	responseData := make(map[string]string)
-	// SEGURIDAD: solo se expone el OTP en la respuesta en entornos de desarrollo EXPLÍCITOS.
-	// Antes se usaba "!= production", lo que filtraba el OTP si GO_ENV quedaba vacío/mal configurado.
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("GO_ENV"))) {
-	case "local", "qa", "dev", "development":
-		responseData["otp"] = otpCode
-		slog.Info("Retornando OTP al frontend en el payload de datos (entorno de desarrollo)", "email", req.Email)
-	}
-
-	response.Success(w, r.Context(), "SUCCESS", "Código de seguridad OTP generado y enviado exitosamente", responseData)
+	// SEGURIDAD: el código OTP NUNCA se devuelve en la respuesta. El único canal de entrega
+	// al usuario es el correo electrónico (Resend/SMTP).
+	response.Success(w, r.Context(), "SUCCESS", "Código de seguridad OTP generado y enviado exitosamente", map[string]string{})
 }
 
 // HandleRegister maneja la petición POST /api/v1/auth/register para registrar usuarios exigiendo OTP y contraseñas cifradas en tránsito.

@@ -109,7 +109,7 @@ type AuthUseCase interface {
 	Login(ctx context.Context, req LoginRequest) (AuthResponse, error)
 	LoginAdmin(ctx context.Context, req LoginAdminRequest) (AuthResponse, error)
 	Logout(ctx context.Context, userID int64, token string) error
-	RequestOTP(ctx context.Context, email, action string) (string, error)
+	RequestOTP(ctx context.Context, email, action string) error
 	ValidateOTP(ctx context.Context, email, code, action string) error
 	ResetPassword(ctx context.Context, email, newPassword, otpCode string) error
 	DeleteAccount(ctx context.Context, userID int64, otpCode string) error
