@@ -33,8 +33,12 @@ func isOriginAllowed(origin string) bool {
 		return true
 	}
 
-	if strings.HasSuffix(origin, ".railway.app") || 
+	if strings.HasSuffix(origin, ".railway.app") ||
 	   strings.HasSuffix(origin, ".up.railway.app") {
+		return true
+	}
+
+	if strings.HasSuffix(origin, ".pages.dev") {
 		return true
 	}
 
