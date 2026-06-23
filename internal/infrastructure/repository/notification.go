@@ -46,6 +46,18 @@ func (r *notificationRepository) DeleteDeviceToken(ctx context.Context, userID i
 	return nil
 }
 
+// DeleteAllUserDeviceTokens elimina todos los tokens de dispositivo (FCM) asociados a un usuario.
+// Se usa al solicitar el borrado de cuenta para revocar las notificaciones push de inmediato.
+func (r *notificationRepository) DeleteAllUserDeviceTokens(ctx context.Context, userID int64) error {
+	query := `DELETE FROM user_device_tokens WHERE user_id = $1;`
+	_, err := r.db.Exec(ctx, query, userID)
+	if err != nil {
+		slog.Error("Fallo al eliminar todos los tokens de dispositivo del usuario", "error", err, "user_id", userID)
+		return err
+	}
+	return nil
+}
+
 func (r *notificationRepository) GetDeviceTokensByUserID(ctx context.Context, userID int64) ([]string, error) {
 	query := `SELECT token FROM user_device_tokens WHERE user_id = $1 ORDER BY updated_at DESC;`
 	rows, err := r.db.Query(ctx, query, userID)

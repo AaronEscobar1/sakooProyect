@@ -47,6 +47,7 @@ type SendAdminNotificationRequest struct {
 type NotificationRepository interface {
 	SaveDeviceToken(ctx context.Context, userID int64, token, platform string) error
 	DeleteDeviceToken(ctx context.Context, userID int64, token string) error
+	DeleteAllUserDeviceTokens(ctx context.Context, userID int64) error
 	GetDeviceTokensByUserID(ctx context.Context, userID int64) ([]string, error)
 	GetAllDeviceTokens(ctx context.Context) ([]string, error)
 	SaveNotification(ctx context.Context, notification *Notification) error

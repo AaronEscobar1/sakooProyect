@@ -169,7 +169,7 @@ func main() {
 	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo, pushService)
 
 	// 7. Instanciar casos de uso de la capa de dominio
-	authUseCase := usecase.NewAuthUseCase(userRepo, otpRepo, emailSrv, jwtSecret)
+	authUseCase := usecase.NewAuthUseCase(userRepo, otpRepo, emailSrv, notificationRepo, jwtSecret)
 	
 	// Instanciar servicios de Scraping y Cron
 	bcvScraperService := scraper.NewBCVScraper()

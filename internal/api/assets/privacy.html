@@ -1,273 +1,223 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="index, follow">
-  <title>Política de Privacidad — Sakoo</title>
-  <style>
-    :root {
-      --bg: #f6f7f9;
-      --card: #ffffff;
-      --text: #1c2430;
-      --muted: #5b6675;
-      --primary: #1f6feb;
-      --border: #e4e8ee;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0e1116;
-        --card: #161b22;
-        --text: #e6edf3;
-        --muted: #9aa7b4;
-        --primary: #58a6ff;
-        --border: #232b34;
-      }
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
-    }
-    .wrap { max-width: 820px; margin: 0 auto; padding: 28px 20px 72px; }
-    header.hero {
-      background: linear-gradient(135deg, var(--primary), #14397a);
-      color: #fff;
-      border-radius: 18px;
-      padding: 32px 28px;
-      margin-bottom: 28px;
-    }
-    header.hero h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.4px; }
-    header.hero p { margin: 0; opacity: 0.9; font-size: 14px; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 26px 28px;
-    }
-    h2 { font-size: 18px; margin: 30px 0 10px; letter-spacing: -0.2px; }
-    h2:first-of-type { margin-top: 4px; }
-    h3 { font-size: 15px; margin: 18px 0 6px; }
-    p, li { font-size: 15px; color: var(--text); }
-    ul { padding-left: 20px; }
-    li { margin: 4px 0; }
-    .muted { color: var(--muted); font-size: 13px; }
-    a { color: var(--primary); }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0;
-      font-size: 14px;
-    }
-    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { color: var(--muted); font-weight: 600; }
-    .note {
-      background: rgba(31,111,235,0.08);
-      border: 1px solid rgba(31,111,235,0.25);
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-size: 14px;
-      margin: 16px 0;
-    }
-    footer { text-align: center; margin-top: 28px; }
-    code { background: rgba(127,127,127,0.15); padding: 1px 6px; border-radius: 5px; font-size: 13px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidad - Sakoo</title>
+    <style>
+        :root {
+            --brand-color: #AED441;
+            --text-dark: #767171;
+            --border-light: #D9D9D9;
+            --bg-general: #F6F7F0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--bg-general);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px 30px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #333333;
+            border-bottom: 3px solid var(--brand-color);
+            padding-bottom: 10px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #444444;
+            margin-top: 30px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 5px;
+            font-size: 20px;
+        }
+        p, li {
+            font-size: 16px;
+            text-align: justify;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        .meta {
+            font-style: italic;
+            color: #888888;
+            margin-bottom: 30px;
+        }
+        .highlight-box {
+            background-color: #f9f9f6;
+            border-left: 4px solid var(--brand-color);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid var(--border-light);
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f4f5ee;
+            color: #333333;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #999999;
+            border-top: 1px solid var(--border-light);
+            padding-top: 20px;
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="hero">
-      <h1>Política de Privacidad</h1>
-      <p>Sakoo — Aplicación de monitoreo de divisas</p>
-    </header>
 
-    <main class="card">
-      <p class="muted">Última actualización: 15 de junio de 2026 · Versión 1.0</p>
+<div class="container">
+    <h1>Política de Privacidad</h1>
+    <p class="meta"><strong>Sakoo — Aplicación de monitoreo de divisas</strong><br>Última actualización: 15 de junio de 2026 · Versión 1.0</p>
 
-      <p>
-        Esta Política de Privacidad describe cómo <strong>Sakoo</strong> (en adelante,
-        «Sakoo», «la aplicación», «nosotros») recopila, utiliza, almacena y protege la
-        información personal de las personas usuarias (en adelante, «tú» o «el usuario»)
-        al utilizar la aplicación móvil Sakoo y sus servicios asociados.
-      </p>
+    <p>Esta Política de Privacidad describe cómo Sakoo (en adelante, «Sakoo», «la aplicación», «nosotros») recopila, utiliza, almacena y protege la información personal de las personas usuarias (en adelante, «tú» o «el usuario») al utilizar la aplicación móvil Sakoo y sus servicios asociados.</p>
 
-      <div class="note">
-        <strong>Resumen:</strong> usamos tus datos únicamente para que la aplicación
-        funcione (crear y proteger tu cuenta, mostrarte tasas de cambio, gestionar tus
-        cuentas bancarias y recordatorios de pago, y enviarte notificaciones).
-        <strong>No vendemos tu información personal.</strong> Puedes solicitar la
-        eliminación de tu cuenta y de tus datos en cualquier momento desde la aplicación.
-      </div>
+    <div class="highlight-box">
+        <strong>Resumen:</strong> Usamos tus datos únicamente para que la aplicación funcione (crear y proteger tu cuenta, mostrarte tasas de cambio, gestionar tus cuentas bancarias y recordatorios de pago, y enviarte notificaciones). No vendemos tu información personal. Puedes solicitar la eliminación de tu cuenta y de tus datos en cualquier momento directamente desde la aplicación.
+    </div>
 
-      <h2>1. Responsable del tratamiento</h2>
-      <p>
-        El responsable del tratamiento de tus datos personales es el equipo de Sakoo.
-        Para cualquier consulta relacionada con privacidad puedes escribirnos a:
-      </p>
-      <ul>
-        <li>Correo de contacto: <a href="mailto:soporte@sakoo.com">soporte@sakoo.com</a></li>
-        <li>Sitio web: <a href="https://www.sakoo.com">www.sakoo.com</a></li>
-      </ul>
-      <p class="muted">
-        [Completar con la razón social, identificación fiscal y domicilio legal de la
-        entidad responsable antes de la publicación definitiva.]
-      </p>
+    <h2>1. Responsable del tratamiento</h2>
+    <p>El responsable del tratamiento de tus datos personales es la sociedad mercantil de la plataforma. Para cualquier consulta relacionada con privacidad puedes escribirnos a:</p>
+    <ul>
+        <li><strong>Razón Social:</strong> DGF GROUP TECHNOLOGY, C.A.</li>
+        <li><strong>Identificación Fiscal:</strong> RIF N° J-506814609</li>
+        <li><strong>Domicilio Legal:</strong> Calle Madrid, Edif. Centro Financiero Madrid, Piso 14, Oficina 1414, Urb. Las Mercedes, Caracas, Miranda, Zona Postal 1060, Venezuela.</li>
+        <li><strong>Correo de contacto:</strong> <a href="mailto:soporte@sakoo.net">soporte@sakoo.net</a></li>
+        <li><strong>Sitio web:</strong> <a href="https://www.sakoo.net" target="_blank">www.sakoo.net</a></li>
+    </ul>
 
-      <h2>2. Datos que recopilamos</h2>
-      <p>Recopilamos únicamente los datos necesarios para prestar el servicio:</p>
+    <h2>2. Datos que recopilamos</h2>
+    <p>Recopilamos únicamente los datos necesarios para prestar el servicio bajo estrictos principios de minimización de datos:</p>
 
-      <table>
-        <tr><th>Categoría</th><th>Datos</th><th>Origen</th></tr>
-        <tr>
-          <td>Identificación</td>
-          <td>Nombres y apellidos, nombre de usuario, correo electrónico, tipo y número
-              de documento de identidad (p. ej. cédula o RIF), país.</td>
-          <td>Los proporcionas al registrarte.</td>
-        </tr>
-        <tr>
-          <td>Credenciales y seguridad</td>
-          <td>Contraseña (almacenada cifrada mediante <em>hashing</em> bcrypt, nunca en
-              texto plano), códigos de verificación de un solo uso (OTP) enviados por
-              correo, tokens de sesión.</td>
-          <td>Las proporcionas o se generan automáticamente.</td>
-        </tr>
-        <tr>
-          <td>Datos financieros</td>
-          <td>Cuentas bancarias propias y de terceros que registres (banco, número de
-              cuenta, tipo de cuenta, titular, alias, documento y teléfono del tercero) y
-              compromisos o recordatorios de pago.</td>
-          <td>Los proporcionas voluntariamente.</td>
-        </tr>
-        <tr>
-          <td>Contenido generado</td>
-          <td>Mensajes internos enviados a otros usuarios y comentarios sobre tasas de
-              cambio.</td>
-          <td>Los proporcionas voluntariamente.</td>
-        </tr>
-        <tr>
-          <td>Datos técnicos</td>
-          <td>Dirección IP, registros de actividad (logs de auditoría) e identificador de
-              dispositivo para notificaciones push.</td>
-          <td>Se recopilan automáticamente durante el uso.</td>
-        </tr>
-      </table>
+    <table>
+        <thead>
+            <tr>
+                <th>Categoría</th>
+                <th>Datos</th>
+                <th>Origen</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Identificación</strong></td>
+                <td>Nombres, apellidos, nombre de usuario, correo electrónico, tipo y número de documento de identidad (Cédula o RIF) y país.</td>
+                <td>Los proporcionas al registrarte en el formulario.</td>
+            </tr>
+            <tr>
+                <td><strong>Credenciales y seguridad</strong></td>
+                <td>Contraseña (almacenada de forma irreversible mediante hashing bcrypt), códigos de verificación de un solo uso (OTP) enviados por correo y tokens de sesión de corta duración.</td>
+                <td>Las proporcionas o se generan automáticamente por el sistema.</td>
+            </tr>
+            <tr>
+                <td><strong>Datos financieros</strong></td>
+                <td>Cuentas bancarias propias y de terceros que registres voluntariamente (banco, número de cuenta, tipo de cuenta, titular, alias, documento y teléfono del tercero), compromisos o recordatorios de pago agregados.</td>
+                <td>Los proporcionas voluntariamente para la operatividad de tu agenda.</td>
+            </tr>
+            <tr>
+                <td><strong>Contenido generado</strong></td>
+                <td>Mensajes internos enviados a otros usuarios (chat de soporte/comunidad) y comentarios escritos sobre las tasas de cambio del día.</td>
+                <td>Los proporcionas voluntariamente.</td>
+            </tr>
+            <tr>
+                <td><strong>Datos técnicos</strong></td>
+                <td>Dirección IP (utilizada exclusivamente para estimar el país de registro en el backend), registros técnicos de actividad (logs de auditoría de la API) e identificador único de dispositivo (tokens FCM).</td>
+                <td>Se recopilan automáticamente durante el uso de la aplicación.</td>
+            </tr>
+        </tbody>
+    </table>
 
-      <p>
-        <strong>No</strong> recopilamos datos de ubicación precisa (GPS), contactos,
-        fotografías ni información de categorías especialmente sensibles.
-      </p>
+    <p><strong>Aclaratoria crítica de hardware:</strong> Sakoo no recopila, rastrea ni solicita permisos de ubicación precisa mediante GPS (en primer ni segundo plano), así como tampoco accede a los contactos, galerías fotográficas, cámara ni micrófono del dispositivo móvil.</p>
 
-      <h2>3. Cómo usamos tus datos</h2>
-      <ul>
-        <li>Crear, autenticar y administrar tu cuenta.</li>
-        <li>Verificar tu identidad mediante códigos OTP y proteger el acceso.</li>
-        <li>Mostrarte las tasas de cambio, el historial y la calculadora de conversión.</li>
-        <li>Gestionar tus cuentas bancarias, compromisos de pago y mensajería interna.</li>
-        <li>Enviarte notificaciones push relevantes (p. ej. variaciones de tasas o avisos).</li>
-        <li>Garantizar la seguridad, prevenir fraudes y abusos (p. ej. límites anti fuerza bruta).</li>
-        <li>Cumplir obligaciones legales aplicables.</li>
-      </ul>
+    <h2>3. Cómo usamos tus datos</h2>
+    <ul>
+        <li>Crear, autenticar, renovar tokens y administrar tu cuenta de usuario.</li>
+        <li>Verificar tu identidad de forma segura mediante códigos OTP y proteger el acceso contra intrusiones.</li>
+        <li>Mostrarte las tasas de cambio oficiales del BCV, el historial evolutivo y habilitar la calculadora de conversión.</li>
+        <li>Gestionar tus cuentas bancarias registradas, compromisos de pago y la mensajería interna.</li>
+        <li>Enviarte notificaciones push relevantes sobre variaciones oficiales de tasas o alertas de tus recordatorios.</li>
+        <li>Garantizar la seguridad del backend, prevenir fraudes, ataques de denegación de servicio o intentos de fuerza bruta (rate limiting).</li>
+        <li>Cumplir obligaciones legales aplicables en el territorio nacional.</li>
+    </ul>
 
-      <h2>4. Base legal del tratamiento</h2>
-      <p>Tratamos tus datos sobre las siguientes bases:</p>
-      <ul>
-        <li><strong>Ejecución del servicio:</strong> los datos imprescindibles para que la
-            aplicación funcione y para cumplir el contrato de uso.</li>
-        <li><strong>Consentimiento:</strong> para datos opcionales (p. ej. cuentas de
-            terceros) y para el envío de notificaciones push.</li>
-        <li><strong>Interés legítimo:</strong> seguridad de la plataforma y prevención de
-            abusos.</li>
-        <li><strong>Obligación legal:</strong> cuando la normativa aplicable lo exija.</li>
-      </ul>
+    <h2>4. Base legal del tratamiento</h2>
+    <p>Tratamos tus datos sobre las siguientes bases jurídicas:</p>
+    <ul>
+        <li><strong>Ejecución del servicio:</strong> Los datos imprescindibles para que la aplicación funcione y para cumplir con los términos y condiciones del ecosistema.</li>
+        <li><strong>Consentimiento:</strong> Para la inserción de datos opcionales (como la agenda de terceros) y para el envío de notificaciones push móviles.</li>
+        <li><strong>Interés legítimo:</strong> Mantenimiento de la seguridad de la infraestructura informática y prevención de abusos tecnológicos.</li>
+        <li><strong>Obligación legal:</strong> Cuando las leyes de la República o una autoridad competente así lo exijan.</li>
+    </ul>
 
-      <h2>5. Notificaciones push</h2>
-      <p>
-        Para enviarte notificaciones utilizamos <strong>Firebase Cloud Messaging</strong>
-        (Google). Al registrar tu dispositivo se genera un identificador (token) que nos
-        permite entregarte avisos. Puedes desactivar las notificaciones desde los ajustes
-        de tu dispositivo o cerrando sesión, lo que da de baja el dispositivo.
-      </p>
+    <h2>5. Notificaciones push</h2>
+    <p>Para la entrega inmediata de notificaciones utilizamos la plataforma Firebase Cloud Messaging (Google). Al registrar tu dispositivo Android o iOS, se genera un identificador único anonimizado (token FCM) que nos permite entregarte los avisos. Puedes revocar este permiso o desactivar las notificaciones en cualquier momento desde los ajustes de tu sistema operativo o cerrando sesión en la app, lo que da de baja el token inmediatamente en el servidor.</p>
 
-      <h2>6. Con quién compartimos los datos</h2>
-      <p>
-        <strong>No vendemos ni alquilamos</strong> tus datos personales. Solo los
-        compartimos con proveedores que actúan como encargados del tratamiento y
-        únicamente en la medida necesaria para operar el servicio:
-      </p>
-      <table>
-        <tr><th>Proveedor</th><th>Finalidad</th></tr>
-        <tr><td>Railway</td><td>Alojamiento de la infraestructura y la base de datos.</td></tr>
-        <tr><td>Google Firebase</td><td>Entrega de notificaciones push.</td></tr>
-        <tr><td>Proveedor de correo electrónico</td><td>Envío de códigos de verificación (OTP) y avisos.</td></tr>
-      </table>
-      <p>
-        También podremos divulgar información cuando lo exija una autoridad competente o
-        la ley aplicable.
-      </p>
+    <h2>6. Con quién compartimos los datos</h2>
+    <p>No vendemos, alquilamos ni comercializamos tus datos personales con terceros bajo ninguna circunstancia. Solo compartimos datos con proveedores de infraestructura esenciales que actúan como encargados del tratamiento bajo contratos de confidencialidad:</p>
+    <ul>
+        <li><strong>Railway:</strong> Para el alojamiento de la infraestructura del backend en Go y la persistencia de la base de datos relacional PostgreSQL.</li>
+        <li><strong>Google Firebase:</strong> Para el procesamiento y despacho técnico de las notificaciones push.</li>
+        <li><strong>Proveedor SMTP Transaccional:</strong> Para el envío automatizado de los correos de verificación OTP y reestablecimiento de contraseñas.</li>
+    </ul>
 
-      <h2>7. Seguridad de la información</h2>
-      <ul>
-        <li>Las contraseñas se almacenan cifradas con <em>hashing</em> bcrypt.</li>
-        <li>Los datos sensibles viajan cifrados en tránsito (TLS/HTTPS y cifrado RSA en el cliente).</li>
-        <li>El acceso se protege con tokens de sesión y límites de intentos (rate limiting).</li>
-        <li>Aplicamos el principio de mínimo privilegio en el acceso a los datos.</li>
-      </ul>
-      <p class="muted">
-        Ninguna transmisión por Internet es 100 % segura; no podemos garantizar una
-        seguridad absoluta, pero aplicamos medidas razonables conforme a las buenas prácticas.
-      </p>
+    <h2>7. Seguridad de la información</h2>
+    <p>Implementamos medidas de seguridad técnicas avanzadas para salvaguardar la integridad de tus datos:</p>
+    <ul>
+        <li>Las contraseñas se protegen mediante el algoritmo de hash adaptativo Bcrypt.</li>
+        <li>Toda la información viaja cifrada en tránsito a través de protocolos TLS/HTTPS y cifrado de claves asimétricas RSA desde el cliente móvil.</li>
+        <li>Los endpoints administrativos cuentan con restricciones estrictas de autorización por middleware.</li>
+        <li>Aplicamos el principio de mínimo privilegio para la contención de accesos en los logs de auditoría.</li>
+    </ul>
 
-      <h2>8. Conservación de los datos</h2>
-      <p>
-        Conservamos tus datos mientras tu cuenta esté activa. Cuando solicitas la
-        eliminación de tu cuenta, esta se marca como eliminada y tus datos personales se
-        suprimen o anonimizan, salvo aquellos que debamos conservar por obligaciones
-        legales o para la resolución de disputas.
-      </p>
+    <h2>8. Conservación y eliminación de la cuenta</h2>
+    <p>Conservamos tus datos únicamente mientras tu cuenta permanezca activa en la plataforma. Puedes solicitar la eliminación de tu cuenta en cualquier momento desde la propia aplicación. La eliminación sigue un modelo de <strong>periodo de gracia</strong>, alineado con las prácticas de las tiendas de aplicaciones:</p>
+    <div class="highlight-box">
+        <strong>Cómo funciona la eliminación:</strong> en el momento en que solicitas eliminar tu cuenta (confirmada con un código OTP enviado a tu correo), tu cuenta se <strong>desactiva de inmediato</strong>: se cierran todas tus sesiones y se revocan los tokens de notificaciones push de tus dispositivos. A partir de ahí comienza un <strong>periodo de gracia de 15 días</strong>, durante el cual tus datos se conservan únicamente como ventana de recuperación ante una solicitud accidental o no autorizada. Transcurridos los 15 días, el sistema ejecuta de forma automática la <strong>eliminación física, definitiva e irreversible</strong> de tu cuenta mediante una purga en cascada (<code>ON DELETE CASCADE</code>), sin dejar registros huérfanos. El contenido vinculado a otros usuarios (comentarios, mensajes, compromisos de pago) se anonimiza, desvinculándolo por completo de tu identidad. Los registros técnicos de auditoría se purgan automáticamente a las 24 horas.
+    </div>
 
-      <h2>9. Tus derechos</h2>
-      <p>Tienes derecho a:</p>
-      <ul>
-        <li><strong>Acceder</strong> a los datos que tenemos sobre ti.</li>
-        <li><strong>Rectificar</strong> datos inexactos o incompletos.</li>
-        <li><strong>Eliminar</strong> tu cuenta y tus datos personales.</li>
-        <li><strong>Oponerte</strong> o limitar ciertos tratamientos y retirar tu consentimiento.</li>
-      </ul>
-      <p>
-        Puedes eliminar tu cuenta directamente desde la aplicación (sección de cuenta), o
-        ejercer cualquiera de estos derechos escribiendo a
-        <a href="mailto:soporte@sakoo.com">soporte@sakoo.com</a>.
-      </p>
+    <h2>9. Tus derechos</h2>
+    <p>Como usuario titular de los datos, tienes derecho a:</p>
+    <ul>
+        <li><strong>Acceder:</strong> Consultar qué datos personales tenemos registrados sobre ti.</li>
+        <li><strong>Rectificar:</strong> Corregir o actualizar información inexacta o incompleta desde tu perfil móvil.</li>
+        <li><strong>Eliminar:</strong> Solicitar la supresión total e inmediata de tu cuenta mediante el mecanismo automatizado "Borrado de Cuenta".</li>
+        <li><strong>Limitar:</strong> Oponerte al tratamiento de ciertos datos opcionales o retirar tu consentimiento.</li>
+    </ul>
+    <p>Puedes ejercer el borrado total directamente desde la aplicación móvil (Sección Perfil > Cuenta > Eliminar Cuenta) o realizar solicitudes adicionales escribiendo al correo electrónico <a href="mailto:soporte@sakoo.net">soporte@sakoo.net</a>.</p>
 
-      <h2>10. Privacidad de menores</h2>
-      <p>
-        Sakoo no está dirigida a menores de edad y no recopilamos conscientemente datos de
-        personas menores de 18 años. Si detectamos que hemos recopilado datos de un menor,
-        los eliminaremos.
-      </p>
+    <h2>10. Privacidad de menores</h2>
+    <p>Sakoo no está dirigida a menores de edad y no recopilamos conscientemente datos de personas menores de 18 años. Si detectamos la existencia de registros pertenecientes a un menor de edad sin autorización, procederemos a su inmediata remoción en cascada del sistema.</p>
 
-      <h2>11. Cambios en esta política</h2>
-      <p>
-        Podemos actualizar esta Política de Privacidad ocasionalmente. Publicaremos la
-        versión vigente en esta misma dirección e indicaremos la fecha de la última
-        actualización en la parte superior. El uso continuado de la aplicación tras una
-        actualización implica la aceptación de los cambios.
-      </p>
+    <h2>11. Cambios en esta política</h2>
+    <p>Nos reservamos el derecho de modificar esta Política de Privacidad en cualquier momento para adaptarla a novedades técnicas, legislativas o exigencias del mercado de aplicaciones móviles. Publicaremos el texto actualizado en esta URL y modificaremos la fecha de vigencia en la parte superior. El uso continuo de la app constituye la aceptación de los nuevos términos.</p>
 
-      <h2>12. Contacto</h2>
-      <p>
-        Si tienes preguntas sobre esta Política de Privacidad o sobre el tratamiento de
-        tus datos, contáctanos en
-        <a href="mailto:soporte@sakoo.com">soporte@sakoo.com</a>.
-      </p>
-    </main>
+    <h2>12. Contacto</h2>
+    <p>Para cualquier aclaratoria, reclamo o duda sobre estas políticas, puedes comunicarte con nuestro equipo técnico y de atención al usuario a través del correo: <a href="mailto:soporte@sakoo.net">soporte@sakoo.net</a>.</p>
 
     <footer>
-      <p class="muted">© 2026 Sakoo. Todos los derechos reservados.</p>
+        <p>© 2026 Sakoo. Todos los derechos reservados. Impulsado por DGF GROUP TECHNOLOGY, C.A.</p>
     </footer>
-  </div>
+</div>
+
 </body>
 </html>

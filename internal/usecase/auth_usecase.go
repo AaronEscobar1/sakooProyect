@@ -31,6 +31,7 @@ type authUseCase struct {
 	userRepo  domain.UserRepository
 	otpRepo   domain.OTPRepository
 	emailSrv  domain.EmailService
+	notifRepo domain.NotificationRepository
 	jwtSecret string
 }
 
@@ -39,12 +40,14 @@ func NewAuthUseCase(
 	userRepo domain.UserRepository,
 	otpRepo domain.OTPRepository,
 	emailSrv domain.EmailService,
+	notifRepo domain.NotificationRepository,
 	jwtSecret string,
 ) domain.AuthUseCase {
 	return &authUseCase{
 		userRepo:  userRepo,
 		otpRepo:   otpRepo,
 		emailSrv:  emailSrv,
+		notifRepo: notifRepo,
 		jwtSecret: jwtSecret,
 	}
 }
@@ -542,9 +545,19 @@ func (s *authUseCase) ResetPassword(ctx context.Context, email, newPassword, otp
 	return nil
 }
 
-// DeleteAccount realiza la eliminación lógica del usuario tras verificar su OTP de DELETE.
+// DeleteAccount inicia la eliminación de cuenta tras verificar el OTP de DELETE.
+//
+// Modelo de borrado con periodo de gracia (defendible y alineado con Play Store/App Store):
+//  1. Se marca la cuenta como eliminada (deleted_at = NOW()), lo que la desactiva al instante:
+//     el login y todas las consultas filtran por `deleted_at IS NULL`.
+//  2. Se revoca el acceso de inmediato: se cierran todas las sesiones activas y se eliminan
+//     los tokens de notificaciones push (FCM), de modo que el uso de datos cesa enseguida.
+//  3. Transcurridos 15 días de gracia (ventana de recuperación ante error o robo de cuenta),
+//     un cron purga físicamente la cuenta con DELETE FROM users, disparando los ON DELETE
+//     CASCADE que eliminan los datos personales de forma irreversible; los registros con
+//     ON DELETE SET NULL (comentarios, mensajes, compromisos) quedan anonimizados.
 func (s *authUseCase) DeleteAccount(ctx context.Context, userID int64, otpCode string) error {
-	slog.Info("Ejecutando caso de uso de Borrado Lógico de Cuenta con OTP", "user_id", userID)
+	slog.Info("Ejecutando caso de uso de Borrado de Cuenta con OTP", "user_id", userID)
 
 	if userID <= 0 {
 		return errors.New("ID de usuario inválido")
@@ -565,12 +578,21 @@ func (s *authUseCase) DeleteAccount(ctx context.Context, userID int64, otpCode s
 		return err
 	}
 
-	// 3. Ejecutar el soft delete
+	// 3. Marcar la cuenta como eliminada (desactivación inmediata + inicio del periodo de gracia de 15 días).
 	if err := s.userRepo.SoftDelete(ctx, userID); err != nil {
 		return err
 	}
 
-	slog.Info("Cuenta eliminada lógicamente de manera exitosa con OTP", "user_id", userID, "email", user.Email)
+	// 4. Revocar el acceso de inmediato. Es "best-effort": si falla, la cuenta ya quedó desactivada
+	//    y la purga a 15 días eliminará igualmente sesiones y tokens por cascada; solo lo registramos.
+	if err := s.userRepo.DeleteUserSessions(ctx, userID); err != nil {
+		slog.Error("No se pudieron cerrar las sesiones activas al eliminar la cuenta", "error", err, "user_id", userID)
+	}
+	if err := s.notifRepo.DeleteAllUserDeviceTokens(ctx, userID); err != nil {
+		slog.Error("No se pudieron revocar los tokens push al eliminar la cuenta", "error", err, "user_id", userID)
+	}
+
+	slog.Info("Cuenta marcada para eliminación y acceso revocado con éxito", "user_id", userID, "email", user.Email)
 	return nil
 }
 

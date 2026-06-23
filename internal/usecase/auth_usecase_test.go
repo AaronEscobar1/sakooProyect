@@ -58,6 +58,11 @@ type mockEmailService struct {
 	domain.EmailService
 }
 
+// mockNotificationRepository implements domain.NotificationRepository
+type mockNotificationRepository struct {
+	domain.NotificationRepository
+}
+
 func TestLoginAdmin(t *testing.T) {
 	jwtSecret := "test-secret"
 	password := "my-secure-password"
@@ -181,7 +186,7 @@ func TestLoginAdmin(t *testing.T) {
 			repo := &mockUserRepository{}
 			tt.setupRepo(repo)
 
-			uc := usecase.NewAuthUseCase(repo, &mockOTPRepository{}, &mockEmailService{}, jwtSecret)
+			uc := usecase.NewAuthUseCase(repo, &mockOTPRepository{}, &mockEmailService{}, &mockNotificationRepository{}, jwtSecret)
 			res, err := uc.LoginAdmin(context.Background(), tt.req)
 
 			if tt.expectSuccess {

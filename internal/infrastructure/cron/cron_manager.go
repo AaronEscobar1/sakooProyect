@@ -144,6 +144,19 @@ func (cm *CronManager) Start(ctx context.Context) {
 		} else {
 			slog.Info("Limpieza periódica de sesiones expiradas completada con éxito", "filas_eliminadas", sessResult.RowsAffected())
 		}
+
+		// Purga definitiva de cuentas eliminadas: tras el periodo de gracia de 15 días desde la
+		// solicitud de borrado, se elimina físicamente al usuario. El DELETE dispara los
+		// ON DELETE CASCADE (cuentas bancarias, terceros, tokens FCM, sesiones, historial de
+		// contraseñas, notificaciones) y anonimiza vía ON DELETE SET NULL (comentarios, mensajes,
+		// compromisos). El borrado es irreversible.
+		purgeQuery := `DELETE FROM users WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL '15 days';`
+		purgeResult, errPurge := cm.db.Exec(cleanupCtx, purgeQuery)
+		if errPurge != nil {
+			slog.Error("Fallo en la purga definitiva de cuentas eliminadas tras el periodo de gracia", "error", errPurge)
+		} else {
+			slog.Info("Purga definitiva de cuentas eliminadas completada con éxito", "cuentas_purgadas", purgeResult.RowsAffected())
+		}
 	})
 
 	if errCleanup != nil {
