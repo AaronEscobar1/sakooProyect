@@ -144,7 +144,7 @@ func (r *exchangeRateRepository) GetLatestRates(ctx context.Context) ([]domain.E
 			e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE e.value_date <= CURRENT_DATE AND c."show" = TRUE
+		WHERE e.value_date <= (NOW() AT TIME ZONE 'America/Caracas')::date AND c."show" = TRUE
 		ORDER BY e.currency_id, e.value_date DESC;
 	`
 	
@@ -321,7 +321,7 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 		SELECT e.id, e.currency_id, c.code, e.rate_from, e.rate_to, e.rate_average, e.value_date, e.status, e.source, e.created_at, e.updated_at
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c.code = $1
+		WHERE c.code = $1 AND e.value_date <= (NOW() AT TIME ZONE 'America/Caracas')::date
 		ORDER BY e.value_date DESC
 		LIMIT 1;
 	`
@@ -578,10 +578,10 @@ func (r *exchangeRateRepository) GetCalendarDates(ctx context.Context) ([]string
 	slog.Debug("Consultando fechas únicas de calendario de tasas")
 
 	query := `
-		SELECT DISTINCT e.value_date 
+		SELECT DISTINCT e.value_date
 		FROM exchange_rates e
 		JOIN catalogs.currency c ON e.currency_id = c.id
-		WHERE c."show" = TRUE
+		WHERE c."show" = TRUE AND e.value_date <= (NOW() AT TIME ZONE 'America/Caracas')::date
 		ORDER BY e.value_date DESC;
 	`
 	rows, err := r.db.Query(dbCtx, query)
