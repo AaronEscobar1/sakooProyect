@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -76,34 +77,64 @@ func (uc *ScraperUseCase) ExecuteScraping(ctx context.Context) error {
 			"tasa", rate.RateAverage.String(),
 		)
 
-		// Verificar si la tasa cambió realmente antes del Upsert
-		rateChanged := false
-		latestRate, errLatest := uc.repo.GetLatestRate(ctx, rate.CurrencyCode)
-		if errLatest != nil {
-			// Si no hay tasas registradas previamente, se considera un cambio
-			rateChanged = true
-		} else if latestRate != nil && (!latestRate.RateTo.Equal(rate.RateTo) || !latestRate.ValueDate.Equal(rate.ValueDate)) {
-			rateChanged = true
-		}
-
-		// Persistir de forma Obtenida y segura
-		err := uc.repo.Upsert(ctx, &rate)
-		if err != nil {
-			slog.Error("Resiliencia - Error al guardar la tasa de cambio en la base de datos", 
-				"moneda", rate.CurrencyCode, 
-				"currency_id", rate.CurrencyID, 
+		// Persistir de forma segura e idempotente (el Upsert asigna rate.ID).
+		if err := uc.repo.Upsert(ctx, &rate); err != nil {
+			slog.Error("Resiliencia - Error al guardar la tasa de cambio en la base de datos",
+				"moneda", rate.CurrencyCode,
+				"currency_id", rate.CurrencyID,
 				"error", err,
 			)
 			totalFailures++
-		} else {
-			slog.Info("Resiliencia - Tasa de cambio guardada/actualizada con éxito", 
-				"moneda", rate.CurrencyCode, 
-				"currency_id", rate.CurrencyID,
-			)
-			totalSuccess++
-			if rateChanged && (rate.CurrencyCode == "USD" || rate.CurrencyCode == "EUR") {
-				changedRates = append(changedRates, rate)
-			}
+			continue
+		}
+
+		slog.Info("Resiliencia - Tasa de cambio guardada/actualizada con éxito",
+			"moneda", rate.CurrencyCode,
+			"currency_id", rate.CurrencyID,
+		)
+		totalSuccess++
+
+		// --- Decisión de notificación push ---
+		// Solo para monedas visibles relevantes (USD/EUR), solo cuando el VALOR (rate_to) cambia
+		// respecto del día hábil anterior, y como máximo una vez por tasa.
+		//
+		// IMPORTANTE: NO se compara por value_date. El BCV publica por la tarde/noche la fecha
+		// del próximo día hábil; esa fila futura quedaba siempre "distinta" de la última visible
+		// (filtrada a <= hoy), disparando un push en cada ciclo del cron (cada 30 min, sobre todo
+		// los fines de semana). Comparar rate_to vs el día previo + deduplicar elimina ese spam.
+		if rate.CurrencyCode != "USD" && rate.CurrencyCode != "EUR" {
+			continue
+		}
+		if uc.notificationUseCase == nil {
+			continue
+		}
+
+		prev, errPrev := uc.repo.GetPreviousRate(ctx, rate.CurrencyCode, rate.ValueDate)
+		valueChanged := false
+		switch {
+		case errPrev != nil && errors.Is(errPrev, domain.ErrNotFound):
+			valueChanged = true // Primera tasa registrada para esta moneda.
+		case errPrev != nil:
+			slog.Warn("No se pudo obtener la tasa previa para evaluar el cambio; se omite la notificación",
+				"moneda", rate.CurrencyCode, "error", errPrev)
+			continue
+		case prev != nil && !prev.RateTo.Equal(rate.RateTo):
+			valueChanged = true
+		}
+
+		if !valueChanged {
+			continue
+		}
+
+		// Reclamar la notificación de forma atómica: deduplica entre ciclos del cron.
+		claimed, errMark := uc.repo.MarkRateNotified(ctx, rate.ID)
+		if errMark != nil {
+			slog.Warn("Fallo al reclamar la notificación de la tasa; se omite",
+				"moneda", rate.CurrencyCode, "rate_id", rate.ID, "error", errMark)
+			continue
+		}
+		if claimed {
+			changedRates = append(changedRates, rate)
 		}
 	}
 

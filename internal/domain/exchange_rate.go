@@ -46,6 +46,12 @@ type ExchangeRateRepository interface {
 	GetCalendarDates(ctx context.Context) ([]string, error)
 	UpdateRateApproval(ctx context.Context, rateID int64, rateFrom, rateTo, rateAverage decimal.Decimal, source string) error
 	GetLast7DaysRates(ctx context.Context) ([]ExchangeRate, error)
+	// MarkRateNotified reclama de forma atómica el envío de la notificación push de la tasa.
+	// Devuelve true solo la primera vez (cuando notified_at estaba en NULL); false si ya se notificó.
+	MarkRateNotified(ctx context.Context, rateID int64) (bool, error)
+	// ApproveDueRates marca como APPROVED todas las tasas cuyo value_date ya llegó (hora Venezuela)
+	// y que aún no estén aprobadas. Devuelve la cantidad de filas actualizadas.
+	ApproveDueRates(ctx context.Context) (int64, error)
 }
 
 // ExchangeRateUseCase define la lógica de negocio para interactuar con las tasas de cambio.
@@ -55,5 +61,6 @@ type ExchangeRateUseCase interface {
 	GetCalendarDates(ctx context.Context) ([]string, error)
 	ApproveRate(ctx context.Context, req ApproveExchangeRateRequest, adminUserID int64) error
 	GetLast7DaysRates(ctx context.Context) ([]ExchangeRate, error)
+	ApproveDueRates(ctx context.Context) (int64, error)
 }
 

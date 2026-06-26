@@ -13,10 +13,10 @@ import (
 
 // CronManager administra las tareas recurrentes en segundo plano utilizando robfig/cron/v3.
 type CronManager struct {
-	bcvScraperUseCase       *usecase.ScraperUseCase
-	mercantilScraperUseCase *usecase.MercantilScraperUseCase
-	db                      *pgxpool.Pool
-	cronInstance            *cron.Cron
+	bcvScraperUseCase   *usecase.ScraperUseCase
+	exchangeRateUseCase *usecase.ExchangeRateUseCase
+	db                  *pgxpool.Pool
+	cronInstance        *cron.Cron
 }
 
 // cronLogger adapta los logs estructurados de robfig/cron hacia el logger moderno slog.
@@ -32,8 +32,8 @@ func (cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 
 // NewCronManager crea una nueva instancia de CronManager.
 func NewCronManager(
-	bcvScraperUseCase *usecase.ScraperUseCase, 
-	mercantilScraperUseCase *usecase.MercantilScraperUseCase,
+	bcvScraperUseCase *usecase.ScraperUseCase,
+	exchangeRateUseCase *usecase.ExchangeRateUseCase,
 	db *pgxpool.Pool,
 ) *CronManager {
 	logger := cronLogger{}
@@ -48,10 +48,10 @@ func NewCronManager(
 	)
 
 	return &CronManager{
-		bcvScraperUseCase:       bcvScraperUseCase,
-		mercantilScraperUseCase: mercantilScraperUseCase,
-		db:                      db,
-		cronInstance:            c,
+		bcvScraperUseCase:   bcvScraperUseCase,
+		exchangeRateUseCase: exchangeRateUseCase,
+		db:                  db,
+		cronInstance:        c,
 	}
 }
 
@@ -100,23 +100,27 @@ func (cm *CronManager) Start(ctx context.Context) {
 		return
 	}
 
-	// 2. Cron de Mercantil: cada 2 horas todos los días
-	cronExprMercantil := "0 */2 * * *"
-	_, errMercantil := cm.cronInstance.AddFunc(cronExprMercantil, func() {
-		slog.Info("Cron Triggered: Iniciando ciclo automático de scraping de tasas del Mercantil Banco...")
-		
-		scrapeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	// 2. Cron de Auto-Aprobación de Tasas: cada 30 minutos.
+	// Cuando el value_date de una tasa llega al día actual en hora de Venezuela (UTC-4),
+	// su status pasa automáticamente a APPROVED para que se muestre como tasa activa
+	// (en el backoffice y la app). Es idempotente.
+	cronExprApprove := "*/30 * * * *"
+	_, errApprove := cm.cronInstance.AddFunc(cronExprApprove, func() {
+		slog.Info("Cron Triggered: Auto-aprobando tasas cuyo value_date ya llegó (hora Venezuela)...")
+
+		approveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		if err := cm.mercantilScraperUseCase.ExecuteScraping(scrapeCtx); err != nil {
-			slog.Error("Fallo en la ejecución automática del Cron de Scraping Mercantil", "error", err)
+		affected, err := cm.exchangeRateUseCase.ApproveDueRates(approveCtx)
+		if err != nil {
+			slog.Error("Fallo en la ejecución automática del Cron de Auto-Aprobación de tasas", "error", err)
 		} else {
-			slog.Info("Ciclo automático de scraping de tasas Mercantil ejecutado con éxito")
+			slog.Info("Ciclo automático de auto-aprobación de tasas completado", "tasas_aprobadas", affected)
 		}
 	})
 
-	if errMercantil != nil {
-		slog.Error("Fallo crítico al registrar la tarea de Scraping Mercantil en CronManager", "expr", cronExprMercantil, "error", errMercantil)
+	if errApprove != nil {
+		slog.Error("Fallo crítico al registrar la tarea de Auto-Aprobación de tasas en CronManager", "expr", cronExprApprove, "error", errApprove)
 		return
 	}
 

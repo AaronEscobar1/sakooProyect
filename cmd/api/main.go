@@ -174,14 +174,12 @@ func main() {
 	// Instanciar servicios de Scraping y Cron
 	bcvScraperService := scraper.NewBCVScraper()
 	bcvScraperUseCase := usecase.NewScraperUseCase(bcvScraperService, exchangeRateRepo, notificationUseCase)
-	
-	// Instanciar servicios de Scraping Mercantil
-	mercantilScraperService := scraper.NewMercantilScraper()
-	mercantilScraperUseCase := usecase.NewMercantilScraperUseCase(mercantilScraperService, exchangeRateRepo, notificationUseCase)
-	
-	cronManager := cron.NewCronManager(bcvScraperUseCase, mercantilScraperUseCase, pool)
 
 	exchangeRateUseCase := usecase.NewExchangeRateUseCase(exchangeRateRepo)
+
+	// El CronManager ejecuta el scraping del BCV y la auto-aprobación diaria de tasas.
+	cronManager := cron.NewCronManager(bcvScraperUseCase, exchangeRateUseCase, pool)
+
 	dashboardUseCase := usecase.NewDashboardUseCase(exchangeRateRepo)
 	calculatorUseCase := usecase.NewCalculatorUseCase(exchangeRateRepo)
 	bankAccountUseCase := usecase.NewBankAccountUseCase(bankAccountRepo)
@@ -194,7 +192,7 @@ func main() {
 
 	// 8. Instanciar controladores HTTP de la capa API
 	authHandler := api.NewAuthHandler(authUseCase)
-	scraperHandler := api.NewScraperHandler(bcvScraperUseCase, mercantilScraperUseCase, pool)
+	scraperHandler := api.NewScraperHandler(bcvScraperUseCase, pool)
 	exchangeRateHandler := api.NewExchangeRateHandler(exchangeRateUseCase)
 	ratesHandler := api.NewRatesHandler(dashboardUseCase, calculatorUseCase, exchangeRateUseCase)
 	bankAccountHandler := api.NewBankAccountHandler(bankAccountUseCase)
@@ -329,7 +327,6 @@ func main() {
 
 	// Ruta de Scraping Manual (Pruebas en caliente) - Protegidas con API Key
 	mux.Handle("POST /api/admin/scrape-now", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeNow)))
-	mux.Handle("POST /api/admin/scrape-mercantil", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeMercantilNow)))
 	mux.Handle("POST /api/admin/scrape-binance", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(scraperHandler.HandleScrapeBinance)))
 	// Ruta de Consulta de Logs de Auditoría (Admin) - Protegida con API Key
 	mux.Handle("GET /api/admin/logs", middleware.AdminApiKeyMiddleware(adminApiKey)(http.HandlerFunc(adminHandler.HandleGetAuditLogs)))

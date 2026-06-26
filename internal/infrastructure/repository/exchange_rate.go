@@ -700,3 +700,54 @@ func (r *exchangeRateRepository) GetLast7DaysRates(ctx context.Context) ([]domai
 	return rates, nil
 }
 
+// MarkRateNotified reclama de forma atómica e idempotente el envío de la notificación push
+// para una fila de tasa. El UPDATE solo afecta filas con notified_at en NULL, por lo que
+// devuelve true únicamente la primera vez. En ciclos posteriores del scraper devuelve false.
+func (r *exchangeRateRepository) MarkRateNotified(ctx context.Context, rateID int64) (bool, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE exchange_rates
+		SET notified_at = NOW()
+		WHERE id = $1 AND notified_at IS NULL
+		RETURNING id;
+	`
+
+	var id int64
+	err := r.db.QueryRow(dbCtx, query, rateID).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// Ya se había notificado previamente esta tasa.
+			return false, nil
+		}
+		slog.Error("Fallo al marcar la tasa como notificada en PostgreSQL", "error", err, "rate_id", rateID)
+		return false, fmt.Errorf("error al marcar tasa como notificada: %w", err)
+	}
+
+	return true, nil
+}
+
+// ApproveDueRates marca como APPROVED todas las tasas cuyo value_date ya llegó (en hora
+// de Venezuela, UTC-4) y que todavía no están aprobadas. Es idempotente: las ya aprobadas
+// quedan excluidas por el filtro status <> 'APPROVED'.
+func (r *exchangeRateRepository) ApproveDueRates(ctx context.Context) (int64, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE exchange_rates
+		SET status = 'APPROVED', updated_at = NOW()
+		WHERE status <> 'APPROVED'
+		  AND value_date <= (NOW() AT TIME ZONE 'America/Caracas')::date;
+	`
+
+	res, err := r.db.Exec(dbCtx, query)
+	if err != nil {
+		slog.Error("Fallo al auto-aprobar tasas vencidas en PostgreSQL", "error", err)
+		return 0, fmt.Errorf("error al auto-aprobar tasas vencidas: %w", err)
+	}
+
+	return res.RowsAffected(), nil
+}
+

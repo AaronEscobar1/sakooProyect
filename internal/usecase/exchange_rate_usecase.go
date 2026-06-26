@@ -124,3 +124,9 @@ func (uc *ExchangeRateUseCase) GetLast7DaysRates(ctx context.Context) ([]domain.
 	return uc.repo.GetLast7DaysRates(ctx)
 }
 
+// ApproveDueRates auto-aprueba (status = APPROVED) las tasas cuyo value_date ya llegó en
+// hora de Venezuela y aún no estaban aprobadas. Pensado para ejecutarse desde el cron.
+func (uc *ExchangeRateUseCase) ApproveDueRates(ctx context.Context) (int64, error) {
+	return uc.repo.ApproveDueRates(ctx)
+}
+

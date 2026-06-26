@@ -461,7 +461,11 @@ definitions:
       action:
         description: '''REGISTER'', ''RECOVER'', ''DELETE'''
         type: string
+      document_number:
+        type: string
       email:
+        type: string
+      username:
         type: string
     type: object
   internal_api.ResetPasswordRequest:
@@ -937,26 +941,6 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Forzar raspado de Binance P2P (USDT/USDC)
-      tags:
-      - Administración
-  /api/admin/scrape-mercantil:
-    post:
-      description: Ejecuta de forma síncrona el web scraper de Mercantil para actualizar
-        las tasas de cambio de este banco.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Raspado y actualización de Mercantil ejecutados con éxito
-          schema:
-            $ref: '#/definitions/response.APIResponse-any'
-        "500":
-          description: Error interno al realizar el scraping
-          schema:
-            $ref: '#/definitions/response.APIResponse-any'
-      security:
-      - ApiKeyAuth: []
-      summary: Forzar raspado de tasas Mercantil
       tags:
       - Administración
   /api/admin/scrape-now:
@@ -2052,6 +2036,20 @@ paths:
       summary: Buscar usuarios (Liviano)
       tags:
       - Usuarios
+  /privacy:
+    get:
+      description: Página HTML pública con la política de privacidad de Sakoo (requerida
+        por Play Store).
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Página HTML de la política de privacidad
+          schema:
+            type: string
+      summary: Política de Privacidad
+      tags:
+      - Legal
 securityDefinitions:
   ApiKeyAuth:
     description: 'Coloque el token JWT de la siguiente manera: "Bearer <token>"'

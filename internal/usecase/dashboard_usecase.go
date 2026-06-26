@@ -72,13 +72,10 @@ func (uc *dashboardUseCase) GetDashboardSummary(ctx context.Context, currencyCod
 		variationPercent = diff.Div(previousRate.RateAverage).Mul(decimal.NewFromInt(100))
 	}
 
-	// 4. Obtener el histórico de los últimos 7 días
-	var history []domain.ExchangeRate
-	if date != nil {
-		history, err = uc.repo.GetRatesHistoryBeforeOrAt(ctx, currencyCode, latestRate.ValueDate, 7)
-	} else {
-		history, err = uc.repo.GetRatesHistory(ctx, currencyCode, 7)
-	}
+	// 4. Obtener el histórico: los últimos 7 días distintos registrados, INCLUYENDO días futuros
+	//    ya publicados (p.ej. la tasa del próximo día hábil que el BCV publica por anticipado).
+	//    La app determina qué día mostrar (el del dispositivo) y permite navegar entre todos.
+	history, err := uc.repo.GetRatesHistory(ctx, currencyCode, 7)
 	if err != nil {
 		return nil, err
 	}

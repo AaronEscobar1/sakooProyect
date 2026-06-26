@@ -249,15 +249,6 @@ func (h *NotificationHandler) HandleTestPushNotification(w http.ResponseWriter, 
 			"currency_code": currency,
 			"rate":          "39.75",
 		}
-	case "UDI", "MERCANTIL":
-		title = "¡La tasa de Mercantil ha cambiado! 🚀"
-		body = "La nueva tasa del Dólar Intervención es de 39.50 Bs."
-		payload = map[string]interface{}{
-			"type":          "rate_update",
-			"source":        "MERCANTIL",
-			"currency_code": "UDI",
-			"rate":          "39.50",
-		}
 	case "USD":
 		title = "¡La tasa de USD ha cambiado! 🚀"
 		body = "La nueva tasa oficial es de 36.50 Bs."
