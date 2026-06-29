@@ -28,9 +28,11 @@ func (r *bannerRepository) ListActive(ctx context.Context) ([]domain.Banner, err
 	slog.Debug("Recuperando banners activos de la base de datos")
 
 	query := `
-		SELECT id, image_url, link, is_active, display_order, created_at, updated_at
+		SELECT id, image_url, link, is_active, display_order, visible_from, visible_until, duration_ms, created_at, updated_at
 		FROM banners
 		WHERE is_active = TRUE
+		  AND (visible_from  IS NULL OR visible_from  <= now())
+		  AND (visible_until IS NULL OR visible_until >= now())
 		ORDER BY display_order ASC, id ASC;
 	`
 	rows, err := r.db.Query(dbCtx, query)
@@ -43,7 +45,7 @@ func (r *bannerRepository) ListActive(ctx context.Context) ([]domain.Banner, err
 	var banners []domain.Banner
 	for rows.Next() {
 		var b domain.Banner
-		err := rows.Scan(&b.ID, &b.ImageURL, &b.Link, &b.IsActive, &b.DisplayOrder, &b.CreatedAt, &b.UpdatedAt)
+		err := rows.Scan(&b.ID, &b.ImageURL, &b.Link, &b.IsActive, &b.DisplayOrder, &b.VisibleFrom, &b.VisibleUntil, &b.DurationMs, &b.CreatedAt, &b.UpdatedAt)
 		if err != nil {
 			slog.Error("Error al escanear fila de banner", "error", err)
 			return nil, fmt.Errorf("error al decodificar banner: %w", err)

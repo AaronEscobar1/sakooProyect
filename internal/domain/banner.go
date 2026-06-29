@@ -7,13 +7,16 @@ import (
 
 // Banner representa un banner publicitario o informativo para la aplicación.
 type Banner struct {
-	ID           int64     `json:"id"`
-	ImageURL     string    `json:"image_url"`
-	Link         string    `json:"link"`
-	IsActive     bool      `json:"is_active"`
-	DisplayOrder int       `json:"display_order"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           int64      `json:"id"`
+	ImageURL     string     `json:"image_url"`
+	Link         string     `json:"link"`
+	IsActive     bool       `json:"is_active"`
+	DisplayOrder int        `json:"display_order"`
+	VisibleFrom  *time.Time `json:"visible_from"`
+	VisibleUntil *time.Time `json:"visible_until"`
+	DurationMs   int        `json:"duration_ms"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 // BannerRepository define las operaciones de persistencia para banners.
