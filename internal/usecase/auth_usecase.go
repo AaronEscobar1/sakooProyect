@@ -216,11 +216,30 @@ func (s *authUseCase) Register(ctx context.Context, req domain.RegisterRequest) 
 	req.LastName = strings.TrimSpace(req.LastName)
 	if req.MiddleName != nil {
 		trimmed := strings.TrimSpace(*req.MiddleName)
-		req.MiddleName = &trimmed
+		if trimmed == "" {
+			req.MiddleName = nil
+		} else {
+			req.MiddleName = &trimmed
+		}
 	}
 	if req.SecondLastName != nil {
 		trimmed := strings.TrimSpace(*req.SecondLastName)
-		req.SecondLastName = &trimmed
+		if trimmed == "" {
+			req.SecondLastName = nil
+		} else {
+			req.SecondLastName = &trimmed
+		}
+	}
+	if req.DocumentNumber != nil {
+		trimmed := strings.TrimSpace(*req.DocumentNumber)
+		if trimmed == "" {
+			req.DocumentNumber = nil
+		} else {
+			req.DocumentNumber = &trimmed
+		}
+	}
+	if req.DocumentTypeID != nil && *req.DocumentTypeID <= 0 {
+		req.DocumentTypeID = nil
 	}
 
 	slog.Debug("Ejecutando caso de uso de Registro", "email", req.Email, "username", req.Username)
