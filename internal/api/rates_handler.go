@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/AaronEscobar1/common/response"
+	"github.com/aaron/sakoo-backend/internal/domain"
 	"github.com/aaron/sakoo-backend/internal/usecase"
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
@@ -74,7 +75,7 @@ func (h *RatesHandler) HandleGetDashboardSummary(w http.ResponseWriter, r *http.
 		return
 	}
 
-	currency := r.URL.Query().Get("currency")
+	currency := domain.CleanCurrencyCode(r.URL.Query().Get("currency"))
 	if currency == "" {
 		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El parámetro query 'currency' es requerido")
 		return
@@ -146,6 +147,7 @@ func (h *RatesHandler) HandleCalculateConversion(w http.ResponseWriter, r *http.
 		return
 	}
 
+	req.Currency = domain.CleanCurrencyCode(req.Currency)
 	if req.Currency == "" {
 		response.Error(w, r.Context(), http.StatusOK, "BAD_REQUEST", "El código de moneda 'currency' es requerido")
 		return

@@ -29,6 +29,7 @@ func NewCalculatorUseCase(repo domain.ExchangeRateRepository) CalculatorUseCase 
 
 // CalculateConversion obtiene la tasa de cambio para la moneda (la más reciente o la de una fecha específica si se provee) y multiplica el monto por la tasa promedio.
 func (uc *calculatorUseCase) CalculateConversion(ctx context.Context, currencyCode string, amount decimal.Decimal, dateStr string) (decimal.Decimal, error) {
+	currencyCode = domain.CleanCurrencyCode(currencyCode)
 	if currencyCode == "" {
 		return decimal.Zero, errors.New("El código de moneda es requerido")
 	}

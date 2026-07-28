@@ -35,6 +35,7 @@ func (uc *ExchangeRateUseCase) GetRatesHistory(
 	currencyCode string,
 	startDateStr, endDateStr string,
 ) ([]domain.ExchangeRate, int, error) {
+	currencyCode = domain.CleanCurrencyCode(currencyCode)
 	// Validaciones básicas de paginación
 	if page < 1 {
 		page = 1

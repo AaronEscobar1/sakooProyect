@@ -2,7 +2,9 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
@@ -25,7 +27,19 @@ func (uc *catalogUseCase) GetDocumentTypes(ctx context.Context) ([]domain.Docume
 
 func (uc *catalogUseCase) GetCurrencies(ctx context.Context) ([]domain.Currency, error) {
 	slog.Info("Procesando listado de monedas")
-	return uc.repo.GetCurrencies(ctx)
+	currencies, err := uc.repo.GetCurrencies(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	formatted := make([]domain.Currency, len(currencies))
+	for i, c := range currencies {
+		if c.Name != "" && !strings.Contains(c.Code, " - ") {
+			c.Code = fmt.Sprintf("%s - %s", c.Code, c.Name)
+		}
+		formatted[i] = c
+	}
+	return formatted, nil
 }
 
 func (uc *catalogUseCase) GetBanks(ctx context.Context) ([]domain.Bank, error) {

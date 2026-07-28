@@ -34,6 +34,7 @@ func NewDashboardUseCase(repo domain.ExchangeRateRepository) DashboardUseCase {
 
 // GetDashboardSummary obtiene la tasa actual (o en o antes de la fecha dada), calcula la variación porcentual con el día hábil anterior y recupera los últimos 7 días de historial.
 func (uc *dashboardUseCase) GetDashboardSummary(ctx context.Context, currencyCode string, date *time.Time) (*DashboardResponseDTO, error) {
+	currencyCode = domain.CleanCurrencyCode(currencyCode)
 	if currencyCode == "" {
 		return nil, errors.New("El código de moneda es requerido")
 	}

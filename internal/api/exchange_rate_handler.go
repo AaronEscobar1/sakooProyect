@@ -117,6 +117,8 @@ func (h *ExchangeRateHandler) HandleGetRatesHistory(w http.ResponseWriter, r *ht
 		return
 	}
 
+	req.CurrencyCode = domain.CleanCurrencyCode(req.CurrencyCode)
+
 	// Valores por defecto si no vienen especificados
 	if req.Page < 1 {
 		req.Page = 1
