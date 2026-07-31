@@ -204,17 +204,13 @@ func (s *BCVScraper) ScrapeRates(ctx context.Context) ([]domain.ExchangeRate, er
 			continue
 		}
 
-		// Aplicar spread de 0.25% para obtener el precio de compra (rate_from)
-		// y usar el promedio publicado como precio de venta (rate_to)
-		multiplier := decimal.NewFromFloat(0.9975)
-		rateFrom := promedio.Mul(multiplier)
-		rateAverage := rateFrom.Add(promedio).Div(decimal.NewFromInt(2))
-
+		// Para las tasas oficiales del BCV (USD, EUR, CNY, TRY, RUB), el BCV publica
+		// un único valor oficial. Se asigna este valor exacto a RateFrom, RateTo y RateAverage.
 		rate := domain.ExchangeRate{
 			CurrencyCode: currencyCode,
-			RateFrom:     rateFrom,
+			RateFrom:     promedio,
 			RateTo:       promedio,
-			RateAverage:  rateAverage,
+			RateAverage:  promedio,
 			ValueDate:    valueDate,
 		}
 
