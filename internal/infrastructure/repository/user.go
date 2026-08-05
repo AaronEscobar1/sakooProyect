@@ -4,281 +4,172 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/aaron/sakoo-backend/ent"
+	"github.com/aaron/sakoo-backend/ent/user"
+	"github.com/aaron/sakoo-backend/ent/userpasswordhistory"
+	"github.com/aaron/sakoo-backend/ent/usersession"
+	"github.com/aaron/sakoo-backend/ent/usertype"
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// hashSessionToken deriva un hash SHA-256 (hex) del token de sesión.
-// Solo se almacena el hash en BD: si la base de datos se filtra, los JWT no son reutilizables.
 func hashSessionToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
 }
 
-// userRepository implementa la interfaz domain.UserRepository para PostgreSQL.
 type userRepository struct {
-	db *pgxpool.Pool
+	client *ent.Client
 }
 
-// NewUserRepository crea una nueva instancia del repositorio de usuarios.
-func NewUserRepository(db *pgxpool.Pool) domain.UserRepository {
+// NewUserRepository crea una nueva instancia del repositorio de usuarios utilizando Ent.
+func NewUserRepository(client *ent.Client) domain.UserRepository {
 	return &userRepository{
-		db: db,
+		client: client,
 	}
 }
 
-// Create inserta un nuevo usuario en la base de datos y almacena el ID numérico generado.
-func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
+func (r *userRepository) Create(ctx context.Context, u *domain.User) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Creando registro de usuario en base de datos", "email", user.Email)
+	slog.Debug("Creando registro de usuario en Ent", "email", u.Email)
 
-	query := `
-		INSERT INTO users (
-			email, 
-			username,
-			first_name, 
-			last_name, 
-			middle_name,
-			second_last_name,
-			avatar_index, 
-			user_type_id, 
-			document_type_id, 
-			document_number, 
-			password_hash, 
-			registration_ip,
-			country,
-			created_at, 
-			updated_at
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
-		RETURNING id;
-	`
+	builder := r.client.User.Create().
+		SetEmail(u.Email).
+		SetFirstName(u.FirstName).
+		SetLastName(u.LastName).
+		SetAvatarIndex(u.AvatarIndex).
+		SetUserTypeID(u.UserTypeID).
+		SetPasswordHash(u.PasswordHash)
 
-	// Ejecutar consulta y capturar el ID numérico autoincremental (BIGSERIAL)
-	err := r.db.QueryRow(dbCtx, query,
-		user.Email,
-		user.Username,
-		user.FirstName,
-		user.LastName,
-		user.MiddleName,
-		user.SecondLastName,
-		user.AvatarIndex,
-		user.UserTypeID,
-		user.DocumentTypeID,
-		user.DocumentNumber,
-		user.PasswordHash,
-		user.RegistrationIP,
-		user.Country,
-	).Scan(&user.ID)
+	if u.Username != "" {
+		builder.SetUsername(u.Username)
+	}
+	if u.MiddleName != nil {
+		builder.SetMiddleName(*u.MiddleName)
+	}
+	if u.SecondLastName != nil {
+		builder.SetSecondLastName(*u.SecondLastName)
+	}
+	if u.DocumentTypeID != nil {
+		builder.SetDocumentTypeID(*u.DocumentTypeID)
+	}
+	if u.DocumentNumber != nil {
+		builder.SetDocumentNumber(*u.DocumentNumber)
+	}
+	if u.RegistrationIP != nil {
+		builder.SetRegistrationIP(*u.RegistrationIP)
+	}
+	if u.Country != nil {
+		builder.SetCountry(*u.Country)
+	}
 
+	created, err := builder.Save(dbCtx)
 	if err != nil {
-		slog.Error("Fallo al insertar usuario en PostgreSQL", "error", err, "email", user.Email)
-
-		// Detectar violación de unicidad (23505) y devolver un error de dominio tipado,
-		// sin propagar el texto interno de PostgreSQL hacia la capa API.
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			if strings.Contains(pgErr.ConstraintName, "username") {
+		slog.Error("Fallo al insertar usuario en Ent", "error", err, "email", u.Email)
+		if ent.IsConstraintError(err) {
+			if strings.Contains(err.Error(), "username") {
 				return domain.ErrUsernameTaken
 			}
 			return domain.ErrEmailTaken
 		}
-
 		return fmt.Errorf("error al guardar usuario en base de datos")
 	}
 
-	slog.Info("Usuario registrado exitosamente en base de datos", "id", user.ID, "email", user.Email)
+	u.ID = int64(created.ID)
+	u.CreatedAt = created.CreatedAt
+	u.UpdatedAt = created.UpdatedAt
+
+	slog.Info("Usuario registrado exitosamente en base de datos", "id", u.ID, "email", u.Email)
 	return nil
 }
 
-// existsBy ejecuta un SELECT EXISTS parametrizado contra la tabla de usuarios.
-// No filtra deleted_at: las restricciones UNIQUE de email/username aplican a TODAS las filas
-// (incluidas las borradas lógicamente), por lo que la pre-validación debe reflejar ese alcance
-// para no dar falsos negativos que luego fallarían en el INSERT.
-func (r *userRepository) existsBy(ctx context.Context, column, value string) (bool, error) {
+func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-
-	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM users WHERE %s = $1)", column)
-
-	var exists bool
-	if err := r.db.QueryRow(dbCtx, query, value).Scan(&exists); err != nil {
-		slog.Error("Fallo al verificar existencia de usuario", "error", err, "column", column)
-		return false, fmt.Errorf("error al verificar disponibilidad de datos")
-	}
-	return exists, nil
+	return r.client.User.Query().Where(user.EmailEQ(email)).Exist(dbCtx)
 }
 
-// ExistsByEmail indica si ya existe un usuario con ese correo (normalizado en minúsculas por el caso de uso).
-func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
-	return r.existsBy(ctx, "email", email)
-}
-
-// ExistsByUsername indica si ya existe un usuario con ese nombre de usuario.
 func (r *userRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
-	return r.existsBy(ctx, "username", username)
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	return r.client.User.Query().Where(user.UsernameEQ(username)).Exist(dbCtx)
 }
 
-// ExistsByDocument indica si ya existe un usuario con ese número de documento (cédula).
 func (r *userRepository) ExistsByDocument(ctx context.Context, documentNumber string) (bool, error) {
-	return r.existsBy(ctx, "document_number", documentNumber)
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	return r.client.User.Query().Where(user.DocumentNumberEQ(documentNumber)).Exist(dbCtx)
 }
 
-// FindByEmail busca un usuario activo en base de datos por su correo electrónico.
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	slog.Debug("Buscando usuario por correo electrónico", "email", email)
 
-	query := `
-		SELECT 
-			id, 
-			email, 
-			username,
-			first_name, 
-			last_name, 
-			middle_name,
-			second_last_name,
-			avatar_index, 
-			user_type_id, 
-			document_type_id, 
-			document_number, 
-			password_hash, 
-			registration_ip,
-			country,
-			deleted_at,
-			created_at, 
-			updated_at 
-		FROM users 
-		WHERE email = $1 AND deleted_at IS NULL;
-	`
-
-	var u domain.User
-	err := r.db.QueryRow(dbCtx, query, email).Scan(
-		&u.ID,
-		&u.Email,
-		&u.Username,
-		&u.FirstName,
-		&u.LastName,
-		&u.MiddleName,
-		&u.SecondLastName,
-		&u.AvatarIndex,
-		&u.UserTypeID,
-		&u.DocumentTypeID,
-		&u.DocumentNumber,
-		&u.PasswordHash,
-		&u.RegistrationIP,
-		&u.Country,
-		&u.DeletedAt,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-	)
+	u, err := r.client.User.Query().
+		Where(user.EmailEQ(email), user.DeletedAtIsNil()).
+		Only(dbCtx)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.Debug("Usuario no encontrado o inactivo en base de datos", "email", email)
-			return nil, fmt.Errorf("usuario no encontrado: %w", pgx.ErrNoRows)
+		if ent.IsNotFound(err) {
+			slog.Debug("Usuario no encontrado o inactivo en Ent", "email", email)
+			return nil, fmt.Errorf("usuario no encontrado: %w", err)
 		}
-		slog.Error("Error al consultar usuario por email en PostgreSQL", "error", err, "email", email)
+		slog.Error("Error al consultar usuario por email en Ent", "error", err, "email", email)
 		return nil, fmt.Errorf("error de consulta en base de datos")
 	}
 
-	return &u, nil
+	return toDomainUser(u), nil
 }
 
-// FindByID busca un usuario activo en base de datos por su ID de base de datos.
 func (r *userRepository) FindByID(ctx context.Context, id int64) (*domain.User, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	slog.Debug("Buscando usuario por ID", "id", id)
 
-	query := `
-		SELECT 
-			id, 
-			email, 
-			username,
-			first_name, 
-			last_name, 
-			middle_name,
-			second_last_name,
-			avatar_index, 
-			user_type_id, 
-			document_type_id, 
-			document_number, 
-			password_hash, 
-			registration_ip,
-			country,
-			deleted_at,
-			created_at, 
-			updated_at 
-		FROM users 
-		WHERE id = $1 AND deleted_at IS NULL;
-	`
-
-	var u domain.User
-	err := r.db.QueryRow(dbCtx, query, id).Scan(
-		&u.ID,
-		&u.Email,
-		&u.Username,
-		&u.FirstName,
-		&u.LastName,
-		&u.MiddleName,
-		&u.SecondLastName,
-		&u.AvatarIndex,
-		&u.UserTypeID,
-		&u.DocumentTypeID,
-		&u.DocumentNumber,
-		&u.PasswordHash,
-		&u.RegistrationIP,
-		&u.Country,
-		&u.DeletedAt,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-	)
+	u, err := r.client.User.Query().
+		Where(user.IDEQ(int(id)), user.DeletedAtIsNil()).
+		Only(dbCtx)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.Debug("Usuario no encontrado o inactivo en base de datos", "id", id)
-			return nil, fmt.Errorf("usuario no encontrado: %w", pgx.ErrNoRows)
+		if ent.IsNotFound(err) {
+			slog.Debug("Usuario no encontrado o inactivo en Ent", "id", id)
+			return nil, fmt.Errorf("usuario no encontrado: %w", err)
 		}
-		slog.Error("Error al consultar usuario por ID en PostgreSQL", "error", err, "id", id)
+		slog.Error("Error al consultar usuario por ID en Ent", "error", err, "id", id)
 		return nil, fmt.Errorf("error de consulta en base de datos")
 	}
 
-	return &u, nil
+	return toDomainUser(u), nil
 }
 
-// SoftDelete realiza un borrado lógico estableciendo deleted_at a la fecha actual.
 func (r *userRepository) SoftDelete(ctx context.Context, userID int64) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	slog.Info("Ejecutando borrado lógico de usuario", "user_id", userID)
 
-	query := `
-		UPDATE users 
-		SET deleted_at = NOW(), updated_at = NOW() 
-		WHERE id = $1 AND deleted_at IS NULL;
-	`
-	res, err := r.db.Exec(dbCtx, query, userID)
+	now := time.Now()
+	count, err := r.client.User.Update().
+		Where(user.IDEQ(int(userID)), user.DeletedAtIsNil()).
+		SetDeletedAt(now).
+		SetUpdatedAt(now).
+		Save(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al ejecutar soft delete del usuario en PostgreSQL", "error", err, "user_id", userID)
+		slog.Error("Fallo al ejecutar soft delete en Ent", "error", err, "user_id", userID)
 		return fmt.Errorf("error al eliminar lógicamente al usuario")
 	}
 
-	if res.RowsAffected() == 0 {
+	if count == 0 {
 		slog.Warn("El usuario no existe o ya ha sido eliminado lógicamente", "user_id", userID)
 		return fmt.Errorf("usuario no encontrado o ya eliminado")
 	}
@@ -287,25 +178,24 @@ func (r *userRepository) SoftDelete(ctx context.Context, userID int64) error {
 	return nil
 }
 
-// UpdatePassword actualiza la contraseña de un usuario en base de datos.
 func (r *userRepository) UpdatePassword(ctx context.Context, userID int64, passwordHash string) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Info("Actualizando contraseña de usuario en base de datos", "user_id", userID)
+	slog.Info("Actualizando contraseña de usuario en Ent", "user_id", userID)
 
-	query := `
-		UPDATE users 
-		SET password_hash = $1, updated_at = NOW() 
-		WHERE id = $2 AND deleted_at IS NULL;
-	`
-	res, err := r.db.Exec(dbCtx, query, passwordHash, userID)
+	count, err := r.client.User.Update().
+		Where(user.IDEQ(int(userID)), user.DeletedAtIsNil()).
+		SetPasswordHash(passwordHash).
+		SetUpdatedAt(time.Now()).
+		Save(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al actualizar la contraseña del usuario en PostgreSQL", "error", err, "user_id", userID)
+		slog.Error("Fallo al actualizar contraseña en Ent", "error", err, "user_id", userID)
 		return fmt.Errorf("error al actualizar la contraseña del usuario")
 	}
 
-	if res.RowsAffected() == 0 {
+	if count == 0 {
 		slog.Warn("El usuario no existe o ha sido eliminado lógicamente", "user_id", userID)
 		return fmt.Errorf("usuario no encontrado o ya eliminado")
 	}
@@ -314,137 +204,95 @@ func (r *userRepository) UpdatePassword(ctx context.Context, userID int64, passw
 	return nil
 }
 
-// GetPasswordHistory obtiene los últimos 5 hashes de contraseña del historial del usuario.
 func (r *userRepository) GetPasswordHistory(ctx context.Context, userID int64) ([]string, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	slog.Debug("Consultando historial de contraseñas de usuario", "user_id", userID)
 
-	query := `
-		SELECT password_hash 
-		FROM user_passwords_history 
-		WHERE user_id = $1 
-		ORDER BY created_at DESC, id DESC 
-		LIMIT 5;
-	`
-	rows, err := r.db.Query(dbCtx, query, userID)
+	entries, err := r.client.UserPasswordHistory.Query().
+		Where(userpasswordhistory.UserID(userID)).
+		Order(ent.Desc(userpasswordhistory.FieldCreatedAt), ent.Desc(userpasswordhistory.FieldID)).
+		Limit(5).
+		All(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al obtener historial de contraseñas", "error", err, "user_id", userID)
+		slog.Error("Fallo al obtener historial de contraseñas en Ent", "error", err, "user_id", userID)
 		return nil, fmt.Errorf("error al obtener historial de contraseñas")
 	}
-	defer rows.Close()
 
 	var history []string
-	for rows.Next() {
-		var hash string
-		if err := rows.Scan(&hash); err != nil {
-			slog.Error("Fallo al escanear fila de historial de contraseñas", "error", err)
-			return nil, fmt.Errorf("error al escanear historial de contraseñas")
-		}
-		history = append(history, hash)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error en iteración de historial de contraseñas")
+	for _, entry := range entries {
+		history = append(history, entry.PasswordHash)
 	}
 
 	return history, nil
 }
 
-// AddPasswordHistory registra un nuevo hash de contraseña en el historial del usuario y mantiene únicamente los últimos 5 registros de forma atómica.
 func (r *userRepository) AddPasswordHistory(ctx context.Context, userID int64, passwordHash string) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Insertando hash de contraseña en historial con límite de 5 registros", "user_id", userID)
+	slog.Debug("Insertando hash de contraseña en historial", "user_id", userID)
 
-	// Ejecutar en una transacción para garantizar consistencia atómica
-	tx, err := r.db.Begin(dbCtx)
-	if err != nil {
-		return fmt.Errorf("error al iniciar transacción de historial de contraseñas")
-	}
-	defer tx.Rollback(dbCtx)
+	_, err := r.client.UserPasswordHistory.Create().
+		SetUserID(userID).
+		SetPasswordHash(passwordHash).
+		Save(dbCtx)
 
-	insertQuery := `
-		INSERT INTO user_passwords_history (user_id, password_hash, created_at)
-		VALUES ($1, $2, NOW());
-	`
-	_, err = tx.Exec(dbCtx, insertQuery, userID, passwordHash)
 	if err != nil {
-		slog.Error("Fallo al insertar en user_passwords_history", "error", err, "user_id", userID)
+		slog.Error("Fallo al insertar en UserPasswordHistory", "error", err, "user_id", userID)
 		return fmt.Errorf("error al registrar en historial de contraseñas")
 	}
 
-	// Borrar registros de historial más antiguos de los últimos 5
-	deleteQuery := `
-		DELETE FROM user_passwords_history 
-		WHERE id NOT IN (
-			SELECT id FROM user_passwords_history 
-			WHERE user_id = $1 
-			ORDER BY created_at DESC, id DESC 
-			LIMIT 5
-		) AND user_id = $1;
-	`
-	_, err = tx.Exec(dbCtx, deleteQuery, userID)
-	if err != nil {
-		slog.Error("Fallo al limpiar historial de contraseñas excedente", "error", err, "user_id", userID)
-		return fmt.Errorf("error al limpiar historial de contraseñas")
+	// Mantener solo los últimos 5 registros
+	oldEntries, err := r.client.UserPasswordHistory.Query().
+		Where(userpasswordhistory.UserID(userID)).
+		Order(ent.Desc(userpasswordhistory.FieldCreatedAt), ent.Desc(userpasswordhistory.FieldID)).
+		Offset(5).
+		All(dbCtx)
+
+	if err == nil && len(oldEntries) > 0 {
+		var idsToDelete []int
+		for _, e := range oldEntries {
+			idsToDelete = append(idsToDelete, e.ID)
+		}
+		_, _ = r.client.UserPasswordHistory.Delete().
+			Where(userpasswordhistory.IDIn(idsToDelete...)).
+			Exec(dbCtx)
 	}
 
-	if err := tx.Commit(dbCtx); err != nil {
-		return fmt.Errorf("error al confirmar transacción de historial de contraseñas")
-	}
-
-	slog.Info("Hash de contraseña insertado y limpiado en historial con éxito", "user_id", userID)
 	return nil
 }
 
-// SearchUsers busca usuarios cuyo username comience con el patrón indicado (case-insensitive), limitado y ordenado.
 func (r *userRepository) SearchUsers(ctx context.Context, query string, limit int) ([]domain.UserSearchResult, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Buscando usuarios en la base de datos", "query", query, "limit", limit)
+	slog.Debug("Buscando usuarios en Ent", "query", query, "limit", limit)
 
-	// Búsqueda de tipo "Empieza con" (Ej: 'jos%') ordenada alfabéticamente
-	sqlQuery := `
-		SELECT id, username, first_name, last_name, avatar_index
-		FROM users
-		WHERE username ILIKE $1 AND deleted_at IS NULL
-		ORDER BY username ASC
-		LIMIT $2
-	`
+	users, err := r.client.User.Query().
+		Where(
+			user.UsernameHasPrefix(query),
+			user.DeletedAtIsNil(),
+		).
+		Order(ent.Asc(user.FieldUsername)).
+		Limit(limit).
+		All(dbCtx)
 
-	// El patrón de búsqueda debe ser query + "%"
-	pattern := query + "%"
-
-	rows, err := r.db.Query(dbCtx, sqlQuery, pattern, limit)
 	if err != nil {
-		slog.Error("Fallo al buscar usuarios en PostgreSQL", "error", err, "query", query)
+		slog.Error("Fallo al buscar usuarios en Ent", "error", err, "query", query)
 		return nil, fmt.Errorf("error al buscar usuarios")
 	}
-	defer rows.Close()
 
 	var results []domain.UserSearchResult
-	for rows.Next() {
-		var id int64
-		var username, firstName, lastName string
-		var avatarIndex int
-
-		err := rows.Scan(&id, &username, &firstName, &lastName, &avatarIndex)
-		if err != nil {
-			slog.Error("Fallo al escanear resultado de búsqueda de usuario", "error", err)
-			return nil, fmt.Errorf("error al escanear resultado de búsqueda")
-		}
-
-		// Construir displayName y avatarURL de forma limpia y profesional
-		displayName := fmt.Sprintf("%s %s", firstName, lastName)
-		avatarURL := fmt.Sprintf("https://sakoo-public-assets.s3.amazonaws.com/avatars/avatar_%d.png", avatarIndex)
+	for _, u := range users {
+		displayName := fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+		avatarURL := fmt.Sprintf("https://sakoo-public-assets.s3.amazonaws.com/avatars/avatar_%d.png", u.AvatarIndex)
 
 		results = append(results, domain.UserSearchResult{
-			ID:          id,
-			Username:    username,
+			ID:          int64(u.ID),
+			Username:    u.Username,
 			DisplayName: displayName,
 			AvatarURL:   avatarURL,
 		})
@@ -457,152 +305,182 @@ func (r *userRepository) SearchUsers(ctx context.Context, query string, limit in
 	return results, nil
 }
 
-// CreateSession inserta una nueva sesión en security.user_sessions.
 func (r *userRepository) CreateSession(ctx context.Context, userID int64, token string, expiresAt time.Time) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Insertando nueva sesión de usuario en base de datos", "user_id", userID)
+	slog.Debug("Insertando nueva sesión de usuario en Ent", "user_id", userID)
 
-	query := `
-		INSERT INTO user_sessions (user_id, token, expires_at)
-		VALUES ($1, $2, $3);
-	`
-	_, err := r.db.Exec(dbCtx, query, userID, hashSessionToken(token), expiresAt)
+	_, err := r.client.UserSession.Create().
+		SetUserID(userID).
+		SetToken(hashSessionToken(token)).
+		SetExpiresAt(expiresAt).
+		Save(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al crear sesión de usuario en PostgreSQL", "error", err, "user_id", userID)
+		slog.Error("Fallo al crear sesión de usuario en Ent", "error", err, "user_id", userID)
 		return fmt.Errorf("error al crear sesión")
 	}
 
 	return nil
 }
 
-// ValidateSession comprueba si existe una sesión válida y vigente para el token dado.
 func (r *userRepository) ValidateSession(ctx context.Context, token string) (bool, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Validando sesión de usuario en base de datos")
+	slog.Debug("Validando sesión de usuario en Ent")
 
-	query := `
-		SELECT EXISTS (
-			SELECT 1 
-			FROM user_sessions 
-			WHERE token = $1 AND expires_at > NOW()
-		);
-	`
-	var valid bool
-	err := r.db.QueryRow(dbCtx, query, hashSessionToken(token)).Scan(&valid)
-	if err != nil {
-		slog.Error("Fallo al validar sesión en PostgreSQL", "error", err)
-		return false, fmt.Errorf("error al validar sesión")
-	}
-
-	return valid, nil
+	return r.client.UserSession.Query().
+		Where(
+			usersession.TokenEQ(hashSessionToken(token)),
+			usersession.ExpiresAtGT(time.Now()),
+		).
+		Exist(dbCtx)
 }
 
-// DeleteSession elimina una sesión de la base de datos (logout).
 func (r *userRepository) DeleteSession(ctx context.Context, token string) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Eliminando sesión de usuario de la base de datos (logout)")
+	slog.Debug("Eliminando sesión de usuario en Ent")
 
-	query := `
-		DELETE FROM user_sessions
-		WHERE token = $1;
-	`
-	_, err := r.db.Exec(dbCtx, query, hashSessionToken(token))
+	_, err := r.client.UserSession.Delete().
+		Where(usersession.TokenEQ(hashSessionToken(token))).
+		Exec(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al eliminar sesión en PostgreSQL", "error", err)
+		slog.Error("Fallo al eliminar sesión en Ent", "error", err)
 		return fmt.Errorf("error al eliminar sesión")
 	}
 
 	return nil
 }
 
-// DeleteExpiredSessions elimina todas las sesiones expiradas en base de datos.
 func (r *userRepository) DeleteExpiredSessions(ctx context.Context) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Purgando sesiones expiradas de la base de datos")
+	slog.Debug("Purgando sesiones expiradas en Ent")
 
-	query := `
-		DELETE FROM user_sessions 
-		WHERE expires_at < NOW();
-	`
-	_, err := r.db.Exec(dbCtx, query)
+	_, err := r.client.UserSession.Delete().
+		Where(usersession.ExpiresAtLT(time.Now())).
+		Exec(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al purgar sesiones expiradas en PostgreSQL", "error", err)
+		slog.Error("Fallo al purgar sesiones expiradas en Ent", "error", err)
 		return fmt.Errorf("error al purgar sesiones expiradas")
 	}
 
 	return nil
 }
 
-// GetUserTypeCode obtiene el código del tipo de usuario (ej: 'ADMIN', 'CUSTOMER') desde catalogs.user_type.
 func (r *userRepository) GetUserTypeCode(ctx context.Context, userTypeID int64) (string, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Consultando tipo de usuario por ID", "user_type_id", userTypeID)
+	slog.Debug("Consultando tipo de usuario por ID en Ent", "user_type_id", userTypeID)
 
-	query := `SELECT code FROM catalogs.user_type WHERE id = $1;`
+	ut, err := r.client.UserType.Query().
+		Where(usertype.IDEQ(int(userTypeID))).
+		Only(dbCtx)
 
-	var code string
-	err := r.db.QueryRow(dbCtx, query, userTypeID).Scan(&code)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.Warn("Tipo de usuario no encontrado en catálogo", "user_type_id", userTypeID)
-			return "", fmt.Errorf("tipo de usuario no encontrado: %w", pgx.ErrNoRows)
+		if ent.IsNotFound(err) {
+			slog.Warn("Tipo de usuario no encontrado en Ent", "user_type_id", userTypeID)
+			return "", fmt.Errorf("tipo de usuario no encontrado: %w", err)
 		}
-		slog.Error("Error al consultar tipo de usuario en PostgreSQL", "error", err, "user_type_id", userTypeID)
+		slog.Error("Error al consultar tipo de usuario en Ent", "error", err, "user_type_id", userTypeID)
 		return "", fmt.Errorf("error al consultar tipo de usuario")
 	}
 
-	return code, nil
+	return ut.Code, nil
 }
 
-// DeleteUserSessions elimina todas las sesiones activas asociadas a un ID de usuario.
 func (r *userRepository) DeleteUserSessions(ctx context.Context, userID int64) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Info("Eliminando todas las sesiones del usuario", "user_id", userID)
+	slog.Info("Eliminando todas las sesiones del usuario en Ent", "user_id", userID)
 
-	query := `
-		DELETE FROM user_sessions 
-		WHERE user_id = $1;
-	`
-	_, err := r.db.Exec(dbCtx, query, userID)
+	_, err := r.client.UserSession.Delete().
+		Where(usersession.UserID(userID)).
+		Exec(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al eliminar sesiones de usuario en PostgreSQL", "error", err, "user_id", userID)
+		slog.Error("Fallo al eliminar sesiones de usuario en Ent", "error", err, "user_id", userID)
 		return fmt.Errorf("error al eliminar sesiones del usuario")
 	}
 
 	return nil
 }
 
-// ExtendSession actualiza la fecha de expiración de una sesión específica (expiración deslizante).
 func (r *userRepository) ExtendSession(ctx context.Context, token string, newExpiresAt time.Time) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Extendiendo expiración de sesión activa")
+	slog.Debug("Extendiendo expiración de sesión activa en Ent")
 
-	query := `
-		UPDATE user_sessions
-		SET expires_at = $1
-		WHERE token = $2;
-	`
-	_, err := r.db.Exec(dbCtx, query, newExpiresAt, hashSessionToken(token))
+	_, err := r.client.UserSession.Update().
+		Where(usersession.TokenEQ(hashSessionToken(token))).
+		SetExpiresAt(newExpiresAt).
+		Save(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al extender expiración de sesión en PostgreSQL", "error", err)
+		slog.Error("Fallo al extender expiración de sesión en Ent", "error", err)
 		return fmt.Errorf("error al extender sesión")
 	}
 
 	return nil
 }
 
+// Helper to convert Ent User to Domain User
+func toDomainUser(u *ent.User) *domain.User {
+	if u == nil {
+		return nil
+	}
+	var middleName, secondLastName, docNum, ip, country *string
+	if u.MiddleName != "" {
+		middleName = &u.MiddleName
+	}
+	if u.SecondLastName != "" {
+		secondLastName = &u.SecondLastName
+	}
+	if u.DocumentNumber != "" {
+		docNum = &u.DocumentNumber
+	}
+	if u.RegistrationIP != "" {
+		ip = &u.RegistrationIP
+	}
+	if u.Country != "" {
+		country = &u.Country
+	}
+	var docTypeID *int64
+	if u.DocumentTypeID != 0 {
+		docTypeID = &u.DocumentTypeID
+	}
+	var deletedAt *time.Time
+	if !u.DeletedAt.IsZero() {
+		deletedAt = &u.DeletedAt
+	}
 
+	return &domain.User{
+		ID:             int64(u.ID),
+		Email:          u.Email,
+		Username:       u.Username,
+		FirstName:      u.FirstName,
+		LastName:       u.LastName,
+		MiddleName:     middleName,
+		SecondLastName: secondLastName,
+		AvatarIndex:    u.AvatarIndex,
+		UserTypeID:     u.UserTypeID,
+		DocumentTypeID: docTypeID,
+		DocumentNumber: docNum,
+		PasswordHash:   u.PasswordHash,
+		RegistrationIP: ip,
+		Country:        country,
+		DeletedAt:      deletedAt,
+		CreatedAt:      u.CreatedAt,
+		UpdatedAt:      u.UpdatedAt,
+	}
+}

@@ -7,53 +7,44 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/aaron/sakoo-backend/ent"
+	"github.com/aaron/sakoo-backend/ent/userotp"
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type otpRepository struct {
-	db *pgxpool.Pool
+	client *ent.Client
 }
 
-// NewOTPRepository crea una nueva instancia del repositorio de OTPs.
-func NewOTPRepository(db *pgxpool.Pool) domain.OTPRepository {
+// NewOTPRepository crea una nueva instancia del repositorio de OTPs con Ent.
+func NewOTPRepository(client *ent.Client) domain.OTPRepository {
 	return &otpRepository{
-		db: db,
+		client: client,
 	}
 }
 
-// CreateOTP guarda un nuevo OTP en la base de datos PostgreSQL.
+// CreateOTP guarda un nuevo OTP en la base de datos PostgreSQL usando Ent.
 func (r *otpRepository) CreateOTP(ctx context.Context, otp *domain.UserOTP) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	slog.Debug("Guardando OTP en base de datos", "email", otp.Email, "action", otp.Action)
 
-	query := `
-		INSERT INTO user_otps (
-			email, 
-			otp_code, 
-			action, 
-			expires_at, 
-			used, 
-			created_at
-		)
-		VALUES ($1, $2, $3, $4, $5, NOW())
-		RETURNING id, created_at;
-	`
-	err := r.db.QueryRow(dbCtx, query, 
-		otp.Email, 
-		otp.OTPCode, 
-		otp.Action, 
-		otp.ExpiresAt, 
-		otp.Used,
-	).Scan(&otp.ID, &otp.CreatedAt)
+	created, err := r.client.UserOtp.Create().
+		SetEmail(otp.Email).
+		SetOtpCode(otp.OTPCode).
+		SetAction(otp.Action).
+		SetExpiresAt(otp.ExpiresAt).
+		SetUsed(otp.Used).
+		Save(dbCtx)
 
 	if err != nil {
-		slog.Error("Fallo al guardar OTP en PostgreSQL", "error", err, "email", otp.Email)
+		slog.Error("Fallo al guardar OTP en Ent", "error", err, "email", otp.Email)
 		return fmt.Errorf("error al guardar OTP en base de datos")
 	}
+
+	otp.ID = int64(created.ID)
+	otp.CreatedAt = created.CreatedAt
 
 	slog.Info("OTP registrado exitosamente", "id", otp.ID, "email", otp.Email, "action", otp.Action)
 	return nil
@@ -66,25 +57,28 @@ func (r *otpRepository) ValidateAndConsumeOTP(ctx context.Context, email, code, 
 
 	slog.Debug("Validando y consumiendo OTP de forma atómica", "email", email, "action", action)
 
-	query := `
-		UPDATE user_otps
-		SET used = true
-		WHERE email = $1 AND otp_code = $2 AND action = $3 AND used = false AND expires_at > (now() at time zone 'utc')
-		RETURNING id;
-	`
+	count, err := r.client.UserOtp.Update().
+		Where(
+			userotp.EmailEQ(email),
+			userotp.OtpCodeEQ(code),
+			userotp.ActionEQ(action),
+			userotp.UsedEQ(false),
+			userotp.ExpiresAtGT(time.Now()),
+		).
+		SetUsed(true).
+		Save(dbCtx)
 
-	var id int64
-	err := r.db.QueryRow(dbCtx, query, email, code, action).Scan(&id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.Warn("Intento de validación fallido: OTP inválido, expirado o ya consumido", "email", email, "action", action)
-			return errors.New("Código OTP inválido, expirado o ya consumido")
-		}
-		slog.Error("Error al consumir OTP en PostgreSQL", "error", err, "email", email)
+		slog.Error("Error al consumir OTP en Ent", "error", err, "email", email)
 		return fmt.Errorf("Error al verificar el código OTP")
 	}
 
-	slog.Info("OTP validado y consumido correctamente", "id", id, "email", email, "action", action)
+	if count == 0 {
+		slog.Warn("Intento de validación fallido: OTP inválido, expirado o ya consumido", "email", email, "action", action)
+		return errors.New("Código OTP inválido, expirado o ya consumido")
+	}
+
+	slog.Info("OTP validado y consumido correctamente", "email", email, "action", action)
 	return nil
 }
 
@@ -95,25 +89,27 @@ func (r *otpRepository) ValidateOTPOnly(ctx context.Context, email, code, action
 
 	slog.Debug("Validando OTP sin consumirlo", "email", email, "action", action)
 
-	query := `
-		SELECT id 
-		FROM user_otps
-		WHERE email = $1 AND otp_code = $2 AND action = $3 AND used = false AND expires_at > (now() at time zone 'utc')
-		LIMIT 1;
-	`
+	exists, err := r.client.UserOtp.Query().
+		Where(
+			userotp.EmailEQ(email),
+			userotp.OtpCodeEQ(code),
+			userotp.ActionEQ(action),
+			userotp.UsedEQ(false),
+			userotp.ExpiresAtGT(time.Now()),
+		).
+		Exist(dbCtx)
 
-	var id int64
-	err := r.db.QueryRow(dbCtx, query, email, code, action).Scan(&id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			slog.Warn("Intento de validación de OTP fallido: OTP inválido, expirado o ya consumido", "email", email, "action", action)
-			return errors.New("Código OTP inválido, expirado o ya consumido")
-		}
-		slog.Error("Error al validar OTP en PostgreSQL", "error", err, "email", email)
+		slog.Error("Error al validar OTP en Ent", "error", err, "email", email)
 		return fmt.Errorf("Error al verificar el código OTP")
 	}
 
-	slog.Info("OTP validado correctamente (sin consumir)", "id", id, "email", email, "action", action)
+	if !exists {
+		slog.Warn("Intento de validación de OTP fallido: OTP inválido, expirado o ya consumido", "email", email, "action", action)
+		return errors.New("Código OTP inválido, expirado o ya consumido")
+	}
+
+	slog.Info("OTP validado correctamente (sin consumir)", "email", email, "action", action)
 	return nil
 }
 
@@ -123,21 +119,20 @@ func (r *otpRepository) HasRecentOTP(ctx context.Context, email, action string, 
 
 	slog.Debug("Verificando si se solicitó un OTP recientemente", "email", email, "action", action, "seconds", seconds)
 
-	query := `
-		SELECT EXISTS (
-			SELECT 1
-			FROM user_otps
-			WHERE email = $1 AND action = $2 AND created_at > NOW() - ($3 * INTERVAL '1 second')
-		);
-	`
+	cutoff := time.Now().Add(-time.Duration(seconds) * time.Second)
 
-	var exists bool
-	err := r.db.QueryRow(dbCtx, query, email, action, seconds).Scan(&exists)
+	exists, err := r.client.UserOtp.Query().
+		Where(
+			userotp.EmailEQ(email),
+			userotp.ActionEQ(action),
+			userotp.CreatedAtGT(cutoff),
+		).
+		Exist(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al comprobar OTP reciente en PostgreSQL", "error", err, "email", email)
+		slog.Error("Fallo al comprobar OTP reciente en Ent", "error", err, "email", email)
 		return false, fmt.Errorf("error al verificar OTP reciente")
 	}
 
 	return exists, nil
 }
-

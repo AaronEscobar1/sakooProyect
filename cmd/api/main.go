@@ -11,11 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aaron/sakoo-backend/ent"
+	_ "github.com/lib/pq"
+
 	"github.com/aaron/sakoo-backend/internal/api"
 	adminMiddleware "github.com/aaron/sakoo-backend/internal/api/middleware"
 	"github.com/AaronEscobar1/common/middleware"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/cron"
-	"github.com/AaronEscobar1/common/database"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/email"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/notification"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/repository"
@@ -96,40 +98,16 @@ func main() {
 		slog.Warn("DATABASE_URL usa sslmode=disable en producción: el tráfico con PostgreSQL NO está cifrado. Usa sslmode=require (o verify-full).")
 	}
 
-	// 4. Conectar a PostgreSQL y ejecutar las migraciones automáticamente
-	searchPaths := []string{"security", "market", "finance", "notifications", "catalogs", "telemetry", "public"}
-	pool, err := database.ConnectAndMigrate(dbURL, searchPaths, "file://migrations")
-	if (err == nil) {
-		// Paso Autocurativo: Aplicar visibilidad de monedas al front
-		ctxAuto, cancelAuto := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancelAuto()
-		setupQueries := []string{
-			`ALTER TABLE catalogs.currency ADD COLUMN IF NOT EXISTS "show" BOOLEAN DEFAULT TRUE;`,
-			`UPDATE catalogs.currency SET "show" = FALSE WHERE code NOT IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
-			`UPDATE catalogs.currency SET "show" = TRUE WHERE code IN ('USD', 'EUR', 'USDT', 'USDC', 'UDI');`,
-			`INSERT INTO telemetry.configurations (key, payload) VALUES ('visible_currencies', '["USD", "EUR", "USDT", "USDC", "UDI"]'::jsonb) ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload;`,
-		}
-		for _, q := range setupQueries {
-			if _, err := pool.Exec(ctxAuto, q); err != nil {
-				slog.Warn("No se pudo ejecutar query autocurativo de visibilidad en base de datos", "query", q, "error", err)
-			}
-		}
-	}
+	// 4. Inicializar Ent Client para la arquitectura ORM con driver nativo lib/pq
+	entClient, err := ent.Open("postgres", dbURL)
 	if err != nil {
-		// Imprimir en texto plano con alta visibilidad para los logs de Railway
-		os.Stderr.WriteString("\n==================================================\n")
-		os.Stderr.WriteString("❌ ERROR CRÍTICO EN MIGRACIONES/BASE DE DATOS:\n")
-		os.Stderr.WriteString(err.Error() + "\n")
-		os.Stderr.WriteString("==================================================\n\n")
-
-		slog.Error("Fallo crítico en la inicialización de la base de datos/migraciones", "error", err.Error())
+		slog.Error("Fallo crítico al inicializar Ent Client", "error", err)
 		os.Exit(1)
 	}
-	// Garantizar el cierre seguro del pool al terminar la aplicación
 	defer func() {
-		slog.Info("Cerrando el pool de conexiones de base de datos...")
-		pool.Close()
-		slog.Info("Pool de conexiones cerrado con éxito")
+		slog.Info("Cerrando el cliente Ent...")
+		entClient.Close()
+		slog.Info("Cliente Ent cerrado con éxito")
 	}()
 
 	// 5. Leer clave secreta para firmar tokens JWT y la API Key administrativa.
@@ -149,20 +127,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 6. Instanciar los repositorios core de la capa de infraestructura
-	userRepo := repository.NewUserRepository(pool)
+	// 6. Instanciar los repositorios core de la capa de infraestructura usando Ent Client
+	userRepo := repository.NewUserRepository(entClient)
 	middleware.SetSessionValidator(userRepo)
-	exchangeRateRepo := repository.NewExchangeRateRepository(pool)
-	otpRepo := repository.NewOTPRepository(pool)
+	exchangeRateRepo := repository.NewExchangeRateRepository(entClient)
+	otpRepo := repository.NewOTPRepository(entClient)
 	emailSrv := email.NewEmailService()
-	bankAccountRepo := repository.NewBankAccountRepository(pool)
-	paymentCommitmentRepo := repository.NewPaymentCommitmentRepository(pool)
-	messageRepo := repository.NewMessageRepository(pool)
-	commentRepo := repository.NewCommentRepository(pool)
-	bannerRepo := repository.NewBannerRepository(pool)
-	catalogRepo := repository.NewCatalogRepository(pool)
-	notificationRepo := repository.NewNotificationRepository(pool)
-	telemetryRepo := repository.NewTelemetryRepository(pool)
+	bankAccountRepo := repository.NewBankAccountRepository(entClient)
+	paymentCommitmentRepo := repository.NewPaymentCommitmentRepository(entClient)
+	messageRepo := repository.NewMessageRepository(entClient)
+	commentRepo := repository.NewCommentRepository(entClient)
+	bannerRepo := repository.NewBannerRepository(entClient)
+	catalogRepo := repository.NewCatalogRepository(entClient)
+	notificationRepo := repository.NewNotificationRepository(entClient)
+	telemetryRepo := repository.NewTelemetryRepository(entClient)
 
 	// Instanciar servicios de notificaciones push globales
 	pushService := notification.NewPushNotificationService()
@@ -178,7 +156,7 @@ func main() {
 	exchangeRateUseCase := usecase.NewExchangeRateUseCase(exchangeRateRepo)
 
 	// El CronManager ejecuta el scraping del BCV y la auto-aprobación diaria de tasas.
-	cronManager := cron.NewCronManager(bcvScraperUseCase, exchangeRateUseCase, pool)
+	cronManager := cron.NewCronManager(bcvScraperUseCase, exchangeRateUseCase, entClient)
 
 	dashboardUseCase := usecase.NewDashboardUseCase(exchangeRateRepo)
 	calculatorUseCase := usecase.NewCalculatorUseCase(exchangeRateRepo)
@@ -192,7 +170,7 @@ func main() {
 
 	// 8. Instanciar controladores HTTP de la capa API
 	authHandler := api.NewAuthHandler(authUseCase)
-	scraperHandler := api.NewScraperHandler(bcvScraperUseCase, pool)
+	scraperHandler := api.NewScraperHandler(bcvScraperUseCase, entClient)
 	exchangeRateHandler := api.NewExchangeRateHandler(exchangeRateUseCase)
 	ratesHandler := api.NewRatesHandler(dashboardUseCase, calculatorUseCase, exchangeRateUseCase)
 	bankAccountHandler := api.NewBankAccountHandler(bankAccountUseCase)
@@ -262,9 +240,9 @@ func main() {
 		defer cancel()
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := pool.Ping(ctx); err != nil {
+		if _, err := entClient.Currency.Query().Limit(1).All(ctx); err != nil {
 			// SEGURIDAD: el detalle del error se registra en el log, no se expone al cliente.
-			slog.Error("Healthcheck: fallo de conexión con la base de datos", "error", err)
+			slog.Error("Healthcheck: fallo de conexión con la base de datos via Ent", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"status":"DOWN","database":"DISCONNECTED"}`))
 			return
@@ -398,7 +376,7 @@ func main() {
 		),
 	)
 
-	globalHandler := middleware.TraceAndLogMiddleware(pool)(mux)
+	globalHandler := middleware.TraceAndLogMiddleware(nil)(mux)
 
 	// Habilitar CORS para depuración local (Flutter Web, Swagger, etc.)
 	corsHandler := middleware.CORS()(globalHandler)

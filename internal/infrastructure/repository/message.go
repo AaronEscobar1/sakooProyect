@@ -6,18 +6,19 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/aaron/sakoo-backend/ent"
+	"github.com/aaron/sakoo-backend/ent/message"
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type messageRepository struct {
-	db *pgxpool.Pool
+	client *ent.Client
 }
 
-// NewMessageRepository crea un repositorio para mensajería.
-func NewMessageRepository(db *pgxpool.Pool) domain.MessageRepository {
+// NewMessageRepository crea un repositorio para mensajería usando Ent.
+func NewMessageRepository(client *ent.Client) domain.MessageRepository {
 	return &messageRepository{
-		db: db,
+		client: client,
 	}
 }
 
@@ -25,19 +26,26 @@ func (r *messageRepository) Create(ctx context.Context, msg *domain.Message) err
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Insertando nuevo mensaje", "sender_id", msg.SenderID, "receiver_id", msg.ReceiverID)
+	slog.Debug("Insertando nuevo mensaje en Ent", "sender_id", msg.SenderID, "receiver_id", msg.ReceiverID)
 
-	query := `
-		INSERT INTO messages (sender_id, receiver_id, content, read_at, created_at)
-		VALUES ($1, $2, $3, NULL, NOW())
-		RETURNING id, created_at;
-	`
-	err := r.db.QueryRow(dbCtx, query, msg.SenderID, msg.ReceiverID, msg.Content).Scan(&msg.ID, &msg.CreatedAt)
+	builder := r.client.Message.Create().
+		SetContent(msg.Content)
+
+	if msg.SenderID != 0 {
+		builder.SetSenderID(msg.SenderID)
+	}
+	if msg.ReceiverID != 0 {
+		builder.SetReceiverID(msg.ReceiverID)
+	}
+
+	created, err := builder.Save(dbCtx)
 	if err != nil {
-		slog.Error("Fallo al guardar mensaje en PostgreSQL", "error", err)
+		slog.Error("Fallo al guardar mensaje en Ent", "error", err)
 		return fmt.Errorf("error al guardar mensaje: %w", err)
 	}
 
+	msg.ID = int64(created.ID)
+	msg.CreatedAt = created.CreatedAt
 	return nil
 }
 
@@ -45,50 +53,53 @@ func (r *messageRepository) ListByUserID(ctx context.Context, userID int64) ([]d
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Recuperando mensajes de usuario", "user_id", userID)
+	slog.Debug("Recuperando mensajes de usuario en Ent", "user_id", userID)
 
-	// 1. Obtener mensajes donde el usuario es el remitente o el destinatario
-	query := `
-		SELECT id, sender_id, receiver_id, content, read_at, created_at
-		FROM messages
-		WHERE sender_id = $1 OR receiver_id = $1
-		ORDER BY created_at ASC;
-	`
-	rows, err := r.db.Query(dbCtx, query, userID)
+	entMsgs, err := r.client.Message.Query().
+		Where(
+			message.Or(
+				message.SenderID(userID),
+				message.ReceiverID(userID),
+			),
+		).
+		Order(ent.Asc(message.FieldCreatedAt)).
+		All(dbCtx)
+
 	if err != nil {
-		slog.Error("Error al listar mensajes desde DB", "error", err, "user_id", userID)
+		slog.Error("Error al listar mensajes desde Ent", "error", err, "user_id", userID)
 		return nil, fmt.Errorf("error al listar mensajes de la base de datos: %w", err)
 	}
-	defer rows.Close()
 
 	var messages []domain.Message
-	for rows.Next() {
-		var m domain.Message
-		err := rows.Scan(&m.ID, &m.SenderID, &m.ReceiverID, &m.Content, &m.ReadAt, &m.CreatedAt)
-		if err != nil {
-			slog.Error("Error al escanear fila de mensaje", "error", err)
-			return nil, fmt.Errorf("error al decodificar mensaje de la base de datos: %w", err)
+	for _, m := range entMsgs {
+		var readAt *time.Time
+		if !m.ReadAt.IsZero() {
+			readAt = &m.ReadAt
 		}
-		messages = append(messages, m)
+		messages = append(messages, domain.Message{
+			ID:         int64(m.ID),
+			SenderID:   m.SenderID,
+			ReceiverID: m.ReceiverID,
+			Content:    m.Content,
+			ReadAt:     readAt,
+			CreatedAt:  m.CreatedAt,
+		})
 	}
 
 	if messages == nil {
 		messages = []domain.Message{}
 	}
 
-	// 2. Marcar automáticamente los recibidos no leídos como leídos en la base de datos
-	updateQuery := `
-		UPDATE messages
-		SET read_at = NOW()
-		WHERE receiver_id = $1 AND read_at IS NULL;
-	`
-	_, err = r.db.Exec(dbCtx, updateQuery, userID)
-	if err != nil {
-		slog.Warn("Fallo al actualizar read_at para mensajes recibidos", "error", err, "user_id", userID)
-	}
-
-	// 3. Modificar la respuesta cargada localmente para marcar los no leídos como leídos (consistencia inmediata en la respuesta)
+	// Marcar recibidos como leídos
 	now := time.Now().UTC()
+	_, _ = r.client.Message.Update().
+		Where(
+			message.ReceiverID(userID),
+			message.ReadAtIsNil(),
+		).
+		SetReadAt(now).
+		Save(dbCtx)
+
 	for i := range messages {
 		if messages[i].ReceiverID == userID && messages[i].ReadAt == nil {
 			messages[i].ReadAt = &now
@@ -102,17 +113,17 @@ func (r *messageRepository) GetUnreadCount(ctx context.Context, userID int64) (i
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Contando mensajes no leídos para usuario", "user_id", userID)
+	slog.Debug("Contando mensajes no leídos para usuario en Ent", "user_id", userID)
 
-	query := `
-		SELECT COUNT(*)
-		FROM messages
-		WHERE receiver_id = $1 AND read_at IS NULL;
-	`
-	var count int
-	err := r.db.QueryRow(dbCtx, query, userID).Scan(&count)
+	count, err := r.client.Message.Query().
+		Where(
+			message.ReceiverID(userID),
+			message.ReadAtIsNil(),
+		).
+		Count(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al contar mensajes no leídos en PostgreSQL", "error", err, "user_id", userID)
+		slog.Error("Fallo al contar mensajes no leídos en Ent", "error", err, "user_id", userID)
 		return 0, fmt.Errorf("error al obtener mensajes no leídos: %w", err)
 	}
 

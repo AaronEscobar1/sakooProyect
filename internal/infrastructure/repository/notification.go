@@ -2,43 +2,62 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log/slog"
+	"time"
 
+	"github.com/aaron/sakoo-backend/ent"
+	"github.com/aaron/sakoo-backend/ent/notification"
+	"github.com/aaron/sakoo-backend/ent/userdevicetoken"
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type notificationRepository struct {
-	db *pgxpool.Pool
+	client *ent.Client
 }
 
-// NewNotificationRepository crea una nueva instancia de NotificationRepository.
-func NewNotificationRepository(db *pgxpool.Pool) domain.NotificationRepository {
+// NewNotificationRepository crea una nueva instancia de NotificationRepository usando Ent.
+func NewNotificationRepository(client *ent.Client) domain.NotificationRepository {
 	return &notificationRepository{
-		db: db,
+		client: client,
 	}
 }
 
 func (r *notificationRepository) SaveDeviceToken(ctx context.Context, userID int64, token, platform string) error {
-	query := `
-		INSERT INTO user_device_tokens (user_id, token, platform, updated_at)
-		VALUES ($1, $2, $3, NOW())
-		ON CONFLICT (token) DO UPDATE 
-		SET user_id = EXCLUDED.user_id, platform = EXCLUDED.platform, updated_at = NOW();
-	`
-	_, err := r.db.Exec(ctx, query, userID, token, platform)
+	existing, err := r.client.UserDeviceToken.Query().
+		Where(userdevicetoken.TokenEQ(token)).
+		Only(ctx)
+
+	if err == nil {
+		_, err = r.client.UserDeviceToken.UpdateOne(existing).
+			SetUserID(userID).
+			SetPlatform(platform).
+			SetUpdatedAt(time.Now()).
+			Save(ctx)
+		return err
+	}
+
+	_, err = r.client.UserDeviceToken.Create().
+		SetUserID(userID).
+		SetToken(token).
+		SetPlatform(platform).
+		Save(ctx)
+
 	if err != nil {
-		slog.Error("Fallo al guardar token de dispositivo", "error", err, "user_id", userID)
+		slog.Error("Fallo al guardar token de dispositivo en Ent", "error", err, "user_id", userID)
 		return err
 	}
 	return nil
 }
 
 func (r *notificationRepository) DeleteDeviceToken(ctx context.Context, userID int64, token string) error {
-	query := `DELETE FROM user_device_tokens WHERE user_id = $1 AND token = $2;`
-	_, err := r.db.Exec(ctx, query, userID, token)
+	_, err := r.client.UserDeviceToken.Delete().
+		Where(
+			userdevicetoken.UserID(userID),
+			userdevicetoken.TokenEQ(token),
+		).
+		Exec(ctx)
+
 	if err != nil {
 		slog.Error("Fallo al eliminar token de dispositivo", "error", err, "user_id", userID)
 		return err
@@ -46,11 +65,11 @@ func (r *notificationRepository) DeleteDeviceToken(ctx context.Context, userID i
 	return nil
 }
 
-// DeleteAllUserDeviceTokens elimina todos los tokens de dispositivo (FCM) asociados a un usuario.
-// Se usa al solicitar el borrado de cuenta para revocar las notificaciones push de inmediato.
 func (r *notificationRepository) DeleteAllUserDeviceTokens(ctx context.Context, userID int64) error {
-	query := `DELETE FROM user_device_tokens WHERE user_id = $1;`
-	_, err := r.db.Exec(ctx, query, userID)
+	_, err := r.client.UserDeviceToken.Delete().
+		Where(userdevicetoken.UserID(userID)).
+		Exec(ctx)
+
 	if err != nil {
 		slog.Error("Fallo al eliminar todos los tokens de dispositivo del usuario", "error", err, "user_id", userID)
 		return err
@@ -59,104 +78,99 @@ func (r *notificationRepository) DeleteAllUserDeviceTokens(ctx context.Context, 
 }
 
 func (r *notificationRepository) GetDeviceTokensByUserID(ctx context.Context, userID int64) ([]string, error) {
-	query := `SELECT token FROM user_device_tokens WHERE user_id = $1 ORDER BY updated_at DESC;`
-	rows, err := r.db.Query(ctx, query, userID)
+	tokens, err := r.client.UserDeviceToken.Query().
+		Where(userdevicetoken.UserID(userID)).
+		Order(ent.Desc(userdevicetoken.FieldUpdatedAt)).
+		All(ctx)
+
 	if err != nil {
 		slog.Error("Fallo al obtener tokens de dispositivo", "error", err, "user_id", userID)
 		return nil, err
 	}
-	defer rows.Close()
 
-	var tokens []string
-	for rows.Next() {
-		var t string
-		if err := rows.Scan(&t); err == nil {
-			tokens = append(tokens, t)
-		}
+	var res []string
+	for _, t := range tokens {
+		res = append(res, t.Token)
 	}
-	return tokens, nil
+	return res, nil
 }
 
 func (r *notificationRepository) GetAllDeviceTokens(ctx context.Context) ([]string, error) {
-	query := `SELECT token FROM user_device_tokens;`
-	rows, err := r.db.Query(ctx, query)
+	tokens, err := r.client.UserDeviceToken.Query().All(ctx)
 	if err != nil {
 		slog.Error("Fallo al obtener todos los tokens de dispositivo", "error", err)
 		return nil, err
 	}
-	defer rows.Close()
 
-	var tokens []string
-	for rows.Next() {
-		var t string
-		if err := rows.Scan(&t); err == nil {
-			tokens = append(tokens, t)
-		}
+	var res []string
+	for _, t := range tokens {
+		res = append(res, t.Token)
 	}
-	return tokens, nil
+	return res, nil
 }
 
 func (r *notificationRepository) SaveNotification(ctx context.Context, n *domain.Notification) error {
-	var dataJSON []byte
-	var err error
+	builder := r.client.Notification.Create().
+		SetUserID(n.UserID).
+		SetTitle(n.Title).
+		SetBody(n.Body).
+		SetIsRead(n.IsRead)
+
 	if n.Data != nil {
-		dataJSON, err = json.Marshal(n.Data)
-		if err != nil {
-			slog.Error("Fallo al serializar payload de datos de notificación", "error", err, "user_id", n.UserID)
-			return err
-		}
+		builder.SetData(n.Data)
 	}
 
-	query := `
-		INSERT INTO notifications (user_id, title, body, is_read, data, created_at)
-		VALUES ($1, $2, $3, $4, $5, NOW())
-		RETURNING id, created_at;
-	`
-	err = r.db.QueryRow(ctx, query, n.UserID, n.Title, n.Body, n.IsRead, dataJSON).Scan(&n.ID, &n.CreatedAt)
+	created, err := builder.Save(ctx)
 	if err != nil {
-		slog.Error("Fallo al persistir notificación en base de datos", "error", err, "user_id", n.UserID)
+		slog.Error("Fallo al persistir notificación en Ent", "error", err, "user_id", n.UserID)
 		return err
 	}
+
+	n.ID = int64(created.ID)
+	n.CreatedAt = created.CreatedAt
 	return nil
 }
 
 func (r *notificationRepository) GetNotificationsByUserID(ctx context.Context, userID int64) ([]domain.Notification, error) {
-	query := `
-		SELECT id, user_id, title, body, is_read, data, created_at
-		FROM notifications
-		WHERE user_id = $1
-		ORDER BY created_at DESC;
-	`
-	rows, err := r.db.Query(ctx, query, userID)
+	entNotifs, err := r.client.Notification.Query().
+		Where(notification.UserID(userID)).
+		Order(ent.Desc(notification.FieldCreatedAt)).
+		All(ctx)
+
 	if err != nil {
-		slog.Error("Fallo al consultar bandeja de notificaciones", "error", err, "user_id", userID)
+		slog.Error("Fallo al consultar bandeja de notificaciones en Ent", "error", err, "user_id", userID)
 		return nil, err
 	}
-	defer rows.Close()
 
 	var list []domain.Notification
-	for rows.Next() {
-		var n domain.Notification
-		var dataJSON []byte
-		err := rows.Scan(&n.ID, &n.UserID, &n.Title, &n.Body, &n.IsRead, &dataJSON, &n.CreatedAt)
-		if err == nil {
-			if len(dataJSON) > 0 {
-				_ = json.Unmarshal(dataJSON, &n.Data)
-			}
-			list = append(list, n)
-		}
+	for _, n := range entNotifs {
+		list = append(list, domain.Notification{
+			ID:        int64(n.ID),
+			UserID:    n.UserID,
+			Title:     n.Title,
+			Body:      n.Body,
+			IsRead:    n.IsRead,
+			Data:      n.Data,
+			CreatedAt: n.CreatedAt,
+		})
 	}
 	return list, nil
 }
 
 func (r *notificationRepository) MarkAsRead(ctx context.Context, userID int64, notificationID int64) error {
-	query := `UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2;`
-	res, err := r.db.Exec(ctx, query, notificationID, userID)
+	count, err := r.client.Notification.Update().
+		Where(
+			notification.IDEQ(int(notificationID)),
+			notification.UserID(userID),
+		).
+		SetIsRead(true).
+		Save(ctx)
+
 	if err != nil {
-		slog.Error("Fallo al marcar notificación como leída", "error", err, "notification_id", notificationID, "user_id", userID)
+		slog.Error("Fallo al marcar notificación como leída en Ent", "error", err, "notification_id", notificationID, "user_id", userID)
 		return err
 	}
-	if res.RowsAffected() == 0 {
+	if count == 0 {
 		return errors.New("Notificación no encontrada o no autorizada")
 	}
 	return nil

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AaronEscobar1/common/response"
+	"github.com/AaronEscobar1/common-go/response"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -118,7 +118,7 @@ func TraceAndLogMiddleware(db *pgxpool.Pool) func(http.Handler) http.Handler {
 				shouldLog = false
 			}
 
-			if shouldLog {
+			if shouldLog && db != nil {
 				go func(tCode string, uID *int64, method, path string, status int, respCode string, lat int64) {
 					dbCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()

@@ -6,18 +6,19 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/aaron/sakoo-backend/ent"
+	"github.com/aaron/sakoo-backend/ent/banner"
 	"github.com/aaron/sakoo-backend/internal/domain"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type bannerRepository struct {
-	db *pgxpool.Pool
+	client *ent.Client
 }
 
-// NewBannerRepository crea un repositorio para banners publicitarios.
-func NewBannerRepository(db *pgxpool.Pool) domain.BannerRepository {
+// NewBannerRepository crea un repositorio para banners publicitarios usando Ent.
+func NewBannerRepository(client *ent.Client) domain.BannerRepository {
 	return &bannerRepository{
-		db: db,
+		client: client,
 	}
 }
 
@@ -25,37 +26,34 @@ func (r *bannerRepository) ListActive(ctx context.Context) ([]domain.Banner, err
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Recuperando banners activos de la base de datos")
+	slog.Debug("Recuperando banners activos de la base de datos con Ent")
 
-	query := `
-		SELECT id, image_url, link, is_active, display_order, visible_from, visible_until, duration_ms, created_at, updated_at
-		FROM banners
-		WHERE is_active = TRUE
-		  AND (visible_from  IS NULL OR visible_from  <= now())
-		  AND (visible_until IS NULL OR visible_until >= now())
-		ORDER BY display_order ASC, id ASC;
-	`
-	rows, err := r.db.Query(dbCtx, query)
+	banners, err := r.client.Banner.Query().
+		Where(banner.IsActiveEQ(true)).
+		Order(ent.Asc(banner.FieldDisplayOrder), ent.Asc(banner.FieldID)).
+		All(dbCtx)
+
 	if err != nil {
-		slog.Error("Fallo al listar banners activos en PostgreSQL", "error", err)
+		slog.Error("Fallo al listar banners activos en Ent", "error", err)
 		return nil, fmt.Errorf("error al listar banners activos: %w", err)
 	}
-	defer rows.Close()
 
-	var banners []domain.Banner
-	for rows.Next() {
-		var b domain.Banner
-		err := rows.Scan(&b.ID, &b.ImageURL, &b.Link, &b.IsActive, &b.DisplayOrder, &b.VisibleFrom, &b.VisibleUntil, &b.DurationMs, &b.CreatedAt, &b.UpdatedAt)
-		if err != nil {
-			slog.Error("Error al escanear fila de banner", "error", err)
-			return nil, fmt.Errorf("error al decodificar banner: %w", err)
-		}
-		banners = append(banners, b)
+	var result []domain.Banner
+	for _, b := range banners {
+		result = append(result, domain.Banner{
+			ID:           int64(b.ID),
+			ImageURL:     b.ImageURL,
+			Link:         b.Link,
+			IsActive:     b.IsActive,
+			DisplayOrder: b.DisplayOrder,
+			CreatedAt:    b.CreatedAt,
+			UpdatedAt:    b.UpdatedAt,
+		})
 	}
 
-	if banners == nil {
-		banners = []domain.Banner{}
+	if result == nil {
+		result = []domain.Banner{}
 	}
 
-	return banners, nil
+	return result, nil
 }

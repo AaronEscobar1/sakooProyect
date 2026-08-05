@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AaronEscobar1/common/response"
+	"github.com/AaronEscobar1/common-go/response"
 )
 
 // rateLimiter es un limitador de tasa en memoria con ventana deslizante (sliding-log).

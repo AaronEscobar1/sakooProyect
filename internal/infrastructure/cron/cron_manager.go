@@ -5,21 +5,22 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/aaron/sakoo-backend/ent"
+	"github.com/aaron/sakoo-backend/ent/apilog"
+	"github.com/aaron/sakoo-backend/ent/user"
+	"github.com/aaron/sakoo-backend/ent/usersession"
 	"github.com/aaron/sakoo-backend/internal/infrastructure/scraper"
 	"github.com/aaron/sakoo-backend/internal/usecase"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/robfig/cron/v3"
 )
 
-// CronManager administra las tareas recurrentes en segundo plano utilizando robfig/cron/v3.
 type CronManager struct {
 	bcvScraperUseCase   *usecase.ScraperUseCase
 	exchangeRateUseCase *usecase.ExchangeRateUseCase
-	db                  *pgxpool.Pool
+	client              *ent.Client
 	cronInstance        *cron.Cron
 }
 
-// cronLogger adapta los logs estructurados de robfig/cron hacia el logger moderno slog.
 type cronLogger struct{}
 
 func (cronLogger) Info(msg string, keysAndValues ...interface{}) {
@@ -30,16 +31,13 @@ func (cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 	slog.Error(msg, append(keysAndValues, "error", err)...)
 }
 
-// NewCronManager crea una nueva instancia de CronManager.
 func NewCronManager(
 	bcvScraperUseCase *usecase.ScraperUseCase,
 	exchangeRateUseCase *usecase.ExchangeRateUseCase,
-	db *pgxpool.Pool,
+	client *ent.Client,
 ) *CronManager {
 	logger := cronLogger{}
 
-	// Crear el planificador configurando de forma explícita la zona horaria UTC
-	// Incorporamos un middleware recuperador de pánicos para resiliencia absoluta
 	c := cron.New(
 		cron.WithLocation(time.UTC),
 		cron.WithChain(
@@ -50,20 +48,17 @@ func NewCronManager(
 	return &CronManager{
 		bcvScraperUseCase:   bcvScraperUseCase,
 		exchangeRateUseCase: exchangeRateUseCase,
-		db:                  db,
+		client:              client,
 		cronInstance:        c,
 	}
 }
 
-// Start registra las tareas programadas e inicia el planificador de manera no bloqueante.
 func (cm *CronManager) Start(ctx context.Context) {
-	slog.Info("Inicializando el planificador CronManager...")
+	slog.Info("Inicializando el planificador CronManager con Ent...")
 
-	// 1. Cron del BCV (Vespertino/Nocturno): cada 30 minutos, entre 3:00 PM y 10:59 PM VET (19:00 a 02:59 UTC del día siguiente)
 	cronExprBCV := "*/30 19-23,0-2 * * *"
 	_, err := cm.cronInstance.AddFunc(cronExprBCV, func() {
 		slog.Info("Cron Triggered: Iniciando ciclo automático de scraping de tasas del BCV (Vespertino/Nocturno)...")
-		
 		scrapeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
@@ -79,12 +74,9 @@ func (cm *CronManager) Start(ctx context.Context) {
 		return
 	}
 
-	// 1.1 Cron del BCV (Respaldo Matutino): cada hora, entre 8:00 AM y 11:59 AM VET (12:00 a 15:59 UTC), de lunes a viernes
-	// Garantiza capturar las tasas si el BCV las publica sumamente tarde en la noche o si hubo fallas de red previas.
 	cronExprBCVMorning := "0 12-15 * * 1-5"
 	_, errMorning := cm.cronInstance.AddFunc(cronExprBCVMorning, func() {
 		slog.Info("Cron Triggered: Iniciando ciclo de respaldo matutino de scraping de tasas del BCV...")
-		
 		scrapeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
@@ -100,14 +92,9 @@ func (cm *CronManager) Start(ctx context.Context) {
 		return
 	}
 
-	// 2. Cron de Auto-Aprobación de Tasas: cada 30 minutos.
-	// Cuando el value_date de una tasa llega al día actual en hora de Venezuela (UTC-4),
-	// su status pasa automáticamente a APPROVED para que se muestre como tasa activa
-	// (en el backoffice y la app). Es idempotente.
 	cronExprApprove := "*/30 * * * *"
 	_, errApprove := cm.cronInstance.AddFunc(cronExprApprove, func() {
-		slog.Info("Cron Triggered: Auto-aprobando tasas cuyo value_date ya llegó (hora Venezuela)...")
-
+		slog.Info("Cron Triggered: Auto-aprobando tasas cuyo value_date ya llegó...")
 		approveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -120,46 +107,38 @@ func (cm *CronManager) Start(ctx context.Context) {
 	})
 
 	if errApprove != nil {
-		slog.Error("Fallo crítico al registrar la tarea de Auto-Aprobación de tasas en CronManager", "expr", cronExprApprove, "error", errApprove)
+		slog.Error("Fallo crítico al registrar la tarea de Auto-Aprobación en CronManager", "expr", cronExprApprove, "error", errApprove)
 		return
 	}
 
-	// 3. Tarea de Limpieza Automática de Logs: cada 3 horas (prune de logs mayores a 24 horas para evitar bloat)
+	// Tarea de Limpieza Automática usando Ent
 	cronExprCleanup := "0 */3 * * *"
 	_, errCleanup := cm.cronInstance.AddFunc(cronExprCleanup, func() {
-		slog.Info("Cron Triggered: Ejecutando limpieza automática periódica de logs de auditoría antiguos...")
-		
+		slog.Info("Cron Triggered: Ejecutando limpieza automática periódica con Ent...")
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 
-		query := `DELETE FROM api_logs WHERE created_at < NOW() - INTERVAL '24 hours';`
-		result, err := cm.db.Exec(cleanupCtx, query)
+		cutoff24h := time.Now().Add(-24 * time.Hour)
+		nLogs, err := cm.client.ApiLog.Delete().Where(apilog.CreatedAtLT(cutoff24h)).Exec(cleanupCtx)
 		if err != nil {
-			slog.Error("Fallo en la ejecución de la tarea automática de limpieza de logs antiguos", "error", err)
+			slog.Error("Fallo en la limpieza de logs antiguos en Ent", "error", err)
 		} else {
-			slog.Info("Limpieza periódica de logs de auditoría completada con éxito", "filas_eliminadas", result.RowsAffected())
+			slog.Info("Limpieza periódica de logs completada", "filas_eliminadas", nLogs)
 		}
 
-		// Limpiar las sesiones expiradas para evitar el crecimiento innecesario de la tabla user_sessions
-		sessionQuery := `DELETE FROM user_sessions WHERE expires_at < NOW();`
-		sessResult, errSess := cm.db.Exec(cleanupCtx, sessionQuery)
+		nSess, errSess := cm.client.UserSession.Delete().Where(usersession.ExpiresAtLT(time.Now())).Exec(cleanupCtx)
 		if errSess != nil {
-			slog.Error("Fallo en la ejecución de la tarea automática de limpieza de sesiones expiradas", "error", errSess)
+			slog.Error("Fallo en la limpieza de sesiones expiradas en Ent", "error", errSess)
 		} else {
-			slog.Info("Limpieza periódica de sesiones expiradas completada con éxito", "filas_eliminadas", sessResult.RowsAffected())
+			slog.Info("Limpieza periódica de sesiones completada", "filas_eliminadas", nSess)
 		}
 
-		// Purga definitiva de cuentas eliminadas: tras el periodo de gracia de 15 días desde la
-		// solicitud de borrado, se elimina físicamente al usuario. El DELETE dispara los
-		// ON DELETE CASCADE (cuentas bancarias, terceros, tokens FCM, sesiones, historial de
-		// contraseñas, notificaciones) y anonimiza vía ON DELETE SET NULL (comentarios, mensajes,
-		// compromisos). El borrado es irreversible.
-		purgeQuery := `DELETE FROM users WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL '15 days';`
-		purgeResult, errPurge := cm.db.Exec(cleanupCtx, purgeQuery)
+		cutoff15d := time.Now().AddDate(0, 0, -15)
+		nPurg, errPurge := cm.client.User.Delete().Where(user.DeletedAtLT(cutoff15d)).Exec(cleanupCtx)
 		if errPurge != nil {
-			slog.Error("Fallo en la purga definitiva de cuentas eliminadas tras el periodo de gracia", "error", errPurge)
+			slog.Error("Fallo en la purga de cuentas eliminadas en Ent", "error", errPurge)
 		} else {
-			slog.Info("Purga definitiva de cuentas eliminadas completada con éxito", "cuentas_purgadas", purgeResult.RowsAffected())
+			slog.Info("Purga definitiva de cuentas eliminadas completada", "cuentas_purgadas", nPurg)
 		}
 	})
 
@@ -168,15 +147,13 @@ func (cm *CronManager) Start(ctx context.Context) {
 		return
 	}
 
-	// 4. Cron de Binance P2P USDT: cada 1 hora todos los días (en el minuto 0)
 	cronExprBinanceUSDT := "0 * * * *"
 	_, errUSDT := cm.cronInstance.AddFunc(cronExprBinanceUSDT, func() {
-		slog.Info("Cron Triggered: Iniciando ciclo automático de Binance P2P Worker para USDT...")
-		
+		slog.Info("Cron Triggered: Iniciando Binance P2P Worker para USDT...")
 		workerCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
-		if err := scraper.RunBinanceWorker(workerCtx, cm.db, "USDT"); err != nil {
+		if err := scraper.RunBinanceWorker(workerCtx, cm.client, "USDT"); err != nil {
 			slog.Error("Fallo en la ejecución del Binance P2P Worker para USDT", "error", err)
 		} else {
 			slog.Info("Ciclo automático de Binance P2P Worker para USDT completado con éxito")
@@ -184,19 +161,17 @@ func (cm *CronManager) Start(ctx context.Context) {
 	})
 
 	if errUSDT != nil {
-		slog.Error("Fallo crítico al registrar la tarea de Binance P2P USDT en CronManager", "expr", cronExprBinanceUSDT, "error", errUSDT)
+		slog.Error("Fallo crítico al registrar la tarea de Binance P2P USDT", "expr", cronExprBinanceUSDT, "error", errUSDT)
 		return
 	}
 
-	// 5. Cron de Binance P2P USDC: cada 1 hora todos los días (en el minuto 5)
 	cronExprBinanceUSDC := "5 * * * *"
 	_, errUSDC := cm.cronInstance.AddFunc(cronExprBinanceUSDC, func() {
-		slog.Info("Cron Triggered: Iniciando ciclo automático de Binance P2P Worker para USDC...")
-		
+		slog.Info("Cron Triggered: Iniciando Binance P2P Worker para USDC...")
 		workerCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
-		if err := scraper.RunBinanceWorker(workerCtx, cm.db, "USDC"); err != nil {
+		if err := scraper.RunBinanceWorker(workerCtx, cm.client, "USDC"); err != nil {
 			slog.Error("Fallo en la ejecución del Binance P2P Worker para USDC", "error", err)
 		} else {
 			slog.Info("Ciclo automático de Binance P2P Worker para USDC completado con éxito")
@@ -204,25 +179,22 @@ func (cm *CronManager) Start(ctx context.Context) {
 	})
 
 	if errUSDC != nil {
-		slog.Error("Fallo crítico al registrar la tarea de Binance P2P USDC en CronManager", "expr", cronExprBinanceUSDC, "error", errUSDC)
+		slog.Error("Fallo crítico al registrar la tarea de Binance P2P USDC", "expr", cronExprBinanceUSDC, "error", errUSDC)
 		return
 	}
 
-	// Iniciar el cron en segundo plano
 	cm.cronInstance.Start()
 	slog.Info("CronManager iniciado con éxito en segundo plano", "zona_horaria", "UTC")
 }
 
-// Stop detiene el planificador de manera ordenada (Graceful Shutdown) esperando que terminen las tareas activas.
 func (cm *CronManager) Stop() {
 	slog.Info("Deteniendo el planificador CronManager de forma ordenada...")
 	ctx := cm.cronInstance.Stop()
-	
-	// Bloquear hasta que las tareas terminen o se agote el tiempo de cortesía de 10 segundos
+
 	select {
 	case <-ctx.Done():
 		slog.Info("CronManager detenido correctamente sin tareas pendientes")
 	case <-time.After(10 * time.Second):
-		slog.Warn("CronManager forzado a detenerse. Algunas tareas en ejecución podrían haber sido interrumpidas.")
+		slog.Warn("CronManager forzado a detenerse.")
 	}
 }
