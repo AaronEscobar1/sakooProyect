@@ -82,13 +82,24 @@ func TraceAndLogMiddleware(db *pgxpool.Pool) func(http.Handler) http.Handler {
 
 			responseCode := lrw.Header().Get("X-Response-Code")
 			if responseCode == "" {
-				if lrw.statusCode >= 200 && lrw.statusCode < 300 {
+				switch {
+				case lrw.statusCode >= 200 && lrw.statusCode < 300:
 					if lrw.statusCode == http.StatusCreated {
 						responseCode = "CREATED"
 					} else {
 						responseCode = "SUCCESS"
 					}
-				} else {
+				case lrw.statusCode == http.StatusNotFound:
+					responseCode = "NOT_FOUND"
+				case lrw.statusCode == http.StatusBadRequest:
+					responseCode = "BAD_REQUEST"
+				case lrw.statusCode == http.StatusUnauthorized:
+					responseCode = "UNAUTHORIZED"
+				case lrw.statusCode == http.StatusForbidden:
+					responseCode = "FORBIDDEN"
+				case lrw.statusCode == http.StatusMethodNotAllowed:
+					responseCode = "METHOD_NOT_ALLOWED"
+				default:
 					responseCode = "INTERNAL_ERROR"
 				}
 			}
