@@ -21,6 +21,18 @@ func (f ApiLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ApiLogMutation", m)
 }
 
+// The BankFunc type is an adapter to allow the use of ordinary
+// function as Bank mutator.
+type BankFunc func(context.Context, *ent.BankMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BankFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BankMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BankMutation", m)
+}
+
 // The BankAccountFunc type is an adapter to allow the use of ordinary
 // function as BankAccount mutator.
 type BankAccountFunc func(context.Context, *ent.BankAccountMutation) (ent.Value, error)

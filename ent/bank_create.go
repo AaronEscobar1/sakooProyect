@@ -10,69 +10,69 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/aaron/sakoo-backend/ent/documenttype"
+	"github.com/aaron/sakoo-backend/ent/bank"
 )
 
-// DocumentTypeCreate is the builder for creating a DocumentType entity.
-type DocumentTypeCreate struct {
+// BankCreate is the builder for creating a Bank entity.
+type BankCreate struct {
 	config
-	mutation *DocumentTypeMutation
+	mutation *BankMutation
 	hooks    []Hook
 }
 
 // SetCode sets the "code" field.
-func (_c *DocumentTypeCreate) SetCode(v string) *DocumentTypeCreate {
+func (_c *BankCreate) SetCode(v string) *BankCreate {
 	_c.mutation.SetCode(v)
 	return _c
 }
 
 // SetName sets the "name" field.
-func (_c *DocumentTypeCreate) SetName(v string) *DocumentTypeCreate {
+func (_c *BankCreate) SetName(v string) *BankCreate {
 	_c.mutation.SetName(v)
 	return _c
 }
 
-// SetDisplayOrder sets the "display_order" field.
-func (_c *DocumentTypeCreate) SetDisplayOrder(v int) *DocumentTypeCreate {
-	_c.mutation.SetDisplayOrder(v)
+// SetShow sets the "show" field.
+func (_c *BankCreate) SetShow(v bool) *BankCreate {
+	_c.mutation.SetShow(v)
 	return _c
 }
 
-// SetNillableDisplayOrder sets the "display_order" field if the given value is not nil.
-func (_c *DocumentTypeCreate) SetNillableDisplayOrder(v *int) *DocumentTypeCreate {
+// SetNillableShow sets the "show" field if the given value is not nil.
+func (_c *BankCreate) SetNillableShow(v *bool) *BankCreate {
 	if v != nil {
-		_c.SetDisplayOrder(*v)
+		_c.SetShow(*v)
 	}
 	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (_c *DocumentTypeCreate) SetCreatedAt(v time.Time) *DocumentTypeCreate {
+func (_c *BankCreate) SetCreatedAt(v time.Time) *BankCreate {
 	_c.mutation.SetCreatedAt(v)
 	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (_c *DocumentTypeCreate) SetNillableCreatedAt(v *time.Time) *DocumentTypeCreate {
+func (_c *BankCreate) SetNillableCreatedAt(v *time.Time) *BankCreate {
 	if v != nil {
 		_c.SetCreatedAt(*v)
 	}
 	return _c
 }
 
-// Mutation returns the DocumentTypeMutation object of the builder.
-func (_c *DocumentTypeCreate) Mutation() *DocumentTypeMutation {
+// Mutation returns the BankMutation object of the builder.
+func (_c *BankCreate) Mutation() *BankMutation {
 	return _c.mutation
 }
 
-// Save creates the DocumentType in the database.
-func (_c *DocumentTypeCreate) Save(ctx context.Context) (*DocumentType, error) {
+// Save creates the Bank in the database.
+func (_c *BankCreate) Save(ctx context.Context) (*Bank, error) {
 	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (_c *DocumentTypeCreate) SaveX(ctx context.Context) *DocumentType {
+func (_c *BankCreate) SaveX(ctx context.Context) *Bank {
 	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -81,58 +81,58 @@ func (_c *DocumentTypeCreate) SaveX(ctx context.Context) *DocumentType {
 }
 
 // Exec executes the query.
-func (_c *DocumentTypeCreate) Exec(ctx context.Context) error {
+func (_c *BankCreate) Exec(ctx context.Context) error {
 	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_c *DocumentTypeCreate) ExecX(ctx context.Context) {
+func (_c *BankCreate) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *DocumentTypeCreate) defaults() {
-	if _, ok := _c.mutation.DisplayOrder(); !ok {
-		v := documenttype.DefaultDisplayOrder
-		_c.mutation.SetDisplayOrder(v)
+func (_c *BankCreate) defaults() {
+	if _, ok := _c.mutation.Show(); !ok {
+		v := bank.DefaultShow
+		_c.mutation.SetShow(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		v := documenttype.DefaultCreatedAt()
+		v := bank.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (_c *DocumentTypeCreate) check() error {
+func (_c *BankCreate) check() error {
 	if _, ok := _c.mutation.Code(); !ok {
-		return &ValidationError{Name: "code", err: errors.New(`ent: missing required field "DocumentType.code"`)}
+		return &ValidationError{Name: "code", err: errors.New(`ent: missing required field "Bank.code"`)}
 	}
 	if v, ok := _c.mutation.Code(); ok {
-		if err := documenttype.CodeValidator(v); err != nil {
-			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "DocumentType.code": %w`, err)}
+		if err := bank.CodeValidator(v); err != nil {
+			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "Bank.code": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "DocumentType.name"`)}
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Bank.name"`)}
 	}
 	if v, ok := _c.mutation.Name(); ok {
-		if err := documenttype.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "DocumentType.name": %w`, err)}
+		if err := bank.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Bank.name": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.DisplayOrder(); !ok {
-		return &ValidationError{Name: "display_order", err: errors.New(`ent: missing required field "DocumentType.display_order"`)}
+	if _, ok := _c.mutation.Show(); !ok {
+		return &ValidationError{Name: "show", err: errors.New(`ent: missing required field "Bank.show"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "DocumentType.created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Bank.created_at"`)}
 	}
 	return nil
 }
 
-func (_c *DocumentTypeCreate) sqlSave(ctx context.Context) (*DocumentType, error) {
+func (_c *BankCreate) sqlSave(ctx context.Context) (*Bank, error) {
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
@@ -150,52 +150,52 @@ func (_c *DocumentTypeCreate) sqlSave(ctx context.Context) (*DocumentType, error
 	return _node, nil
 }
 
-func (_c *DocumentTypeCreate) createSpec() (*DocumentType, *sqlgraph.CreateSpec) {
+func (_c *BankCreate) createSpec() (*Bank, *sqlgraph.CreateSpec) {
 	var (
-		_node = &DocumentType{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(documenttype.Table, sqlgraph.NewFieldSpec(documenttype.FieldID, field.TypeInt))
+		_node = &Bank{config: _c.config}
+		_spec = sqlgraph.NewCreateSpec(bank.Table, sqlgraph.NewFieldSpec(bank.FieldID, field.TypeInt))
 	)
-	_spec.Schema = _c.schemaConfig.DocumentType
+	_spec.Schema = _c.schemaConfig.Bank
 	if value, ok := _c.mutation.Code(); ok {
-		_spec.SetField(documenttype.FieldCode, field.TypeString, value)
+		_spec.SetField(bank.FieldCode, field.TypeString, value)
 		_node.Code = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(documenttype.FieldName, field.TypeString, value)
+		_spec.SetField(bank.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := _c.mutation.DisplayOrder(); ok {
-		_spec.SetField(documenttype.FieldDisplayOrder, field.TypeInt, value)
-		_node.DisplayOrder = value
+	if value, ok := _c.mutation.Show(); ok {
+		_spec.SetField(bank.FieldShow, field.TypeBool, value)
+		_node.Show = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(documenttype.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(bank.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	return _node, _spec
 }
 
-// DocumentTypeCreateBulk is the builder for creating many DocumentType entities in bulk.
-type DocumentTypeCreateBulk struct {
+// BankCreateBulk is the builder for creating many Bank entities in bulk.
+type BankCreateBulk struct {
 	config
 	err      error
-	builders []*DocumentTypeCreate
+	builders []*BankCreate
 }
 
-// Save creates the DocumentType entities in the database.
-func (_c *DocumentTypeCreateBulk) Save(ctx context.Context) ([]*DocumentType, error) {
+// Save creates the Bank entities in the database.
+func (_c *BankCreateBulk) Save(ctx context.Context) ([]*Bank, error) {
 	if _c.err != nil {
 		return nil, _c.err
 	}
 	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
-	nodes := make([]*DocumentType, len(_c.builders))
+	nodes := make([]*Bank, len(_c.builders))
 	mutators := make([]Mutator, len(_c.builders))
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-				mutation, ok := m.(*DocumentTypeMutation)
+				mutation, ok := m.(*BankMutation)
 				if !ok {
 					return nil, fmt.Errorf("unexpected mutation type %T", m)
 				}
@@ -242,7 +242,7 @@ func (_c *DocumentTypeCreateBulk) Save(ctx context.Context) ([]*DocumentType, er
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (_c *DocumentTypeCreateBulk) SaveX(ctx context.Context) []*DocumentType {
+func (_c *BankCreateBulk) SaveX(ctx context.Context) []*Bank {
 	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -251,13 +251,13 @@ func (_c *DocumentTypeCreateBulk) SaveX(ctx context.Context) []*DocumentType {
 }
 
 // Exec executes the query.
-func (_c *DocumentTypeCreateBulk) Exec(ctx context.Context) error {
+func (_c *BankCreateBulk) Exec(ctx context.Context) error {
 	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_c *DocumentTypeCreateBulk) ExecX(ctx context.Context) {
+func (_c *BankCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}

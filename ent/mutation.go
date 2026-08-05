@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/aaron/sakoo-backend/ent/apilog"
+	"github.com/aaron/sakoo-backend/ent/bank"
 	"github.com/aaron/sakoo-backend/ent/bankaccount"
 	"github.com/aaron/sakoo-backend/ent/banner"
 	"github.com/aaron/sakoo-backend/ent/comment"
@@ -44,6 +45,7 @@ const (
 
 	// Node types.
 	TypeApiLog              = "ApiLog"
+	TypeBank                = "Bank"
 	TypeBankAccount         = "BankAccount"
 	TypeBanner              = "Banner"
 	TypeComment             = "Comment"
@@ -911,6 +913,494 @@ func (m *ApiLogMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ApiLogMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ApiLog edge %s", name)
+}
+
+// BankMutation represents an operation that mutates the Bank nodes in the graph.
+type BankMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	code          *string
+	name          *string
+	show          *bool
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*Bank, error)
+	predicates    []predicate.Bank
+}
+
+var _ ent.Mutation = (*BankMutation)(nil)
+
+// bankOption allows management of the mutation configuration using functional options.
+type bankOption func(*BankMutation)
+
+// newBankMutation creates new mutation for the Bank entity.
+func newBankMutation(c config, op Op, opts ...bankOption) *BankMutation {
+	m := &BankMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBank,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBankID sets the ID field of the mutation.
+func withBankID(id int) bankOption {
+	return func(m *BankMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Bank
+		)
+		m.oldValue = func(ctx context.Context) (*Bank, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Bank.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBank sets the old Bank of the mutation.
+func withBank(node *Bank) bankOption {
+	return func(m *BankMutation) {
+		m.oldValue = func(context.Context) (*Bank, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BankMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BankMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BankMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BankMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Bank.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCode sets the "code" field.
+func (m *BankMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *BankMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the Bank entity.
+// If the Bank object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BankMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *BankMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetName sets the "name" field.
+func (m *BankMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *BankMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Bank entity.
+// If the Bank object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BankMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *BankMutation) ResetName() {
+	m.name = nil
+}
+
+// SetShow sets the "show" field.
+func (m *BankMutation) SetShow(b bool) {
+	m.show = &b
+}
+
+// Show returns the value of the "show" field in the mutation.
+func (m *BankMutation) Show() (r bool, exists bool) {
+	v := m.show
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldShow returns the old "show" field's value of the Bank entity.
+// If the Bank object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BankMutation) OldShow(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldShow is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldShow requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldShow: %w", err)
+	}
+	return oldValue.Show, nil
+}
+
+// ResetShow resets all changes to the "show" field.
+func (m *BankMutation) ResetShow() {
+	m.show = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BankMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BankMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Bank entity.
+// If the Bank object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BankMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BankMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the BankMutation builder.
+func (m *BankMutation) Where(ps ...predicate.Bank) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BankMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BankMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Bank, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BankMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BankMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Bank).
+func (m *BankMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BankMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.code != nil {
+		fields = append(fields, bank.FieldCode)
+	}
+	if m.name != nil {
+		fields = append(fields, bank.FieldName)
+	}
+	if m.show != nil {
+		fields = append(fields, bank.FieldShow)
+	}
+	if m.created_at != nil {
+		fields = append(fields, bank.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BankMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case bank.FieldCode:
+		return m.Code()
+	case bank.FieldName:
+		return m.Name()
+	case bank.FieldShow:
+		return m.Show()
+	case bank.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BankMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case bank.FieldCode:
+		return m.OldCode(ctx)
+	case bank.FieldName:
+		return m.OldName(ctx)
+	case bank.FieldShow:
+		return m.OldShow(ctx)
+	case bank.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Bank field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BankMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case bank.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case bank.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case bank.FieldShow:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetShow(v)
+		return nil
+	case bank.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Bank field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BankMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BankMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BankMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Bank numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BankMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BankMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BankMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Bank nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BankMutation) ResetField(name string) error {
+	switch name {
+	case bank.FieldCode:
+		m.ResetCode()
+		return nil
+	case bank.FieldName:
+		m.ResetName()
+		return nil
+	case bank.FieldShow:
+		m.ResetShow()
+		return nil
+	case bank.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Bank field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BankMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BankMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BankMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BankMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BankMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BankMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BankMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown Bank unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BankMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown Bank edge %s", name)
 }
 
 // BankAccountMutation represents an operation that mutates the BankAccount nodes in the graph.
@@ -3302,17 +3792,20 @@ func (m *ConfigurationMutation) ResetEdge(name string) error {
 // CurrencyMutation represents an operation that mutates the Currency nodes in the graph.
 type CurrencyMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	code          *string
-	name          *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Currency, error)
-	predicates    []predicate.Currency
+	op               Op
+	typ              string
+	id               *int
+	code             *string
+	name             *string
+	show             *bool
+	display_order    *int
+	adddisplay_order *int
+	created_at       *time.Time
+	updated_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*Currency, error)
+	predicates       []predicate.Currency
 }
 
 var _ ent.Mutation = (*CurrencyMutation)(nil)
@@ -3485,6 +3978,98 @@ func (m *CurrencyMutation) ResetName() {
 	m.name = nil
 }
 
+// SetShow sets the "show" field.
+func (m *CurrencyMutation) SetShow(b bool) {
+	m.show = &b
+}
+
+// Show returns the value of the "show" field in the mutation.
+func (m *CurrencyMutation) Show() (r bool, exists bool) {
+	v := m.show
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldShow returns the old "show" field's value of the Currency entity.
+// If the Currency object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CurrencyMutation) OldShow(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldShow is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldShow requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldShow: %w", err)
+	}
+	return oldValue.Show, nil
+}
+
+// ResetShow resets all changes to the "show" field.
+func (m *CurrencyMutation) ResetShow() {
+	m.show = nil
+}
+
+// SetDisplayOrder sets the "display_order" field.
+func (m *CurrencyMutation) SetDisplayOrder(i int) {
+	m.display_order = &i
+	m.adddisplay_order = nil
+}
+
+// DisplayOrder returns the value of the "display_order" field in the mutation.
+func (m *CurrencyMutation) DisplayOrder() (r int, exists bool) {
+	v := m.display_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayOrder returns the old "display_order" field's value of the Currency entity.
+// If the Currency object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CurrencyMutation) OldDisplayOrder(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayOrder: %w", err)
+	}
+	return oldValue.DisplayOrder, nil
+}
+
+// AddDisplayOrder adds i to the "display_order" field.
+func (m *CurrencyMutation) AddDisplayOrder(i int) {
+	if m.adddisplay_order != nil {
+		*m.adddisplay_order += i
+	} else {
+		m.adddisplay_order = &i
+	}
+}
+
+// AddedDisplayOrder returns the value that was added to the "display_order" field in this mutation.
+func (m *CurrencyMutation) AddedDisplayOrder() (r int, exists bool) {
+	v := m.adddisplay_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDisplayOrder resets all changes to the "display_order" field.
+func (m *CurrencyMutation) ResetDisplayOrder() {
+	m.display_order = nil
+	m.adddisplay_order = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CurrencyMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -3591,12 +4176,18 @@ func (m *CurrencyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CurrencyMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 6)
 	if m.code != nil {
 		fields = append(fields, currency.FieldCode)
 	}
 	if m.name != nil {
 		fields = append(fields, currency.FieldName)
+	}
+	if m.show != nil {
+		fields = append(fields, currency.FieldShow)
+	}
+	if m.display_order != nil {
+		fields = append(fields, currency.FieldDisplayOrder)
 	}
 	if m.created_at != nil {
 		fields = append(fields, currency.FieldCreatedAt)
@@ -3616,6 +4207,10 @@ func (m *CurrencyMutation) Field(name string) (ent.Value, bool) {
 		return m.Code()
 	case currency.FieldName:
 		return m.Name()
+	case currency.FieldShow:
+		return m.Show()
+	case currency.FieldDisplayOrder:
+		return m.DisplayOrder()
 	case currency.FieldCreatedAt:
 		return m.CreatedAt()
 	case currency.FieldUpdatedAt:
@@ -3633,6 +4228,10 @@ func (m *CurrencyMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldCode(ctx)
 	case currency.FieldName:
 		return m.OldName(ctx)
+	case currency.FieldShow:
+		return m.OldShow(ctx)
+	case currency.FieldDisplayOrder:
+		return m.OldDisplayOrder(ctx)
 	case currency.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case currency.FieldUpdatedAt:
@@ -3660,6 +4259,20 @@ func (m *CurrencyMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetName(v)
 		return nil
+	case currency.FieldShow:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetShow(v)
+		return nil
+	case currency.FieldDisplayOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayOrder(v)
+		return nil
 	case currency.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -3681,13 +4294,21 @@ func (m *CurrencyMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *CurrencyMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.adddisplay_order != nil {
+		fields = append(fields, currency.FieldDisplayOrder)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *CurrencyMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case currency.FieldDisplayOrder:
+		return m.AddedDisplayOrder()
+	}
 	return nil, false
 }
 
@@ -3696,6 +4317,13 @@ func (m *CurrencyMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *CurrencyMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case currency.FieldDisplayOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDisplayOrder(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Currency numeric field %s", name)
 }
@@ -3728,6 +4356,12 @@ func (m *CurrencyMutation) ResetField(name string) error {
 		return nil
 	case currency.FieldName:
 		m.ResetName()
+		return nil
+	case currency.FieldShow:
+		m.ResetShow()
+		return nil
+	case currency.FieldDisplayOrder:
+		m.ResetDisplayOrder()
 		return nil
 	case currency.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -3790,16 +4424,18 @@ func (m *CurrencyMutation) ResetEdge(name string) error {
 // DocumentTypeMutation represents an operation that mutates the DocumentType nodes in the graph.
 type DocumentTypeMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	code          *string
-	name          *string
-	created_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*DocumentType, error)
-	predicates    []predicate.DocumentType
+	op               Op
+	typ              string
+	id               *int
+	code             *string
+	name             *string
+	display_order    *int
+	adddisplay_order *int
+	created_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*DocumentType, error)
+	predicates       []predicate.DocumentType
 }
 
 var _ ent.Mutation = (*DocumentTypeMutation)(nil)
@@ -3972,6 +4608,62 @@ func (m *DocumentTypeMutation) ResetName() {
 	m.name = nil
 }
 
+// SetDisplayOrder sets the "display_order" field.
+func (m *DocumentTypeMutation) SetDisplayOrder(i int) {
+	m.display_order = &i
+	m.adddisplay_order = nil
+}
+
+// DisplayOrder returns the value of the "display_order" field in the mutation.
+func (m *DocumentTypeMutation) DisplayOrder() (r int, exists bool) {
+	v := m.display_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayOrder returns the old "display_order" field's value of the DocumentType entity.
+// If the DocumentType object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DocumentTypeMutation) OldDisplayOrder(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayOrder: %w", err)
+	}
+	return oldValue.DisplayOrder, nil
+}
+
+// AddDisplayOrder adds i to the "display_order" field.
+func (m *DocumentTypeMutation) AddDisplayOrder(i int) {
+	if m.adddisplay_order != nil {
+		*m.adddisplay_order += i
+	} else {
+		m.adddisplay_order = &i
+	}
+}
+
+// AddedDisplayOrder returns the value that was added to the "display_order" field in this mutation.
+func (m *DocumentTypeMutation) AddedDisplayOrder() (r int, exists bool) {
+	v := m.adddisplay_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDisplayOrder resets all changes to the "display_order" field.
+func (m *DocumentTypeMutation) ResetDisplayOrder() {
+	m.display_order = nil
+	m.adddisplay_order = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *DocumentTypeMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -4042,12 +4734,15 @@ func (m *DocumentTypeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *DocumentTypeMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.code != nil {
 		fields = append(fields, documenttype.FieldCode)
 	}
 	if m.name != nil {
 		fields = append(fields, documenttype.FieldName)
+	}
+	if m.display_order != nil {
+		fields = append(fields, documenttype.FieldDisplayOrder)
 	}
 	if m.created_at != nil {
 		fields = append(fields, documenttype.FieldCreatedAt)
@@ -4064,6 +4759,8 @@ func (m *DocumentTypeMutation) Field(name string) (ent.Value, bool) {
 		return m.Code()
 	case documenttype.FieldName:
 		return m.Name()
+	case documenttype.FieldDisplayOrder:
+		return m.DisplayOrder()
 	case documenttype.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -4079,6 +4776,8 @@ func (m *DocumentTypeMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCode(ctx)
 	case documenttype.FieldName:
 		return m.OldName(ctx)
+	case documenttype.FieldDisplayOrder:
+		return m.OldDisplayOrder(ctx)
 	case documenttype.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -4104,6 +4803,13 @@ func (m *DocumentTypeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetName(v)
 		return nil
+	case documenttype.FieldDisplayOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayOrder(v)
+		return nil
 	case documenttype.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -4118,13 +4824,21 @@ func (m *DocumentTypeMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *DocumentTypeMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.adddisplay_order != nil {
+		fields = append(fields, documenttype.FieldDisplayOrder)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *DocumentTypeMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case documenttype.FieldDisplayOrder:
+		return m.AddedDisplayOrder()
+	}
 	return nil, false
 }
 
@@ -4133,6 +4847,13 @@ func (m *DocumentTypeMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *DocumentTypeMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case documenttype.FieldDisplayOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDisplayOrder(v)
+		return nil
 	}
 	return fmt.Errorf("unknown DocumentType numeric field %s", name)
 }
@@ -4165,6 +4886,9 @@ func (m *DocumentTypeMutation) ResetField(name string) error {
 		return nil
 	case documenttype.FieldName:
 		m.ResetName()
+		return nil
+	case documenttype.FieldDisplayOrder:
+		m.ResetDisplayOrder()
 		return nil
 	case documenttype.FieldCreatedAt:
 		m.ResetCreatedAt()

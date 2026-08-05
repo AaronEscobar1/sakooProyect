@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"github.com/aaron/sakoo-backend/ent/apilog"
+	"github.com/aaron/sakoo-backend/ent/bank"
 	"github.com/aaron/sakoo-backend/ent/bankaccount"
 	"github.com/aaron/sakoo-backend/ent/banner"
 	"github.com/aaron/sakoo-backend/ent/comment"
@@ -45,6 +46,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// ApiLog is the client for interacting with the ApiLog builders.
 	ApiLog *ApiLogClient
+	// Bank is the client for interacting with the Bank builders.
+	Bank *BankClient
 	// BankAccount is the client for interacting with the BankAccount builders.
 	BankAccount *BankAccountClient
 	// Banner is the client for interacting with the Banner builders.
@@ -95,6 +98,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.ApiLog = NewApiLogClient(c.config)
+	c.Bank = NewBankClient(c.config)
 	c.BankAccount = NewBankAccountClient(c.config)
 	c.Banner = NewBannerClient(c.config)
 	c.Comment = NewCommentClient(c.config)
@@ -210,6 +214,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                 ctx,
 		config:              cfg,
 		ApiLog:              NewApiLogClient(cfg),
+		Bank:                NewBankClient(cfg),
 		BankAccount:         NewBankAccountClient(cfg),
 		Banner:              NewBannerClient(cfg),
 		Comment:             NewCommentClient(cfg),
@@ -249,6 +254,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                 ctx,
 		config:              cfg,
 		ApiLog:              NewApiLogClient(cfg),
+		Bank:                NewBankClient(cfg),
 		BankAccount:         NewBankAccountClient(cfg),
 		Banner:              NewBannerClient(cfg),
 		Comment:             NewCommentClient(cfg),
@@ -297,10 +303,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.ApiLog, c.BankAccount, c.Banner, c.Comment, c.Configuration, c.Currency,
-		c.DocumentType, c.ExchangeRate, c.Message, c.Notification, c.PaymentCommitment,
-		c.PaymentNotification, c.ResponseCode, c.ThirdPartyAccount, c.User,
-		c.UserDeviceToken, c.UserOtp, c.UserPasswordHistory, c.UserSession, c.UserType,
+		c.ApiLog, c.Bank, c.BankAccount, c.Banner, c.Comment, c.Configuration,
+		c.Currency, c.DocumentType, c.ExchangeRate, c.Message, c.Notification,
+		c.PaymentCommitment, c.PaymentNotification, c.ResponseCode,
+		c.ThirdPartyAccount, c.User, c.UserDeviceToken, c.UserOtp,
+		c.UserPasswordHistory, c.UserSession, c.UserType,
 	} {
 		n.Use(hooks...)
 	}
@@ -310,10 +317,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.ApiLog, c.BankAccount, c.Banner, c.Comment, c.Configuration, c.Currency,
-		c.DocumentType, c.ExchangeRate, c.Message, c.Notification, c.PaymentCommitment,
-		c.PaymentNotification, c.ResponseCode, c.ThirdPartyAccount, c.User,
-		c.UserDeviceToken, c.UserOtp, c.UserPasswordHistory, c.UserSession, c.UserType,
+		c.ApiLog, c.Bank, c.BankAccount, c.Banner, c.Comment, c.Configuration,
+		c.Currency, c.DocumentType, c.ExchangeRate, c.Message, c.Notification,
+		c.PaymentCommitment, c.PaymentNotification, c.ResponseCode,
+		c.ThirdPartyAccount, c.User, c.UserDeviceToken, c.UserOtp,
+		c.UserPasswordHistory, c.UserSession, c.UserType,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -324,6 +332,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *ApiLogMutation:
 		return c.ApiLog.mutate(ctx, m)
+	case *BankMutation:
+		return c.Bank.mutate(ctx, m)
 	case *BankAccountMutation:
 		return c.BankAccount.mutate(ctx, m)
 	case *BannerMutation:
@@ -497,6 +507,139 @@ func (c *ApiLogClient) mutate(ctx context.Context, m *ApiLogMutation) (Value, er
 		return (&ApiLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ApiLog mutation op: %q", m.Op())
+	}
+}
+
+// BankClient is a client for the Bank schema.
+type BankClient struct {
+	config
+}
+
+// NewBankClient returns a client for the Bank from the given config.
+func NewBankClient(c config) *BankClient {
+	return &BankClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `bank.Hooks(f(g(h())))`.
+func (c *BankClient) Use(hooks ...Hook) {
+	c.hooks.Bank = append(c.hooks.Bank, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `bank.Intercept(f(g(h())))`.
+func (c *BankClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Bank = append(c.inters.Bank, interceptors...)
+}
+
+// Create returns a builder for creating a Bank entity.
+func (c *BankClient) Create() *BankCreate {
+	mutation := newBankMutation(c.config, OpCreate)
+	return &BankCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Bank entities.
+func (c *BankClient) CreateBulk(builders ...*BankCreate) *BankCreateBulk {
+	return &BankCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BankClient) MapCreateBulk(slice any, setFunc func(*BankCreate, int)) *BankCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BankCreateBulk{err: fmt.Errorf("calling to BankClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BankCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BankCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Bank.
+func (c *BankClient) Update() *BankUpdate {
+	mutation := newBankMutation(c.config, OpUpdate)
+	return &BankUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BankClient) UpdateOne(_m *Bank) *BankUpdateOne {
+	mutation := newBankMutation(c.config, OpUpdateOne, withBank(_m))
+	return &BankUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BankClient) UpdateOneID(id int) *BankUpdateOne {
+	mutation := newBankMutation(c.config, OpUpdateOne, withBankID(id))
+	return &BankUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Bank.
+func (c *BankClient) Delete() *BankDelete {
+	mutation := newBankMutation(c.config, OpDelete)
+	return &BankDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BankClient) DeleteOne(_m *Bank) *BankDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BankClient) DeleteOneID(id int) *BankDeleteOne {
+	builder := c.Delete().Where(bank.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BankDeleteOne{builder}
+}
+
+// Query returns a query builder for Bank.
+func (c *BankClient) Query() *BankQuery {
+	return &BankQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBank},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Bank entity by its id.
+func (c *BankClient) Get(ctx context.Context, id int) (*Bank, error) {
+	return c.Query().Where(bank.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BankClient) GetX(ctx context.Context, id int) *Bank {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *BankClient) Hooks() []Hook {
+	return c.hooks.Bank
+}
+
+// Interceptors returns the client interceptors.
+func (c *BankClient) Interceptors() []Interceptor {
+	return c.inters.Bank
+}
+
+func (c *BankClient) mutate(ctx context.Context, m *BankMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BankCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BankUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BankUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BankDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Bank mutation op: %q", m.Op())
 	}
 }
 
@@ -3030,16 +3173,16 @@ func (c *UserTypeClient) mutate(ctx context.Context, m *UserTypeMutation) (Value
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		ApiLog, BankAccount, Banner, Comment, Configuration, Currency, DocumentType,
-		ExchangeRate, Message, Notification, PaymentCommitment, PaymentNotification,
-		ResponseCode, ThirdPartyAccount, User, UserDeviceToken, UserOtp,
-		UserPasswordHistory, UserSession, UserType []ent.Hook
+		ApiLog, Bank, BankAccount, Banner, Comment, Configuration, Currency,
+		DocumentType, ExchangeRate, Message, Notification, PaymentCommitment,
+		PaymentNotification, ResponseCode, ThirdPartyAccount, User, UserDeviceToken,
+		UserOtp, UserPasswordHistory, UserSession, UserType []ent.Hook
 	}
 	inters struct {
-		ApiLog, BankAccount, Banner, Comment, Configuration, Currency, DocumentType,
-		ExchangeRate, Message, Notification, PaymentCommitment, PaymentNotification,
-		ResponseCode, ThirdPartyAccount, User, UserDeviceToken, UserOtp,
-		UserPasswordHistory, UserSession, UserType []ent.Interceptor
+		ApiLog, Bank, BankAccount, Banner, Comment, Configuration, Currency,
+		DocumentType, ExchangeRate, Message, Notification, PaymentCommitment,
+		PaymentNotification, ResponseCode, ThirdPartyAccount, User, UserDeviceToken,
+		UserOtp, UserPasswordHistory, UserSession, UserType []ent.Interceptor
 	}
 )
 
@@ -3047,6 +3190,7 @@ var (
 	// DefaultSchemaConfig represents the default schema names for all tables as defined in ent/schema.
 	DefaultSchemaConfig = SchemaConfig{
 		ApiLog:              tableSchemas[5],
+		Bank:                tableSchemas[0],
 		BankAccount:         tableSchemas[1],
 		Banner:              tableSchemas[2],
 		Comment:             tableSchemas[2],

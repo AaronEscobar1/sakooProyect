@@ -8,6 +8,7 @@ import "context"
 // that can be passed at runtime.
 type SchemaConfig struct {
 	ApiLog              string // ApiLog table.
+	Bank                string // Bank table.
 	BankAccount         string // BankAccount table.
 	Banner              string // Banner table.
 	Comment             string // Comment table.

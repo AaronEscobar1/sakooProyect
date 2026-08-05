@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/ent/apilog"
+	"github.com/aaron/sakoo-backend/ent/bank"
 	"github.com/aaron/sakoo-backend/ent/bankaccount"
 	"github.com/aaron/sakoo-backend/ent/banner"
 	"github.com/aaron/sakoo-backend/ent/comment"
@@ -54,6 +55,24 @@ func init() {
 	apilogDescCreatedAt := apilogFields[7].Descriptor()
 	// apilog.DefaultCreatedAt holds the default value on creation for the created_at field.
 	apilog.DefaultCreatedAt = apilogDescCreatedAt.Default.(func() time.Time)
+	bankFields := schema.Bank{}.Fields()
+	_ = bankFields
+	// bankDescCode is the schema descriptor for code field.
+	bankDescCode := bankFields[0].Descriptor()
+	// bank.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	bank.CodeValidator = bankDescCode.Validators[0].(func(string) error)
+	// bankDescName is the schema descriptor for name field.
+	bankDescName := bankFields[1].Descriptor()
+	// bank.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	bank.NameValidator = bankDescName.Validators[0].(func(string) error)
+	// bankDescShow is the schema descriptor for show field.
+	bankDescShow := bankFields[2].Descriptor()
+	// bank.DefaultShow holds the default value on creation for the show field.
+	bank.DefaultShow = bankDescShow.Default.(bool)
+	// bankDescCreatedAt is the schema descriptor for created_at field.
+	bankDescCreatedAt := bankFields[3].Descriptor()
+	// bank.DefaultCreatedAt holds the default value on creation for the created_at field.
+	bank.DefaultCreatedAt = bankDescCreatedAt.Default.(func() time.Time)
 	bankaccountFields := schema.BankAccount{}.Fields()
 	_ = bankaccountFields
 	// bankaccountDescBankName is the schema descriptor for bank_name field.
@@ -142,12 +161,20 @@ func init() {
 	currencyDescName := currencyFields[1].Descriptor()
 	// currency.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	currency.NameValidator = currencyDescName.Validators[0].(func(string) error)
+	// currencyDescShow is the schema descriptor for show field.
+	currencyDescShow := currencyFields[2].Descriptor()
+	// currency.DefaultShow holds the default value on creation for the show field.
+	currency.DefaultShow = currencyDescShow.Default.(bool)
+	// currencyDescDisplayOrder is the schema descriptor for display_order field.
+	currencyDescDisplayOrder := currencyFields[3].Descriptor()
+	// currency.DefaultDisplayOrder holds the default value on creation for the display_order field.
+	currency.DefaultDisplayOrder = currencyDescDisplayOrder.Default.(int)
 	// currencyDescCreatedAt is the schema descriptor for created_at field.
-	currencyDescCreatedAt := currencyFields[2].Descriptor()
+	currencyDescCreatedAt := currencyFields[4].Descriptor()
 	// currency.DefaultCreatedAt holds the default value on creation for the created_at field.
 	currency.DefaultCreatedAt = currencyDescCreatedAt.Default.(func() time.Time)
 	// currencyDescUpdatedAt is the schema descriptor for updated_at field.
-	currencyDescUpdatedAt := currencyFields[3].Descriptor()
+	currencyDescUpdatedAt := currencyFields[5].Descriptor()
 	// currency.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	currency.DefaultUpdatedAt = currencyDescUpdatedAt.Default.(func() time.Time)
 	// currency.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -162,8 +189,12 @@ func init() {
 	documenttypeDescName := documenttypeFields[1].Descriptor()
 	// documenttype.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	documenttype.NameValidator = documenttypeDescName.Validators[0].(func(string) error)
+	// documenttypeDescDisplayOrder is the schema descriptor for display_order field.
+	documenttypeDescDisplayOrder := documenttypeFields[2].Descriptor()
+	// documenttype.DefaultDisplayOrder holds the default value on creation for the display_order field.
+	documenttype.DefaultDisplayOrder = documenttypeDescDisplayOrder.Default.(int)
 	// documenttypeDescCreatedAt is the schema descriptor for created_at field.
-	documenttypeDescCreatedAt := documenttypeFields[2].Descriptor()
+	documenttypeDescCreatedAt := documenttypeFields[3].Descriptor()
 	// documenttype.DefaultCreatedAt holds the default value on creation for the created_at field.
 	documenttype.DefaultCreatedAt = documenttypeDescCreatedAt.Default.(func() time.Time)
 	exchangerateFields := schema.ExchangeRate{}.Fields()

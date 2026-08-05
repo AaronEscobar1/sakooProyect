@@ -64,6 +64,16 @@ func Name(v string) predicate.Currency {
 	return predicate.Currency(sql.FieldEQ(FieldName, v))
 }
 
+// Show applies equality check predicate on the "show" field. It's identical to ShowEQ.
+func Show(v bool) predicate.Currency {
+	return predicate.Currency(sql.FieldEQ(FieldShow, v))
+}
+
+// DisplayOrder applies equality check predicate on the "display_order" field. It's identical to DisplayOrderEQ.
+func DisplayOrder(v int) predicate.Currency {
+	return predicate.Currency(sql.FieldEQ(FieldDisplayOrder, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Currency {
 	return predicate.Currency(sql.FieldEQ(FieldCreatedAt, v))
@@ -202,6 +212,56 @@ func NameEqualFold(v string) predicate.Currency {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.Currency {
 	return predicate.Currency(sql.FieldContainsFold(FieldName, v))
+}
+
+// ShowEQ applies the EQ predicate on the "show" field.
+func ShowEQ(v bool) predicate.Currency {
+	return predicate.Currency(sql.FieldEQ(FieldShow, v))
+}
+
+// ShowNEQ applies the NEQ predicate on the "show" field.
+func ShowNEQ(v bool) predicate.Currency {
+	return predicate.Currency(sql.FieldNEQ(FieldShow, v))
+}
+
+// DisplayOrderEQ applies the EQ predicate on the "display_order" field.
+func DisplayOrderEQ(v int) predicate.Currency {
+	return predicate.Currency(sql.FieldEQ(FieldDisplayOrder, v))
+}
+
+// DisplayOrderNEQ applies the NEQ predicate on the "display_order" field.
+func DisplayOrderNEQ(v int) predicate.Currency {
+	return predicate.Currency(sql.FieldNEQ(FieldDisplayOrder, v))
+}
+
+// DisplayOrderIn applies the In predicate on the "display_order" field.
+func DisplayOrderIn(vs ...int) predicate.Currency {
+	return predicate.Currency(sql.FieldIn(FieldDisplayOrder, vs...))
+}
+
+// DisplayOrderNotIn applies the NotIn predicate on the "display_order" field.
+func DisplayOrderNotIn(vs ...int) predicate.Currency {
+	return predicate.Currency(sql.FieldNotIn(FieldDisplayOrder, vs...))
+}
+
+// DisplayOrderGT applies the GT predicate on the "display_order" field.
+func DisplayOrderGT(v int) predicate.Currency {
+	return predicate.Currency(sql.FieldGT(FieldDisplayOrder, v))
+}
+
+// DisplayOrderGTE applies the GTE predicate on the "display_order" field.
+func DisplayOrderGTE(v int) predicate.Currency {
+	return predicate.Currency(sql.FieldGTE(FieldDisplayOrder, v))
+}
+
+// DisplayOrderLT applies the LT predicate on the "display_order" field.
+func DisplayOrderLT(v int) predicate.Currency {
+	return predicate.Currency(sql.FieldLT(FieldDisplayOrder, v))
+}
+
+// DisplayOrderLTE applies the LTE predicate on the "display_order" field.
+func DisplayOrderLTE(v int) predicate.Currency {
+	return predicate.Currency(sql.FieldLTE(FieldDisplayOrder, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

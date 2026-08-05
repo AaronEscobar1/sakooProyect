@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/ent"
-	"github.com/aaron/sakoo-backend/ent/documenttype"
+	"github.com/aaron/sakoo-backend/ent/bank"
 	"github.com/aaron/sakoo-backend/ent/currency"
+	"github.com/aaron/sakoo-backend/ent/documenttype"
 	"github.com/aaron/sakoo-backend/internal/domain"
 )
 
@@ -29,9 +30,8 @@ func (r *catalogRepository) GetDocumentTypes(ctx context.Context) ([]domain.Docu
 
 	slog.Debug("Recuperando tipos de documento de la base de datos usando Ent")
 
-	// Usamos Ent builder
 	docTypes, err := r.client.DocumentType.Query().
-		Order(ent.Asc(documenttype.FieldName)).
+		Order(ent.Asc(documenttype.FieldDisplayOrder), ent.Asc(documenttype.FieldName)).
 		All(dbCtx)
 
 	if err != nil {
@@ -45,7 +45,7 @@ func (r *catalogRepository) GetDocumentTypes(ctx context.Context) ([]domain.Docu
 			ID:           int64(dt.ID),
 			Code:         dt.Code,
 			Name:         dt.Name,
-			DisplayOrder: int(dt.ID), // placeholder
+			DisplayOrder: dt.DisplayOrder,
 			CreatedAt:    dt.CreatedAt,
 		})
 	}
@@ -61,10 +61,11 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Recuperando monedas de la base de datos usando Ent")
+	slog.Debug("Recuperando monedas activas de la base de datos usando Ent")
 
 	currencies, err := r.client.Currency.Query().
-		Order(ent.Asc(currency.FieldName)).
+		Where(currency.ShowEQ(true)).
+		Order(ent.Asc(currency.FieldDisplayOrder), ent.Asc(currency.FieldName)).
 		All(dbCtx)
 
 	if err != nil {
@@ -78,7 +79,7 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 			ID:           int64(c.ID),
 			Code:         c.Code,
 			Name:         c.Name,
-			DisplayOrder: int(c.ID),
+			DisplayOrder: c.DisplayOrder,
 			CreatedAt:    c.CreatedAt,
 			UpdatedAt:    c.UpdatedAt,
 		})
@@ -92,6 +93,35 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 }
 
 func (r *catalogRepository) GetBanks(ctx context.Context) ([]domain.Bank, error) {
-	// Dummy para mantener compatibilidad en esta prueba de concepto.
-	return []domain.Bank{}, nil
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	slog.Debug("Recuperando bancos de la base de datos usando Ent")
+
+	banks, err := r.client.Bank.Query().
+		Where(bank.ShowEQ(true)).
+		Order(ent.Asc(bank.FieldCode)).
+		All(dbCtx)
+
+	if err != nil {
+		slog.Error("Fallo al listar bancos en catalogs", "error", err)
+		return nil, fmt.Errorf("error al listar bancos: %w", err)
+	}
+
+	var result []domain.Bank
+	for _, b := range banks {
+		result = append(result, domain.Bank{
+			ID:        int64(b.ID),
+			Code:      b.Code,
+			Name:      b.Name,
+			Show:      b.Show,
+			CreatedAt: b.CreatedAt,
+		})
+	}
+
+	if result == nil {
+		result = []domain.Bank{}
+	}
+
+	return result, nil
 }

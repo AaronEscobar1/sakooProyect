@@ -32,6 +32,34 @@ func (_c *CurrencyCreate) SetName(v string) *CurrencyCreate {
 	return _c
 }
 
+// SetShow sets the "show" field.
+func (_c *CurrencyCreate) SetShow(v bool) *CurrencyCreate {
+	_c.mutation.SetShow(v)
+	return _c
+}
+
+// SetNillableShow sets the "show" field if the given value is not nil.
+func (_c *CurrencyCreate) SetNillableShow(v *bool) *CurrencyCreate {
+	if v != nil {
+		_c.SetShow(*v)
+	}
+	return _c
+}
+
+// SetDisplayOrder sets the "display_order" field.
+func (_c *CurrencyCreate) SetDisplayOrder(v int) *CurrencyCreate {
+	_c.mutation.SetDisplayOrder(v)
+	return _c
+}
+
+// SetNillableDisplayOrder sets the "display_order" field if the given value is not nil.
+func (_c *CurrencyCreate) SetNillableDisplayOrder(v *int) *CurrencyCreate {
+	if v != nil {
+		_c.SetDisplayOrder(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *CurrencyCreate) SetCreatedAt(v time.Time) *CurrencyCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -95,6 +123,14 @@ func (_c *CurrencyCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *CurrencyCreate) defaults() {
+	if _, ok := _c.mutation.Show(); !ok {
+		v := currency.DefaultShow
+		_c.mutation.SetShow(v)
+	}
+	if _, ok := _c.mutation.DisplayOrder(); !ok {
+		v := currency.DefaultDisplayOrder
+		_c.mutation.SetDisplayOrder(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := currency.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -122,6 +158,12 @@ func (_c *CurrencyCreate) check() error {
 		if err := currency.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Currency.name": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.Show(); !ok {
+		return &ValidationError{Name: "show", err: errors.New(`ent: missing required field "Currency.show"`)}
+	}
+	if _, ok := _c.mutation.DisplayOrder(); !ok {
+		return &ValidationError{Name: "display_order", err: errors.New(`ent: missing required field "Currency.display_order"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Currency.created_at"`)}
@@ -163,6 +205,14 @@ func (_c *CurrencyCreate) createSpec() (*Currency, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(currency.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := _c.mutation.Show(); ok {
+		_spec.SetField(currency.FieldShow, field.TypeBool, value)
+		_node.Show = value
+	}
+	if value, ok := _c.mutation.DisplayOrder(); ok {
+		_spec.SetField(currency.FieldDisplayOrder, field.TypeInt, value)
+		_node.DisplayOrder = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(currency.FieldCreatedAt, field.TypeTime, value)

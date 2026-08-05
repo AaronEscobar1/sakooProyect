@@ -57,6 +57,27 @@ func (_u *DocumentTypeUpdate) SetNillableName(v *string) *DocumentTypeUpdate {
 	return _u
 }
 
+// SetDisplayOrder sets the "display_order" field.
+func (_u *DocumentTypeUpdate) SetDisplayOrder(v int) *DocumentTypeUpdate {
+	_u.mutation.ResetDisplayOrder()
+	_u.mutation.SetDisplayOrder(v)
+	return _u
+}
+
+// SetNillableDisplayOrder sets the "display_order" field if the given value is not nil.
+func (_u *DocumentTypeUpdate) SetNillableDisplayOrder(v *int) *DocumentTypeUpdate {
+	if v != nil {
+		_u.SetDisplayOrder(*v)
+	}
+	return _u
+}
+
+// AddDisplayOrder adds value to the "display_order" field.
+func (_u *DocumentTypeUpdate) AddDisplayOrder(v int) *DocumentTypeUpdate {
+	_u.mutation.AddDisplayOrder(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *DocumentTypeUpdate) SetCreatedAt(v time.Time) *DocumentTypeUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -136,6 +157,12 @@ func (_u *DocumentTypeUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(documenttype.FieldName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.DisplayOrder(); ok {
+		_spec.SetField(documenttype.FieldDisplayOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayOrder(); ok {
+		_spec.AddField(documenttype.FieldDisplayOrder, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(documenttype.FieldCreatedAt, field.TypeTime, value)
 	}
@@ -186,6 +213,27 @@ func (_u *DocumentTypeUpdateOne) SetNillableName(v *string) *DocumentTypeUpdateO
 	if v != nil {
 		_u.SetName(*v)
 	}
+	return _u
+}
+
+// SetDisplayOrder sets the "display_order" field.
+func (_u *DocumentTypeUpdateOne) SetDisplayOrder(v int) *DocumentTypeUpdateOne {
+	_u.mutation.ResetDisplayOrder()
+	_u.mutation.SetDisplayOrder(v)
+	return _u
+}
+
+// SetNillableDisplayOrder sets the "display_order" field if the given value is not nil.
+func (_u *DocumentTypeUpdateOne) SetNillableDisplayOrder(v *int) *DocumentTypeUpdateOne {
+	if v != nil {
+		_u.SetDisplayOrder(*v)
+	}
+	return _u
+}
+
+// AddDisplayOrder adds value to the "display_order" field.
+func (_u *DocumentTypeUpdateOne) AddDisplayOrder(v int) *DocumentTypeUpdateOne {
+	_u.mutation.AddDisplayOrder(v)
 	return _u
 }
 
@@ -297,6 +345,12 @@ func (_u *DocumentTypeUpdateOne) sqlSave(ctx context.Context) (_node *DocumentTy
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(documenttype.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.DisplayOrder(); ok {
+		_spec.SetField(documenttype.FieldDisplayOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayOrder(); ok {
+		_spec.AddField(documenttype.FieldDisplayOrder, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(documenttype.FieldCreatedAt, field.TypeTime, value)

@@ -64,6 +64,11 @@ func Name(v string) predicate.DocumentType {
 	return predicate.DocumentType(sql.FieldEQ(FieldName, v))
 }
 
+// DisplayOrder applies equality check predicate on the "display_order" field. It's identical to DisplayOrderEQ.
+func DisplayOrder(v int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldEQ(FieldDisplayOrder, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.DocumentType {
 	return predicate.DocumentType(sql.FieldEQ(FieldCreatedAt, v))
@@ -197,6 +202,46 @@ func NameEqualFold(v string) predicate.DocumentType {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.DocumentType {
 	return predicate.DocumentType(sql.FieldContainsFold(FieldName, v))
+}
+
+// DisplayOrderEQ applies the EQ predicate on the "display_order" field.
+func DisplayOrderEQ(v int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldEQ(FieldDisplayOrder, v))
+}
+
+// DisplayOrderNEQ applies the NEQ predicate on the "display_order" field.
+func DisplayOrderNEQ(v int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldNEQ(FieldDisplayOrder, v))
+}
+
+// DisplayOrderIn applies the In predicate on the "display_order" field.
+func DisplayOrderIn(vs ...int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldIn(FieldDisplayOrder, vs...))
+}
+
+// DisplayOrderNotIn applies the NotIn predicate on the "display_order" field.
+func DisplayOrderNotIn(vs ...int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldNotIn(FieldDisplayOrder, vs...))
+}
+
+// DisplayOrderGT applies the GT predicate on the "display_order" field.
+func DisplayOrderGT(v int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldGT(FieldDisplayOrder, v))
+}
+
+// DisplayOrderGTE applies the GTE predicate on the "display_order" field.
+func DisplayOrderGTE(v int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldGTE(FieldDisplayOrder, v))
+}
+
+// DisplayOrderLT applies the LT predicate on the "display_order" field.
+func DisplayOrderLT(v int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldLT(FieldDisplayOrder, v))
+}
+
+// DisplayOrderLTE applies the LTE predicate on the "display_order" field.
+func DisplayOrderLTE(v int) predicate.DocumentType {
+	return predicate.DocumentType(sql.FieldLTE(FieldDisplayOrder, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

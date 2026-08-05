@@ -57,6 +57,41 @@ func (_u *CurrencyUpdate) SetNillableName(v *string) *CurrencyUpdate {
 	return _u
 }
 
+// SetShow sets the "show" field.
+func (_u *CurrencyUpdate) SetShow(v bool) *CurrencyUpdate {
+	_u.mutation.SetShow(v)
+	return _u
+}
+
+// SetNillableShow sets the "show" field if the given value is not nil.
+func (_u *CurrencyUpdate) SetNillableShow(v *bool) *CurrencyUpdate {
+	if v != nil {
+		_u.SetShow(*v)
+	}
+	return _u
+}
+
+// SetDisplayOrder sets the "display_order" field.
+func (_u *CurrencyUpdate) SetDisplayOrder(v int) *CurrencyUpdate {
+	_u.mutation.ResetDisplayOrder()
+	_u.mutation.SetDisplayOrder(v)
+	return _u
+}
+
+// SetNillableDisplayOrder sets the "display_order" field if the given value is not nil.
+func (_u *CurrencyUpdate) SetNillableDisplayOrder(v *int) *CurrencyUpdate {
+	if v != nil {
+		_u.SetDisplayOrder(*v)
+	}
+	return _u
+}
+
+// AddDisplayOrder adds value to the "display_order" field.
+func (_u *CurrencyUpdate) AddDisplayOrder(v int) *CurrencyUpdate {
+	_u.mutation.AddDisplayOrder(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *CurrencyUpdate) SetCreatedAt(v time.Time) *CurrencyUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -151,6 +186,15 @@ func (_u *CurrencyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(currency.FieldName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Show(); ok {
+		_spec.SetField(currency.FieldShow, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DisplayOrder(); ok {
+		_spec.SetField(currency.FieldDisplayOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayOrder(); ok {
+		_spec.AddField(currency.FieldDisplayOrder, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(currency.FieldCreatedAt, field.TypeTime, value)
 	}
@@ -204,6 +248,41 @@ func (_u *CurrencyUpdateOne) SetNillableName(v *string) *CurrencyUpdateOne {
 	if v != nil {
 		_u.SetName(*v)
 	}
+	return _u
+}
+
+// SetShow sets the "show" field.
+func (_u *CurrencyUpdateOne) SetShow(v bool) *CurrencyUpdateOne {
+	_u.mutation.SetShow(v)
+	return _u
+}
+
+// SetNillableShow sets the "show" field if the given value is not nil.
+func (_u *CurrencyUpdateOne) SetNillableShow(v *bool) *CurrencyUpdateOne {
+	if v != nil {
+		_u.SetShow(*v)
+	}
+	return _u
+}
+
+// SetDisplayOrder sets the "display_order" field.
+func (_u *CurrencyUpdateOne) SetDisplayOrder(v int) *CurrencyUpdateOne {
+	_u.mutation.ResetDisplayOrder()
+	_u.mutation.SetDisplayOrder(v)
+	return _u
+}
+
+// SetNillableDisplayOrder sets the "display_order" field if the given value is not nil.
+func (_u *CurrencyUpdateOne) SetNillableDisplayOrder(v *int) *CurrencyUpdateOne {
+	if v != nil {
+		_u.SetDisplayOrder(*v)
+	}
+	return _u
+}
+
+// AddDisplayOrder adds value to the "display_order" field.
+func (_u *CurrencyUpdateOne) AddDisplayOrder(v int) *CurrencyUpdateOne {
+	_u.mutation.AddDisplayOrder(v)
 	return _u
 }
 
@@ -330,6 +409,15 @@ func (_u *CurrencyUpdateOne) sqlSave(ctx context.Context) (_node *Currency, err 
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(currency.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Show(); ok {
+		_spec.SetField(currency.FieldShow, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DisplayOrder(); ok {
+		_spec.SetField(currency.FieldDisplayOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayOrder(); ok {
+		_spec.AddField(currency.FieldDisplayOrder, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(currency.FieldCreatedAt, field.TypeTime, value)

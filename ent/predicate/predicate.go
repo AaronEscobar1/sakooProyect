@@ -9,6 +9,9 @@ import (
 // ApiLog is the predicate function for apilog builders.
 type ApiLog func(*sql.Selector)
 
+// Bank is the predicate function for bank builders.
+type Bank func(*sql.Selector)
+
 // BankAccount is the predicate function for bankaccount builders.
 type BankAccount func(*sql.Selector)
 

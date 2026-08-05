@@ -27,6 +27,20 @@ var (
 		Columns:    APILogsColumns,
 		PrimaryKey: []*schema.Column{APILogsColumns[0]},
 	}
+	// BanksColumns holds the columns for the "banks" table.
+	BanksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "code", Type: field.TypeString, Unique: true, Size: 20},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "show", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// BanksTable holds the schema information for the "banks" table.
+	BanksTable = &schema.Table{
+		Name:       "banks",
+		Columns:    BanksColumns,
+		PrimaryKey: []*schema.Column{BanksColumns[0]},
+	}
 	// BankAccountsColumns holds the columns for the "bank_accounts" table.
 	BankAccountsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -93,6 +107,8 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "code", Type: field.TypeString, Unique: true, Size: 10},
 		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "show", Type: field.TypeBool, Default: true},
+		{Name: "display_order", Type: field.TypeInt, Default: 0},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -107,6 +123,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "code", Type: field.TypeString, Unique: true, Size: 50},
 		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "display_order", Type: field.TypeInt, Default: 0},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// DocumentTypeTable holds the schema information for the "document_type" table.
@@ -327,6 +344,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APILogsTable,
+		BanksTable,
 		BankAccountsTable,
 		BannersTable,
 		CommentsTable,
@@ -352,6 +370,9 @@ var (
 func init() {
 	APILogsTable.Annotation = &entsql.Annotation{
 		Table: "api_logs",
+	}
+	BanksTable.Annotation = &entsql.Annotation{
+		Table: "banks",
 	}
 	BankAccountsTable.Annotation = &entsql.Annotation{
 		Table: "bank_accounts",

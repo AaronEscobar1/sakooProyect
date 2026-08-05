@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
 	"time"
 
 	"github.com/aaron/sakoo-backend/ent"
@@ -29,23 +28,10 @@ func (r *exchangeRateRepository) Upsert(ctx context.Context, rate *domain.Exchan
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	slog.Debug("Preparando Upsert de tasa de cambio en Ent",
-		"currency_id", rate.CurrencyID,
-		"value_date", rate.ValueDate,
-	)
-
-	if rate.Status == "" {
-		rate.Status = "REGISTERED"
-	}
-	if rate.Source == "" {
-		rate.Source = "SCRAPING"
-	}
-
 	rateFromFloat, _ := rate.RateFrom.Float64()
 	rateToFloat, _ := rate.RateTo.Float64()
 	rateAvgFloat, _ := rate.RateAverage.Float64()
 
-	// Buscar si ya existe
 	existing, err := r.client.ExchangeRate.Query().
 		Where(
 			exchangerate.CurrencyID(rate.CurrencyID),
@@ -99,7 +85,9 @@ func (r *exchangeRateRepository) GetCurrencyIDs(ctx context.Context) (map[string
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	currencies, err := r.client.Currency.Query().All(dbCtx)
+	currencies, err := r.client.Currency.Query().
+		Where(currency.ShowEQ(true)).
+		All(dbCtx)
 	if err != nil {
 		slog.Error("Fallo al consultar catálogo de monedas en Ent", "error", err)
 		return nil, fmt.Errorf("error al consultar catálogo de monedas: %w", err)
@@ -117,7 +105,9 @@ func (r *exchangeRateRepository) GetLatestRates(ctx context.Context) ([]domain.E
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	currencies, err := r.client.Currency.Query().All(dbCtx)
+	currencies, err := r.client.Currency.Query().
+		Where(currency.ShowEQ(true)).
+		All(dbCtx)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar monedas: %w", err)
 	}
@@ -149,11 +139,23 @@ func (r *exchangeRateRepository) GetRatesHistoryPaginated(
 	query := r.client.ExchangeRate.Query()
 
 	if currencyCode != "" {
-		c, err := r.client.Currency.Query().Where(currency.CodeEQ(currencyCode)).Only(dbCtx)
+		c, err := r.client.Currency.Query().
+			Where(currency.CodeEQ(currencyCode), currency.ShowEQ(true)).
+			Only(dbCtx)
 		if err == nil {
 			query = query.Where(exchangerate.CurrencyID(int64(c.ID)))
 		}
+	} else {
+		cIDs, err := r.client.Currency.Query().Where(currency.ShowEQ(true)).IDs(dbCtx)
+		if err == nil {
+			var ids []int64
+			for _, id := range cIDs {
+				ids = append(ids, int64(id))
+			}
+			query = query.Where(exchangerate.CurrencyIDIn(ids...))
+		}
 	}
+
 	if startDate != nil {
 		query = query.Where(exchangerate.ValueDateGTE(*startDate))
 	}
@@ -200,7 +202,9 @@ func (r *exchangeRateRepository) GetLatestRate(ctx context.Context, currencyCode
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	c, err := r.client.Currency.Query().Where(currency.CodeEQ(currencyCode)).Only(dbCtx)
+	c, err := r.client.Currency.Query().
+		Where(currency.CodeEQ(currencyCode), currency.ShowEQ(true)).
+		Only(dbCtx)
 	if err != nil {
 		return nil, domain.ErrNotFound
 	}
@@ -225,7 +229,9 @@ func (r *exchangeRateRepository) GetPreviousRate(ctx context.Context, currencyCo
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	c, err := r.client.Currency.Query().Where(currency.CodeEQ(currencyCode)).Only(dbCtx)
+	c, err := r.client.Currency.Query().
+		Where(currency.CodeEQ(currencyCode), currency.ShowEQ(true)).
+		Only(dbCtx)
 	if err != nil {
 		return nil, domain.ErrNotFound
 	}
@@ -253,7 +259,9 @@ func (r *exchangeRateRepository) GetRateByDate(ctx context.Context, currencyCode
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	c, err := r.client.Currency.Query().Where(currency.CodeEQ(currencyCode)).Only(dbCtx)
+	c, err := r.client.Currency.Query().
+		Where(currency.CodeEQ(currencyCode), currency.ShowEQ(true)).
+		Only(dbCtx)
 	if err != nil {
 		return nil, domain.ErrNotFound
 	}
@@ -280,7 +288,9 @@ func (r *exchangeRateRepository) GetRatesHistory(ctx context.Context, currencyCo
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	c, err := r.client.Currency.Query().Where(currency.CodeEQ(currencyCode)).Only(dbCtx)
+	c, err := r.client.Currency.Query().
+		Where(currency.CodeEQ(currencyCode), currency.ShowEQ(true)).
+		Only(dbCtx)
 	if err != nil {
 		return nil, nil
 	}
@@ -307,7 +317,9 @@ func (r *exchangeRateRepository) GetLatestRateBeforeOrAt(ctx context.Context, cu
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	c, err := r.client.Currency.Query().Where(currency.CodeEQ(currencyCode)).Only(dbCtx)
+	c, err := r.client.Currency.Query().
+		Where(currency.CodeEQ(currencyCode), currency.ShowEQ(true)).
+		Only(dbCtx)
 	if err != nil {
 		return nil, domain.ErrNotFound
 	}
@@ -335,7 +347,9 @@ func (r *exchangeRateRepository) GetRatesHistoryBeforeOrAt(ctx context.Context, 
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	c, err := r.client.Currency.Query().Where(currency.CodeEQ(currencyCode)).Only(dbCtx)
+	c, err := r.client.Currency.Query().
+		Where(currency.CodeEQ(currencyCode), currency.ShowEQ(true)).
+		Only(dbCtx)
 	if err != nil {
 		return nil, nil
 	}
@@ -365,7 +379,26 @@ func (r *exchangeRateRepository) GetCalendarDates(ctx context.Context) ([]string
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	cIDs, err := r.client.Currency.Query().
+		Where(currency.ShowEQ(true)).
+		IDs(dbCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error al consultar monedas visibles: %w", err)
+	}
+
+	var ids []int64
+	for _, id := range cIDs {
+		ids = append(ids, int64(id))
+	}
+
+	loc, _ := time.LoadLocation("America/Caracas")
+	nowCaracas := time.Now().In(loc)
+
 	entRates, err := r.client.ExchangeRate.Query().
+		Where(
+			exchangerate.CurrencyIDIn(ids...),
+			exchangerate.ValueDateLTE(nowCaracas),
+		).
 		Order(ent.Desc(exchangerate.FieldValueDate)).
 		All(dbCtx)
 
@@ -420,10 +453,25 @@ func (r *exchangeRateRepository) GetLast7DaysRates(ctx context.Context) ([]domai
 	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	cIDs, err := r.client.Currency.Query().
+		Where(currency.ShowEQ(true)).
+		IDs(dbCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error al consultar monedas visibles: %w", err)
+	}
+
+	var ids []int64
+	for _, id := range cIDs {
+		ids = append(ids, int64(id))
+	}
+
 	cutoff := time.Now().AddDate(0, 0, -7)
 
 	entRates, err := r.client.ExchangeRate.Query().
-		Where(exchangerate.ValueDateGTE(cutoff)).
+		Where(
+			exchangerate.CurrencyIDIn(ids...),
+			exchangerate.ValueDateGTE(cutoff),
+		).
 		Order(ent.Desc(exchangerate.FieldValueDate)).
 		All(dbCtx)
 
@@ -473,8 +521,23 @@ func (r *exchangeRateRepository) MarkRateNotified(ctx context.Context, rateID in
 }
 
 func (r *exchangeRateRepository) ApproveDueRates(ctx context.Context) (int64, error) {
-	// Dummy implementation for compatibility
-	return 0, nil
+	dbCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	loc, _ := time.LoadLocation("America/Caracas")
+	nowCaracas := time.Now().In(loc)
+
+	affected, err := r.client.ExchangeRate.Update().
+		Where(exchangerate.ValueDateLTE(nowCaracas)).
+		SetUpdatedAt(time.Now()).
+		Save(dbCtx)
+
+	if err != nil {
+		slog.Error("Fallo al auto-aprobar tasas vencidas en Ent", "error", err)
+		return 0, fmt.Errorf("error al auto-aprobar tasas vencidas: %w", err)
+	}
+
+	return int64(affected), nil
 }
 
 func toDomainExchangeRate(er *ent.ExchangeRate, currencyCode string) domain.ExchangeRate {

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/aaron/sakoo-backend/ent/apilog"
+	"github.com/aaron/sakoo-backend/ent/bank"
 	"github.com/aaron/sakoo-backend/ent/bankaccount"
 	"github.com/aaron/sakoo-backend/ent/banner"
 	"github.com/aaron/sakoo-backend/ent/comment"
@@ -93,6 +94,7 @@ func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			apilog.Table:              apilog.ValidColumn,
+			bank.Table:                bank.ValidColumn,
 			bankaccount.Table:         bankaccount.ValidColumn,
 			banner.Table:              banner.ValidColumn,
 			comment.Table:             comment.ValidColumn,

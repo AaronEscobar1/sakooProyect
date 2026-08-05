@@ -8,21 +8,21 @@ import (
 	"time"
 )
 
-type DocumentType struct {
+type Bank struct {
 	ent.Schema
 }
 
-func (DocumentType) Annotations() []schema.Annotation {
+func (Bank) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entsql.Annotation{Table: "document_type", Schema: "catalogs"},
+		entsql.Annotation{Table: "banks", Schema: "catalogs"},
 	}
 }
 
-func (DocumentType) Fields() []ent.Field {
+func (Bank) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("code").MaxLen(50).Unique(),
+		field.String("code").MaxLen(20).Unique(),
 		field.String("name").MaxLen(100),
-		field.Int("display_order").Default(0),
+		field.Bool("show").Default(true),
 		field.Time("created_at").Default(time.Now),
 	}
 }

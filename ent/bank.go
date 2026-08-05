@@ -9,11 +9,11 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/aaron/sakoo-backend/ent/currency"
+	"github.com/aaron/sakoo-backend/ent/bank"
 )
 
-// Currency is the model entity for the Currency schema.
-type Currency struct {
+// Bank is the model entity for the Bank schema.
+type Bank struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
@@ -23,27 +23,23 @@ type Currency struct {
 	Name string `json:"name,omitempty"`
 	// Show holds the value of the "show" field.
 	Show bool `json:"show,omitempty"`
-	// DisplayOrder holds the value of the "display_order" field.
-	DisplayOrder int `json:"display_order,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	CreatedAt    time.Time `json:"created_at,omitempty"`
 	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*Currency) scanValues(columns []string) ([]any, error) {
+func (*Bank) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case currency.FieldShow:
+		case bank.FieldShow:
 			values[i] = new(sql.NullBool)
-		case currency.FieldID, currency.FieldDisplayOrder:
+		case bank.FieldID:
 			values[i] = new(sql.NullInt64)
-		case currency.FieldCode, currency.FieldName:
+		case bank.FieldCode, bank.FieldName:
 			values[i] = new(sql.NullString)
-		case currency.FieldCreatedAt, currency.FieldUpdatedAt:
+		case bank.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -53,54 +49,42 @@ func (*Currency) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the Currency fields.
-func (_m *Currency) assignValues(columns []string, values []any) error {
+// to the Bank fields.
+func (_m *Bank) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case currency.FieldID:
+		case bank.FieldID:
 			value, ok := values[i].(*sql.NullInt64)
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case currency.FieldCode:
+		case bank.FieldCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field code", values[i])
 			} else if value.Valid {
 				_m.Code = value.String
 			}
-		case currency.FieldName:
+		case bank.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
 			}
-		case currency.FieldShow:
+		case bank.FieldShow:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field show", values[i])
 			} else if value.Valid {
 				_m.Show = value.Bool
 			}
-		case currency.FieldDisplayOrder:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field display_order", values[i])
-			} else if value.Valid {
-				_m.DisplayOrder = int(value.Int64)
-			}
-		case currency.FieldCreatedAt:
+		case bank.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
-			}
-		case currency.FieldUpdatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
-			} else if value.Valid {
-				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -109,34 +93,34 @@ func (_m *Currency) assignValues(columns []string, values []any) error {
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the Currency.
+// Value returns the ent.Value that was dynamically selected and assigned to the Bank.
 // This includes values selected through modifiers, order, etc.
-func (_m *Currency) Value(name string) (ent.Value, error) {
+func (_m *Bank) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// Update returns a builder for updating this Currency.
-// Note that you need to call Currency.Unwrap() before calling this method if this Currency
+// Update returns a builder for updating this Bank.
+// Note that you need to call Bank.Unwrap() before calling this method if this Bank
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *Currency) Update() *CurrencyUpdateOne {
-	return NewCurrencyClient(_m.config).UpdateOne(_m)
+func (_m *Bank) Update() *BankUpdateOne {
+	return NewBankClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the Currency entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the Bank entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *Currency) Unwrap() *Currency {
+func (_m *Bank) Unwrap() *Bank {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("ent: Currency is not a transactional entity")
+		panic("ent: Bank is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *Currency) String() string {
+func (_m *Bank) String() string {
 	var builder strings.Builder
-	builder.WriteString("Currency(")
+	builder.WriteString("Bank(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("code=")
 	builder.WriteString(_m.Code)
@@ -147,17 +131,11 @@ func (_m *Currency) String() string {
 	builder.WriteString("show=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Show))
 	builder.WriteString(", ")
-	builder.WriteString("display_order=")
-	builder.WriteString(fmt.Sprintf("%v", _m.DisplayOrder))
-	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }
 
-// Currencies is a parsable slice of Currency.
-type Currencies []*Currency
+// Banks is a parsable slice of Bank.
+type Banks []*Bank

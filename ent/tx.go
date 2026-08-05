@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// ApiLog is the client for interacting with the ApiLog builders.
 	ApiLog *ApiLogClient
+	// Bank is the client for interacting with the Bank builders.
+	Bank *BankClient
 	// BankAccount is the client for interacting with the BankAccount builders.
 	BankAccount *BankAccountClient
 	// Banner is the client for interacting with the Banner builders.
@@ -184,6 +186,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.ApiLog = NewApiLogClient(tx.config)
+	tx.Bank = NewBankClient(tx.config)
 	tx.BankAccount = NewBankAccountClient(tx.config)
 	tx.Banner = NewBannerClient(tx.config)
 	tx.Comment = NewCommentClient(tx.config)
