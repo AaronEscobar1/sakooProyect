@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aaron/sakoo-backend/ent"
+	"github.com/aaron/sakoo-backend/ent/currency"
 	_ "github.com/lib/pq"
 
 	"github.com/aaron/sakoo-backend/internal/api"
@@ -108,6 +109,17 @@ func main() {
 		slog.Info("Cerrando el cliente Ent...")
 		entClient.Close()
 		slog.Info("Cliente Ent cerrado con éxito")
+	}()
+
+	// Paso Autocurativo: Garantizar nombres de monedas para la app móvil en PostgreSQL
+	go func() {
+		ctxAuto, cancelAuto := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelAuto()
+		_ = entClient.Currency.Update().Where(currency.CodeEQ("COP"), currency.Or(currency.NameEQ(""), currency.NameEQ("COP"))).SetName("PESO COLOMBIANO").Exec(ctxAuto)
+		_ = entClient.Currency.Update().Where(currency.CodeEQ("USDT"), currency.Or(currency.NameEQ(""), currency.NameEQ("USDT"))).SetName("TETHER").Exec(ctxAuto)
+		_ = entClient.Currency.Update().Where(currency.CodeEQ("USDC"), currency.Or(currency.NameEQ(""), currency.NameEQ("USDC"))).SetName("USD COIN").Exec(ctxAuto)
+		_ = entClient.Currency.Update().Where(currency.CodeEQ("USD"), currency.Or(currency.NameEQ(""), currency.NameEQ("USD"))).SetName("DÓLAR ESTADOUNIDENSE").Exec(ctxAuto)
+		_ = entClient.Currency.Update().Where(currency.CodeEQ("EUR"), currency.Or(currency.NameEQ(""), currency.NameEQ("EUR"))).SetName("EURO").Exec(ctxAuto)
 	}()
 
 	// 5. Leer clave secreta para firmar tokens JWT y la API Key administrativa.
