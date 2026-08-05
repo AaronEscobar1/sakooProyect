@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/aaron/sakoo-backend/ent"
@@ -77,39 +76,39 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 	var result []domain.Currency
 	for _, c := range currencies {
 		name := c.Name
-		if name == "" || strings.EqualFold(name, c.Code) {
-			switch c.Code {
-			case "COP":
-				name = "PESO COLOMBIANO"
-			case "USDT":
-				name = "TETHER"
-			case "USDC":
-				name = "USD COIN"
-			case "USD":
-				name = "DÓLAR ESTADOUNIDENSE"
-			case "EUR":
-				name = "EURO"
-			case "VES":
-				name = "BOLÍVAR VENEZOLANO"
-			case "BRL":
-				name = "REAL BRASILEÑO"
-			case "ARS":
-				name = "PESO ARGENTINO"
-			case "CLP":
-				name = "PESO CHILENO"
-			case "PEN":
-				name = "SOL PERUANO"
-			case "CRC":
-				name = "COLÓN COSTARRICENSE"
-			case "CNY":
-				name = "YUAN CHINO"
-			case "TRY":
-				name = "LIRA TURCA"
-			case "RUB":
-				name = "RUBLO RUSO"
-			case "UDI":
-				name = "DÓLAR INTERVENCIÓN"
-			default:
+		switch c.Code {
+		case "COP":
+			name = "PESO COLOMBIANO"
+		case "USDT":
+			name = "TETHER"
+		case "USDC":
+			name = "USD COIN"
+		case "USD":
+			name = "DÓLAR ESTADOUNIDENSE"
+		case "EUR":
+			name = "EURO"
+		case "VES":
+			name = "BOLÍVAR VENEZOLANO"
+		case "BRL":
+			name = "REAL BRASILEÑO"
+		case "ARS":
+			name = "PESO ARGENTINO"
+		case "CLP":
+			name = "PESO CHILENO"
+		case "PEN":
+			name = "SOL PERUANO"
+		case "CRC":
+			name = "COLÓN COSTARRICENSE"
+		case "CNY":
+			name = "YUAN CHINO"
+		case "TRY":
+			name = "LIRA TURCA"
+		case "RUB":
+			name = "RUBLO RUSO"
+		case "UDI":
+			name = "DÓLAR INTERVENCIÓN"
+		default:
+			if name == "" {
 				name = c.Code
 			}
 		}
