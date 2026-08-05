@@ -5,11 +5,12 @@ import (
 	"time"
 )
 
-// Currency representa la moneda disponible en el catálogo (ej: USD, EUR, CRC).
+// Currency representa la moneda disponible en el catálogo (ej: USD, EUR, USDT, USDC).
 type Currency struct {
 	ID           int64     `json:"id"`
 	Code         string    `json:"code"`
 	Name         string    `json:"name"`
+	Description  string    `json:"description,omitempty"`
 	DisplayOrder int       `json:"display_order"`
 	CreatedAt    time.Time `json:"created_at,omitempty"`
 	UpdatedAt    time.Time `json:"updated_at,omitempty"`

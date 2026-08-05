@@ -75,10 +75,47 @@ func (r *catalogRepository) GetCurrencies(ctx context.Context) ([]domain.Currenc
 
 	var result []domain.Currency
 	for _, c := range currencies {
+		name := c.Name
+		if name == "" || name == c.Code {
+			switch c.Code {
+			case "USDT":
+				name = "Tether USDT"
+			case "USDC":
+				name = "USD Coin"
+			case "USD":
+				name = "Dólar Estadounidense"
+			case "EUR":
+				name = "Euro"
+			case "COP":
+				name = "Peso Colombiano"
+			case "VES":
+				name = "Bolívar Venezolano"
+			case "BRL":
+				name = "Real Brasileño"
+			case "ARS":
+				name = "Peso Argentino"
+			case "CLP":
+				name = "Peso Chileno"
+			case "PEN":
+				name = "Sol Peruano"
+			case "CRC":
+				name = "Colón Costarricense"
+			case "CNY":
+				name = "Yuan Chino"
+			case "TRY":
+				name = "Lira Turca"
+			case "RUB":
+				name = "Rublo Ruso"
+			default:
+				name = c.Code
+			}
+		}
+
 		result = append(result, domain.Currency{
 			ID:           int64(c.ID),
 			Code:         c.Code,
-			Name:         c.Name,
+			Name:         name,
+			Description:  name,
 			DisplayOrder: c.DisplayOrder,
 			CreatedAt:    c.CreatedAt,
 			UpdatedAt:    c.UpdatedAt,
