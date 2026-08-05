@@ -73,6 +73,7 @@ ALTER TABLE market.exchange_rates ADD COLUMN IF NOT EXISTS source VARCHAR(50) DE
 -- 4. Concepto en Compromisos de Pago
 ALTER TABLE finance.payment_commitments ADD COLUMN IF NOT EXISTS concept VARCHAR(255) NULL;
 
--- 5. Ordenamiento en Catálogos
+-- 5. Ordenamiento y Visibilidad en Catálogos
+ALTER TABLE catalogs.currency ADD COLUMN IF NOT EXISTS "show" BOOLEAN DEFAULT TRUE;
 ALTER TABLE catalogs.currency ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 0;
 ALTER TABLE catalogs.document_type ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 0;
